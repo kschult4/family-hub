@@ -1,3 +1,58 @@
+.meal-card.inactive {
+  height: 282px;
+  opacity: 0.6;
+  filter: grayscale(10%) brightness(0.95);
+  transition: height 0.3s, opacity 0.3s, filter 0.3s;
+}
+/* === Custom Meal Card Styles === */
+.meal-cards-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+ .meal-card {
+  width: 1365px;
+  height: 297px;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #fff;
+}
+
+.meal-card-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+.meal-card-label {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #48AF55;
+  margin-bottom: 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.meal-card-meal {
+  font-size: 2.25rem;
+  font-weight: 300;
+  color: #fff;
+  text-align: left;
+  width: 100%;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
