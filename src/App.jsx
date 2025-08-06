@@ -3,9 +3,16 @@ import Header from "./components/Header";
 import FooterNav from "./components/FooterNav";
 import DashboardView from "./components/DashboardView";
 import AppBackground from "./components/AppBackground";
+import ShoppingList from "./components/ShoppingList";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState("ALERTS");
+  const [groceryItems, setGroceryItems] = useState([]);
+
+  // Handler to add a grocery item from modal
+  const handleSaveGrocery = (newItem) => {
+    setGroceryItems((prev) => [newItem, ...prev]);
+  };
 
   return (
     <AppBackground>
@@ -16,7 +23,7 @@ export default function App() {
           <DashboardView currentTab={currentTab} />
         </div>
 
-        <FooterNav current={currentTab} onNavigate={setCurrentTab} />
+        <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} />
       </div>
     </AppBackground>
   );
