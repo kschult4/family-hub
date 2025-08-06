@@ -8,6 +8,7 @@ export default function AlertsDashboard() {
     <div className="p-4 flex flex-col gap-4">
       <Calendar />
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Half-width ShoppingList at the top left of the grid */}
         <ShoppingList />
         <TaskList />
       </section>

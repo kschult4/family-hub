@@ -5,7 +5,7 @@ import AddGroceryModal from "./AddGroceryModal";
 import AddTaskModal from "./AddTaskModal";
 import MealsModal from "./MealsModal";
 
-export default function FooterNav({ current, onNavigate }) {
+export default function FooterNav({ current, onNavigate, onSaveGrocery }) {
   const navItems = ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
 
@@ -13,26 +13,25 @@ export default function FooterNav({ current, onNavigate }) {
 
   return (
     <>
-      <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[88px]">
+      {/* Responsive height: 91px at 1920px, scales down for smaller screens */}
+      <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[91px] md:h-[88px] sm:h-[72px]">
         <div className="flex items-center justify-between max-w-screen-xl mx-auto px-8 h-full">
-          {/* Nav Items */}
-          <div className="flex gap-16 text-[#5A3210] text-xl sm:text-2xl font-semibold uppercase tracking-wide">
+          <div className="flex gap-16 text-[#5A3210] text-xl md:text-2xl lg:text-3xl font-bold font-oswald uppercase tracking-wide -ml-[55px]">
             {navItems.map((item) => (
               <button
                 key={item}
                 onClick={() => onNavigate(item)}
                 className={`transition-opacity duration-200 ${
                   item === current ? "opacity-100" : "opacity-60"
-                }`}
+                } font-oswald font-bold`}
               >
                 {item}
               </button>
             ))}
           </div>
 
-          {/* FAB Container */}
-          <div className="relative z-10">
-            <div className="flex gap-4 bg-[#F7E4C3] rounded-tl-[64px] rounded-tr-[64px] px-4 pt-6 pb-3 -translate-y-6">
+          <div className="relative z-10" style={{ right: '-40px', position: 'relative' }}>
+            <div className="flex gap-8 bg-[#F7E4C3] rounded-tl-[64px] rounded-tr-[64px] px-4 pt-6 pb-3 -translate-y-6">
               <FloatingButtonWithMenu onSelect={setActiveModal} />
               <FloatingMicButton />
             </div>
@@ -40,8 +39,7 @@ export default function FooterNav({ current, onNavigate }) {
         </div>
       </footer>
 
-      {/* Modals */}
-      <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} />
+      <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} onSave={onSaveGrocery} />
       <AddTaskModal isOpen={activeModal === "task"} task={null} onClose={closeModal} />
       <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} />
     </>
@@ -60,25 +58,25 @@ function FloatingButtonWithMenu({ onSelect }) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="w-16 h-16 rounded-full flex items-center justify-center text-white transition-transform duration-300 ease-in-out active:scale-95"
+        className="w-20 h-20 rounded-full flex items-center justify-center text-white transition-transform duration-300 ease-in-out active:scale-95"
         style={{ backgroundColor: "#B75634" }}
       >
         <motion.div
           initial={false}
           animate={{ rotate: open ? 405 : 0 }}
           transition={{ duration: 0.3 }}
-          className="w-8 h-8"
+          className="w-10 h-10"
         >
           <svg
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full text-white"
+            className="w-full h-full text-black"
           >
             <path
               d="M12 5V19M5 12H19"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -133,40 +131,40 @@ function FloatingMicButton() {
   return (
     <button
       onClick={() => {}}
-      className="w-16 h-16 rounded-full flex items-center justify-center text-black transition-transform duration-100 ease-in-out active:scale-95"
+      className="w-20 h-20 rounded-full flex items-center justify-center text-black transition-transform duration-100 ease-in-out active:scale-95"
       style={{ backgroundColor: "#EFB643" }}
     >
       <svg
         viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-8 h-8 text-black"
+        className="w-10 h-10 text-black"
       >
         <path
           d="M12 15C13.6569 15 15 13.6569 15 12V6C15 4.34315 13.6569 3 12 3C10.3431 3 9 4.34315 9 6V12C9 13.6569 10.3431 15 12 15Z"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
           d="M19 10V12C19 15.3137 16.3137 18 13 18H11C7.68629 18 5 15.3137 5 12V10"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
           d="M12 18V22"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
           d="M8 22H16"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
