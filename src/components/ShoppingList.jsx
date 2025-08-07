@@ -161,11 +161,20 @@ export default function ShoppingList({ items = [], setItems }) {
       />
 
       <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-8 h-[500px] flex flex-col">
-        <ul className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
-          <AnimatePresence>
-            {items
-              .filter((item) => !item.checked)
-              .map((item) => {
+        {items.filter((item) => !item.checked).length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🛒</div>
+              <p className="text-gray-500 text-lg font-medium">Your shopping list is empty</p>
+              <p className="text-gray-400 text-sm mt-2">Add items to get started</p>
+            </div>
+          </div>
+        ) : (
+          <ul className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
+            <AnimatePresence>
+              {items
+                .filter((item) => !item.checked)
+                .map((item) => {
                 let styleProps = {};
                 let textColor = "#ffffff";
                 let fontSize = "1.5rem";
@@ -222,45 +231,51 @@ export default function ShoppingList({ items = [], setItems }) {
                   </motion.li>
                 );
               })}
-          </AnimatePresence>
-        </ul>
+            </AnimatePresence>
+          </ul>
+        )}
       </div>
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">
-                {editItem ? "Edit Item" : "Add Item"}
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-serif text-[#5A3210]">
+                {editItem ? "Edit Item" : "Add New Item"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-light"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-light w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="w-full border rounded p-2 mb-4"
-              placeholder="Item name..."
-            />
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors text-base"
+                placeholder="e.g., Bananas, Milk, Bread..."
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              />
+            </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-between gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-primary text-white rounded hover:bg-indigo-700"
+                className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-md"
               >
-                Save
+                {editItem ? "Update" : "Add Item"}
               </button>
             </div>
           </div>
