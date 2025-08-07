@@ -5,9 +5,6 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave }) {
   const [frequency, setFrequency] = useState("");
   const [recurring, setRecurring] = useState("");
 
-  // ✅ Don't render if not open
-  if (!isOpen) return null;
-
   useEffect(() => {
     if (task) {
       setDescription(task.description || "");
@@ -15,6 +12,9 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave }) {
       setRecurring(task.recurring ? "true" : "false");
     }
   }, [task]);
+
+  // ✅ Don't render if not open
+  if (!isOpen) return null;
 
   function handleSubmit(e) {
     e.preventDefault();

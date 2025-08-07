@@ -1,4 +1,5 @@
 import WeatherWidget from "./WeatherWidget";
+import MoonPhaseWidget from "./MoonPhaseWidget";
 import { useEffect, useState } from "react";
 
 export default function Header() {
@@ -22,8 +23,8 @@ export default function Header() {
 
   return (
     <header className="w-full bg-transparent shadow-none px-6 py-6 mb-6 flex justify-between items-center">
-      {/* Empty placeholder for left alignment symmetry */}
-      <div className="w-12" />
+      {/* Left: Moon Phase */}
+      <MoonPhaseWidget />
 
       {/* Center: Date + Time */}
       <div className="flex flex-col items-center justify-center text-center">

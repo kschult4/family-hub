@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SectionHeader from "./SectionHeader";
 
@@ -26,9 +26,45 @@ function getContrast(hex1, hex2) {
 
 const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
 
+// Component to handle text overflow detection
+function OverflowFadeText({ text, isSpecial, bgColor, className }) {
+  const textRef = useRef(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (textRef.current) {
+        const element = textRef.current;
+        setIsOverflowing(element.scrollWidth > element.clientWidth);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [text]);
+
+  return (
+    <span 
+      ref={textRef}
+      className={`${className} whitespace-nowrap overflow-hidden relative`}
+    >
+      {text}
+      {isOverflowing && (
+        <div 
+          className="absolute top-0 right-0 w-8 h-full pointer-events-none"
+          style={{
+            background: isSpecial 
+              ? `linear-gradient(to right, transparent 0%, ${bgColor || '#ffffff'} 100%)`
+              : 'linear-gradient(to right, transparent 0%, rgb(249, 250, 251) 100%)'
+          }}
+        />
+      )}
+    </span>
+  );
+}
+
 export default function ShoppingList({ items = [], setItems }) {
-  // Debug: log items prop on every render
-  console.log('ShoppingList items:', items);
   // Utility to convert a string to sentence case
   function toSentenceCase(str) {
     if (!str) return "";
@@ -122,31 +158,21 @@ export default function ShoppingList({ items = [], setItems }) {
       <SectionHeader
         title="Shopping List"
         className="mb-4"
-        rightSlot={
-          <button
-            className="text-white bg-primary rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold shadow-lg hover:bg-indigo-600 transition"
-            onClick={handleAddClick}
-            aria-label="Add item"
-          >
-            +
-          </button>
-        }
       />
 
       <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-8 h-[500px] flex flex-col">
-        <ul className="space-y-3 overflow-y-auto scroll-hide pr-2">
+        <ul className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
           <AnimatePresence>
             {items
               .filter((item) => !item.checked)
               .map((item) => {
-                console.log('Rendering item:', item);
                 let styleProps = {};
                 let textColor = "#ffffff";
                 let fontSize = "1.5rem";
                 let height = "4.5rem";
                 if (item.special) {
                   height = "7.875rem";
-                  fontSize = "2.25rem";
+                  fontSize = "1.75rem";
                   if (item.bgColor) {
                     const contrast = getContrast(item.bgColor, textColor);
                     if (contrast < 4.5) textColor = "#000000";
@@ -182,11 +208,16 @@ export default function ShoppingList({ items = [], setItems }) {
                     />
                     <div
                       className={item.special
-                        ? "flex-1 flex items-center justify-between"
-                        : "bg-gray-50 rounded-xl px-4 py-3 text-base text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition"}
+                        ? "flex-1 flex items-center justify-between overflow-hidden"
+                        : "bg-gray-50 rounded-xl px-4 py-3 text-base text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition overflow-hidden"}
                       style={item.special ? styleProps : {}}
                     >
-                      <span className={item.special ? "tracking-wide" : "font-medium tracking-wide"}>{toSentenceCase(item.text || item.name || "")}</span>
+                      <OverflowFadeText
+                        text={toSentenceCase(item.text || item.name || "")}
+                        isSpecial={item.special}
+                        bgColor={item.bgColor}
+                        className={item.special ? "tracking-wide" : "font-medium tracking-wide"}
+                      />
                     </div>
                   </motion.li>
                 );

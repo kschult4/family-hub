@@ -5,7 +5,7 @@ import AddGroceryModal from "./AddGroceryModal";
 import AddTaskModal from "./AddTaskModal";
 import MealsModal from "./MealsModal";
 
-export default function FooterNav({ current, onNavigate, onSaveGrocery }) {
+export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems }) {
   const navItems = ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
 
@@ -16,14 +16,14 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery }) {
       {/* Responsive height: 91px at 1920px, scales down for smaller screens */}
       <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[91px] md:h-[88px] sm:h-[72px]">
         <div className="flex items-center justify-between max-w-screen-xl mx-auto px-8 h-full">
-          <div className="flex gap-16 text-[#5A3210] text-xl md:text-2xl lg:text-3xl font-bold font-oswald uppercase tracking-wide -ml-[55px]">
+          <div className="flex gap-16 text-[#5A3210] text-xl md:text-2xl lg:text-3xl font-bold font-condensed uppercase tracking-wide -ml-[55px]">
             {navItems.map((item) => (
               <button
                 key={item}
                 onClick={() => onNavigate(item)}
                 className={`transition-opacity duration-200 ${
                   item === current ? "opacity-100" : "opacity-60"
-                } font-oswald font-bold`}
+                } font-condensed font-bold`}
               >
                 {item}
               </button>
@@ -39,9 +39,9 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery }) {
         </div>
       </footer>
 
-      <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} onSave={onSaveGrocery} />
-      <AddTaskModal isOpen={activeModal === "task"} task={null} onClose={closeModal} />
-      <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} />
+      <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} onSave={onSaveGrocery} currentItems={groceryItems} />
+      <AddTaskModal isOpen={activeModal === "task"} task={null} onClose={closeModal} onSave={onSaveTask} />
+      <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} onSave={onSaveMeals} />
     </>
   );
 }
@@ -93,28 +93,28 @@ function FloatingButtonWithMenu({ onSelect }) {
             transition={{ duration: 0.2 }}
             className="absolute bottom-20 left-0 w-64 bg-white rounded-xl shadow-lg p-4 text-left z-20"
           >
-            <div className="text-sm text-gray-500 mb-3">Create a new</div>
-            <ul className="space-y-2">
+            <div className="text-sm text-gray-500 mb-1 text-left pl-2">Create a new</div>
+            <ul className="space-y-2 text-left">
               <li>
                 <button
-                  onClick={() => handleClick("grocery")}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
+                  onClick={e => { e.stopPropagation(); handleClick("grocery"); }}
+                  className="w-full text-left pl-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
                 >
                   Grocery Item
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => handleClick("task")}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
+                  onClick={e => { e.stopPropagation(); handleClick("task"); }}
+                  className="w-full text-left pl-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
                 >
                   To-Do
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => handleClick("meals")}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
+                  onClick={e => { e.stopPropagation(); handleClick("meals"); }}
+                  className="w-full text-left pl-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
                 >
                   Weekly Meal Plan
                 </button>

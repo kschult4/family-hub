@@ -15,7 +15,7 @@ const views = {
   FAMILY: FamilyDashboard,
 };
 
-export default function DashboardView({ currentTab }) {
+export default function DashboardView({ currentTab, groceryItems, setGroceryItems, tasks, setTasks, meals, setMeals }) {
   const ViewComponent = views[currentTab];
 
   return (
@@ -28,7 +28,7 @@ export default function DashboardView({ currentTab }) {
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          <ViewComponent />
+          <ViewComponent groceryItems={groceryItems} setGroceryItems={setGroceryItems} tasks={tasks} setTasks={setTasks} meals={meals} setMeals={setMeals} />
         </motion.div>
       </AnimatePresence>
     </div>

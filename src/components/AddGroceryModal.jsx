@@ -1,6 +1,30 @@
 import React, { useState } from "react";
 
-export default function AddGroceryModal({ isOpen, onClose, onSave }) {
+// Utility for WCAG AA contrast check
+function getContrast(hex1, hex2) {
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+    const num = parseInt(hex, 16);
+    return [num >> 16, (num >> 8) & 255, num & 255];
+  }
+  function luminance([r, g, b]) {
+    const a = [r, g, b].map(v => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  const lum1 = luminance(hexToRgb(hex1));
+  const lum2 = luminance(hexToRgb(hex2));
+  const brightest = Math.max(lum1, lum2);
+  const darkest = Math.min(lum1, lum2);
+  return (brightest + 0.05) / (darkest + 0.05);
+}
+
+const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
+
+export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
 
   if (!isOpen) return null; // ✅ Prevent rendering if modal is closed
@@ -10,15 +34,47 @@ export default function AddGroceryModal({ isOpen, onClose, onSave }) {
     const trimmed = description.trim();
     if (!trimmed) return;
 
+    // Apply special item logic
+    const prev = currentItems;
+    let lastSpecial = prev.length > 0 ? prev[0].special : false;
+    let plainCount = 0;
+    
+    for (let i = 0; i < Math.min(5, prev.length); i++) {
+      if (!prev[i].special) plainCount++;
+      else break;
+    }
+    
+    let shouldSpecial = false;
+    if (lastSpecial) {
+      // If last item was special, next must be regular
+      shouldSpecial = false;
+    } else if (plainCount >= 5) {
+      // Force special after 5 consecutive regular items
+      shouldSpecial = true;
+    } else {
+      // Random chance for special when we have 1-4 consecutive regular items
+      shouldSpecial = Math.random() < 0.25; // 25% chance
+    }
+
+    let bgColor = null;
+    if (shouldSpecial) {
+      bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];
+    }
+
     const newItem = {
       id: Date.now(),
       name: trimmed,
+      text: trimmed, // Add both name and text for compatibility
       addedAt: Date.now(),
       done: false,
+      checked: false,
+      special: shouldSpecial,
+      bgColor,
     };
 
     onSave?.(newItem); // Optional chaining in case onSave is not passed
     onClose();
+    setDescription(""); // Reset form
   }
 
   return (
@@ -56,7 +112,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave }) {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-4 py-2 bg-primary text-white rounded hover:bg-indigo-700"
             >
               Save
             </button>
