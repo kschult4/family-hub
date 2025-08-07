@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import SectionHeader from "./SectionHeader";
 
-export default function WeeklyMeals() {
-  // Placeholder meal names for each day (Monday-Sunday)
-  const mealNames = [
+export default function WeeklyMeals({ meals = {} }) {
+  console.log('WeeklyMeals: received meals prop:', meals);
+  
+  // Default meal names for each day (Monday-Sunday)
+  const defaultMealNames = [
     'Chicken Alfredo',
     'Taco Tuesday',
     'Beef Stir Fry',
@@ -14,6 +16,15 @@ export default function WeeklyMeals() {
     'BBQ Ribs',
     'Roast Chicken'
   ];
+
+  const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  
+  // Use meals from props or default meals
+  const mealNames = dayLabels.map((day, index) => 
+    meals[day] || defaultMealNames[index]
+  );
+  
+  console.log('WeeklyMeals: final mealNames:', mealNames);
 
   // Background images for each day (Monday-Sunday)
   const bgImages = [
@@ -25,8 +36,6 @@ export default function WeeklyMeals() {
     'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
   ];
-
-  const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   // Get today's index (0=Monday, 6=Sunday)
   const todayIdx = (new Date().getDay() + 6) % 7;
@@ -41,7 +50,7 @@ export default function WeeklyMeals() {
   const handleNext = () => setOffset((prev) => (prev + 1) % 7);
 
   return (
-    <div className="w-full mb-8">
+    <div className="w-full mb-8 pt-8">
       <SectionHeader title="Weekly Meal Plan" className="mb-6" />
       <div style={{
         width: '100%',

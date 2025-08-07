@@ -101,7 +101,7 @@ export default function Calendar() {
                   {dateLabel}
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto scrollbar-hide">
                   <div className="flex flex-col gap-2 pb-6">
                     {events.length === 0 ? (
                       <p className="text-base text-gray-500 italic">No events</p>

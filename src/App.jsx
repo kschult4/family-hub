@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import FooterNav from "./components/FooterNav";
 import DashboardView from "./components/DashboardView";
@@ -7,11 +7,50 @@ import ShoppingList from "./components/ShoppingList";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState("ALERTS");
-  const [groceryItems, setGroceryItems] = useState([]);
+  
+  // Initialize state from localStorage
+  const [groceryItems, setGroceryItems] = useState(() => {
+    const saved = localStorage.getItem("groceryItems");
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem("tasks");
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [meals, setMeals] = useState(() => {
+    const saved = localStorage.getItem("meals");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem("groceryItems", JSON.stringify(groceryItems));
+  }, [groceryItems]);
+
+  useEffect(() => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem("meals", JSON.stringify(meals));
+  }, [meals]);
 
   // Handler to add a grocery item from modal
   const handleSaveGrocery = (newItem) => {
     setGroceryItems((prev) => [newItem, ...prev]);
+  };
+
+  // Handler to add a task from modal
+  const handleSaveTask = (newTask) => {
+    setTasks((prev) => [newTask, ...prev]);
+  };
+
+  // Handler to save meals from modal
+  const handleSaveMeals = (mealsData) => {
+    console.log('App: saving meals data:', mealsData);
+    setMeals(mealsData);
   };
 
   return (
@@ -20,10 +59,10 @@ export default function App() {
         <Header />
 
         <div className="flex-grow flex flex-col gap-6 overflow-auto pb-[96px]">
-          <DashboardView currentTab={currentTab} />
+          <DashboardView currentTab={currentTab} groceryItems={groceryItems} setGroceryItems={setGroceryItems} tasks={tasks} setTasks={setTasks} meals={meals} setMeals={setMeals} />
         </div>
 
-        <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} />
+        <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} onSaveTask={handleSaveTask} onSaveMeals={handleSaveMeals} groceryItems={groceryItems} />
       </div>
     </AppBackground>
   );

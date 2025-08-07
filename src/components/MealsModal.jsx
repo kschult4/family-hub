@@ -20,14 +20,22 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg"
+        className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md"
       >
-        <h3 className="text-lg font-semibold mb-4">Edit Weekly Meals</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold">Edit Weekly Meals</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl font-light"
+          >
+            ✕
+          </button>
+        </div>
 
-        <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+        <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto scrollbar-hide">
           {daysOfWeek.map((day) => (
             <div key={day}>
               <label className="block text-sm font-medium text-gray-700">
@@ -53,7 +61,7 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
           </button>
           <button
             type="submit"
-            className="px-4 py-2 rounded text-sm bg-primary text-white hover:bg-primary/90"
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-indigo-700"
           >
             Save
           </button>
