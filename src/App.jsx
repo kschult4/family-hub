@@ -53,12 +53,14 @@ export default function App() {
     setMeals(mealsData);
   };
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <AppBackground>
-      <div className="flex flex-col min-h-screen px-4 md:px-8 text-text font-sans">
-        <Header />
+      <div className="flex flex-col min-h-screen px-2 sm:px-4 md:px-8 text-text font-sans">
+        {!isMobile && <Header />}
 
-        <div className="flex-grow flex flex-col gap-6 overflow-auto pb-[96px]">
+        <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[80px] pt-4' : 'pb-[96px]'}`}>
           <DashboardView currentTab={currentTab} groceryItems={groceryItems} setGroceryItems={setGroceryItems} tasks={tasks} setTasks={setTasks} meals={meals} setMeals={setMeals} />
         </div>
 

@@ -6,7 +6,8 @@ import AddTaskModal from "./AddTaskModal";
 import MealsModal from "./MealsModal";
 
 export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems }) {
-  const navItems = ["ALERTS", "HOME", "FAMILY"];
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const navItems = isMobile ? ["ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
 
   const closeModal = () => setActiveModal(null);
@@ -14,9 +15,9 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
   return (
     <>
       {/* Responsive height: 91px at 1920px, scales down for smaller screens */}
-      <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[111px] md:h-[108px] sm:h-[92px]">
-        <div className="flex items-center justify-between max-w-screen-xl mx-auto px-8 h-full">
-          <div className="flex gap-16 text-[#5A3210] text-2xl md:text-3xl lg:text-4xl font-bold font-condensed uppercase tracking-wide ml-[25px]">
+      <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[70px] sm:h-[111px] md:h-[108px]">
+        <div className="flex items-center justify-between max-w-screen-xl mx-auto px-4 sm:px-8 h-full">
+          <div className="flex gap-4 sm:gap-16 text-[#5A3210] text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold font-condensed uppercase tracking-wide ml-[10px] sm:ml-[25px]">
             {navItems.map((item) => (
               <button
                 key={item}
@@ -30,10 +31,10 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
             ))}
           </div>
 
-          <div className="relative z-10" style={{ right: '5px', position: 'relative' }}>
-            <div className="flex gap-8 bg-[#F7E4C3] rounded-tl-[74px] rounded-tr-[74px] px-5 pt-7 pb-4 -translate-y-6" style={{transform: 'translateY(-24px) scale(1.15)'}}>
+          <div className="relative z-10" style={{ right: isMobile ? '0px' : '5px', position: 'relative' }}>
+            <div className={`flex ${isMobile ? 'gap-0' : 'gap-8'} bg-[#F7E4C3] rounded-tl-[74px] rounded-tr-[74px] px-3 sm:px-5 pt-4 sm:pt-7 pb-2 sm:pb-4 -translate-y-3 sm:-translate-y-6`} style={{transform: isMobile ? 'translateY(-12px) scale(0.8)' : 'translateY(-24px) scale(1.15)'}}>
               <FloatingButtonWithMenu onSelect={setActiveModal} />
-              <FloatingMicButton />
+              {!isMobile && <FloatingMicButton />}
             </div>
           </div>
         </div>

@@ -111,6 +111,8 @@ function OverflowFadeText({ text, isSpecial, bgColor, bgPattern, className, text
 }
 
 export default function ShoppingList({ items = [], setItems }) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
   // Utility to convert a string to sentence case
   function toSentenceCase(str) {
     if (!str) return "";
@@ -147,9 +149,9 @@ export default function ShoppingList({ items = [], setItems }) {
         return updated;
       });
     } else {
-      // Random chance for special styling (75% for testing watermarks)
-      let shouldSpecial = Math.random() < 0.75;
-      console.log('Random special decision:', shouldSpecial);
+      // Random chance for special styling (75% for testing watermarks) - disabled on mobile
+      let shouldSpecial = !isMobile && Math.random() < 0.75;
+      console.log('Random special decision:', shouldSpecial, 'isMobile:', isMobile);
 
       let bgColor = null;
       let bgPattern = null;
@@ -230,20 +232,20 @@ export default function ShoppingList({ items = [], setItems }) {
         }
       />
 
-      <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-8 h-[500px] flex flex-col">
+      <div className={`bg-white border border-gray-200 rounded-3xl shadow-xl ${isMobile ? 'p-4 h-[400px]' : 'p-8 h-[500px]'} flex flex-col`}>
         {items.filter((item) => !item.checked).length === 0 ? (
           <div className="flex-1"></div>
         ) : (
-          <ul className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
+          <ul className={`${isMobile ? 'space-y-2' : 'space-y-3'} overflow-y-auto pr-2 scrollbar-hide`}>
             <AnimatePresence>
               {items
                 .filter((item) => !item.checked)
                 .map((item) => {
                 let styleProps = {};
                 let textColor = "#ffffff";
-                let fontSize = "1.5rem";
-                let height = "4.5rem";
-                if (item.special) {
+                let fontSize = isMobile ? "1rem" : "1.5rem";
+                let height = isMobile ? "3rem" : "4.5rem";
+                if (item.special && !isMobile) {
                   height = "7.875rem";
                   fontSize = "1.75rem";
                   if (item.bgColor) {
@@ -284,17 +286,17 @@ export default function ShoppingList({ items = [], setItems }) {
           >
                     <input
                       type="checkbox"
-                      className="w-5 h-5 accent-primary flex-shrink-0"
+                      className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} accent-primary flex-shrink-0`}
                       checked={item.checked}
                       onChange={() => handleCheck(item.id)}
                     />
                     <div
-                      className={item.special
+                      className={item.special && !isMobile
                         ? "flex-1 flex items-center justify-between overflow-hidden relative"
-                        : "bg-gray-50 rounded-xl px-4 py-3 text-base text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition overflow-hidden"}
-                      style={item.special ? styleProps : {}}
+                        : `bg-gray-50 rounded-xl ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-3 text-base'} text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition overflow-hidden`}
+                      style={item.special && !isMobile ? styleProps : {}}
                     >
-                      {item.special && item.bgPattern && (
+                      {item.special && !isMobile && item.bgPattern && (
                         <div
                           className="absolute inset-0 pointer-events-none"
                           style={{
@@ -310,11 +312,11 @@ export default function ShoppingList({ items = [], setItems }) {
                       )}
                       <OverflowFadeText
                         text={toSentenceCase(item.text || item.name || "")}
-                        isSpecial={item.special}
+                        isSpecial={item.special && !isMobile}
                         bgColor={item.bgColor}
                         bgPattern={item.bgPattern}
                         textColor={textColor}
-                        className={item.special ? "tracking-wide" : "font-medium tracking-wide"}
+                        className={item.special && !isMobile ? "tracking-wide" : "font-medium tracking-wide"}
                       />
                     </div>
                   </motion.li>
