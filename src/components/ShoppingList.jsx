@@ -110,7 +110,13 @@ function OverflowFadeText({ text, isSpecial, bgColor, bgPattern, className, text
   );
 }
 
-export default function ShoppingList({ items = [], setItems }) {
+export default function ShoppingList({ items = [], setItems, addGroceryItem, updateGroceryItem }) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
+  // Debug logging
+  console.log('ShoppingList render - items:', items);
+  console.log('ShoppingList render - unchecked items:', items.filter(item => !item.checked));
+  
   // Utility to convert a string to sentence case
   function toSentenceCase(str) {
     if (!str) return "";
@@ -139,17 +145,21 @@ export default function ShoppingList({ items = [], setItems }) {
     console.log('handleSave called. editItem:', editItem, 'input:', input);
 
     if (editItem) {
-      setItems((prev) => {
-        const updated = prev.map((item) =>
+      // Use Firebase updateItem for individual item updates
+      if (updateGroceryItem) {
+        updateGroceryItem(editItem.id, { text: input });
+      } else {
+        // Fallback to full array update
+        const updated = items.map((item) =>
           item.id === editItem.id ? { ...item, text: input } : item
         );
         console.log('Updated items after edit:', updated);
-        return updated;
-      });
+        setItems(updated);
+      }
     } else {
-      // Random chance for special styling (75% for testing watermarks)
-      let shouldSpecial = Math.random() < 0.75;
-      console.log('Random special decision:', shouldSpecial);
+      // Random chance for special styling (75% for testing watermarks) - disabled on mobile
+      let shouldSpecial = !isMobile && Math.random() < 0.75;
+      console.log('Random special decision:', shouldSpecial, 'isMobile:', isMobile);
 
       let bgColor = null;
       let bgPattern = null;
@@ -157,7 +167,7 @@ export default function ShoppingList({ items = [], setItems }) {
         bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];
         
         // Debug: show current items structure
-        console.log('Current items array:', prev.slice(0, 5).map(item => ({
+        console.log('Current items array:', items.slice(0, 5).map(item => ({
           text: item.text,
           special: item.special,
           pattern: item.bgPattern
@@ -165,9 +175,9 @@ export default function ShoppingList({ items = [], setItems }) {
         
         // Avoid using the same pattern as the most recent special item
         let lastSpecialPattern = null;
-        for (let i = 0; i < Math.min(10, prev.length); i++) { // Check up to 10 recent items
-          if (prev[i].special && prev[i].bgPattern) {
-            lastSpecialPattern = prev[i].bgPattern;
+        for (let i = 0; i < Math.min(10, items.length); i++) { // Check up to 10 recent items
+          if (items[i].special && items[i].bgPattern) {
+            lastSpecialPattern = items[i].bgPattern;
             console.log('Found last special pattern at index', i, ':', lastSpecialPattern);
             break;
           }
@@ -193,11 +203,16 @@ export default function ShoppingList({ items = [], setItems }) {
         bgPattern,
       };
       console.log('Adding new item with pattern:', newItem);
-      setItems((prev) => {
-        const updated = [newItem, ...prev];
+      
+      // Use Firebase push() for adding individual items
+      if (addGroceryItem) {
+        addGroceryItem(newItem);
+      } else {
+        // Fallback to full array update
+        const updated = [newItem, ...items];
         console.log('Updated items after add:', updated);
-        return updated;
-      });
+        setItems(updated);
+      }
     }
 
     setShowModal(false);
@@ -206,11 +221,19 @@ export default function ShoppingList({ items = [], setItems }) {
   }
 
   function handleCheck(id) {
-    setItems((prev) =>
-      prev.map((item) =>
+    // Use Firebase updateItem for individual item updates
+    if (updateGroceryItem) {
+      const item = items.find(item => item.id === id);
+      if (item) {
+        updateGroceryItem(id, { checked: !item.checked });
+      }
+    } else {
+      // Fallback to full array update
+      const updated = items.map((item) =>
         item.id === id ? { ...item, checked: !item.checked } : item
-      )
-    );
+      );
+      setItems(updated);
+    }
   }
 
 
@@ -221,29 +244,32 @@ export default function ShoppingList({ items = [], setItems }) {
         className="mb-4"
         rightSlot={
           <button
-            onClick={() => setItems([])}
-            className="text-gray-500 hover:text-red-500 text-sm font-medium transition-all duration-200 active:scale-95 active:text-red-600"
-            style={{ marginRight: '50px' }}
+            onClick={() => {
+              // Use Firebase set() to clear all items or fallback to local state
+              setItems([]);
+            }}
+            className="text-gray-500 hover:text-red-500 text-sm font-medium transition-all duration-200 active:scale-95"
+            style={{ marginRight: isMobile ? '0px' : '50px' }}
           >
             Delete All
           </button>
         }
       />
 
-      <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-8 h-[500px] flex flex-col">
+      <div className={`bg-white border border-gray-200 rounded-3xl shadow-xl ${isMobile ? 'p-4 h-[400px]' : 'p-8 h-[500px]'} flex flex-col`}>
         {items.filter((item) => !item.checked).length === 0 ? (
           <div className="flex-1"></div>
         ) : (
-          <ul className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
+          <ul className={`${isMobile ? 'space-y-2' : 'space-y-3'} overflow-y-auto pr-2 scrollbar-hide`}>
             <AnimatePresence>
               {items
                 .filter((item) => !item.checked)
                 .map((item) => {
                 let styleProps = {};
                 let textColor = "#ffffff";
-                let fontSize = "1.5rem";
-                let height = "4.5rem";
-                if (item.special) {
+                let fontSize = isMobile ? "1rem" : "1.5rem";
+                let height = isMobile ? "3rem" : "4.5rem";
+                if (item.special && !isMobile) {
                   height = "7.875rem";
                   fontSize = "1.75rem";
                   if (item.bgColor) {
@@ -284,17 +310,17 @@ export default function ShoppingList({ items = [], setItems }) {
           >
                     <input
                       type="checkbox"
-                      className="w-5 h-5 accent-primary flex-shrink-0"
+                      className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} accent-primary flex-shrink-0`}
                       checked={item.checked}
                       onChange={() => handleCheck(item.id)}
                     />
                     <div
-                      className={item.special
+                      className={item.special && !isMobile
                         ? "flex-1 flex items-center justify-between overflow-hidden relative"
-                        : "bg-gray-50 rounded-xl px-4 py-3 text-base text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition overflow-hidden"}
-                      style={item.special ? styleProps : {}}
+                        : `bg-gray-50 rounded-xl ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-3 text-base'} text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition overflow-hidden`}
+                      style={item.special && !isMobile ? styleProps : {}}
                     >
-                      {item.special && item.bgPattern && (
+                      {item.special && !isMobile && item.bgPattern && (
                         <div
                           className="absolute inset-0 pointer-events-none"
                           style={{
@@ -310,11 +336,11 @@ export default function ShoppingList({ items = [], setItems }) {
                       )}
                       <OverflowFadeText
                         text={toSentenceCase(item.text || item.name || "")}
-                        isSpecial={item.special}
+                        isSpecial={item.special && !isMobile}
                         bgColor={item.bgColor}
                         bgPattern={item.bgPattern}
                         textColor={textColor}
-                        className={item.special ? "tracking-wide" : "font-medium tracking-wide"}
+                        className={item.special && !isMobile ? "tracking-wide" : "font-medium tracking-wide"}
                       />
                     </div>
                   </motion.li>

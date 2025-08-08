@@ -4,47 +4,54 @@ import FooterNav from "./components/FooterNav";
 import DashboardView from "./components/DashboardView";
 import AppBackground from "./components/AppBackground";
 import ShoppingList from "./components/ShoppingList";
+import { useFirebaseSync } from "./hooks/useFirebaseSync";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState("ALERTS");
   
-  // Initialize state from localStorage
-  const [groceryItems, setGroceryItems] = useState(() => {
-    const saved = localStorage.getItem("groceryItems");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Use Firebase for real-time synchronization
+  const {
+    data: groceryItems,
+    updateData: setGroceryItems,
+    addItem: addGroceryItem,
+    updateItem: updateGroceryItem,
+    removeItem: removeGroceryItem,
+    loading: groceryLoading
+  } = useFirebaseSync('groceryItems', []);
   
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem("tasks");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const {
+    data: tasks,
+    updateData: setTasks,
+    addItem: addTask,
+    updateItem: updateTask,
+    removeItem: removeTask,
+    loading: tasksLoading
+  } = useFirebaseSync('tasks', []);
   
-  const [meals, setMeals] = useState(() => {
-    const saved = localStorage.getItem("meals");
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    localStorage.setItem("groceryItems", JSON.stringify(groceryItems));
-  }, [groceryItems]);
-
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem("meals", JSON.stringify(meals));
-  }, [meals]);
+  const {
+    data: meals,
+    updateData: setMeals,
+    loading: mealsLoading
+  } = useFirebaseSync('meals', {});
 
   // Handler to add a grocery item from modal
   const handleSaveGrocery = (newItem) => {
-    setGroceryItems((prev) => [newItem, ...prev]);
+    if (addGroceryItem) {
+      addGroceryItem(newItem);
+    } else {
+      // Fallback for when Firebase isn't available
+      setGroceryItems([newItem, ...groceryItems]);
+    }
   };
 
   // Handler to add a task from modal
   const handleSaveTask = (newTask) => {
-    setTasks((prev) => [newTask, ...prev]);
+    if (addTask) {
+      addTask(newTask);
+    } else {
+      // Fallback for when Firebase isn't available
+      setTasks([newTask, ...tasks]);
+    }
   };
 
   // Handler to save meals from modal
@@ -53,13 +60,29 @@ export default function App() {
     setMeals(mealsData);
   };
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <AppBackground>
-      <div className="flex flex-col min-h-screen px-4 md:px-8 text-text font-sans">
-        <Header />
+      <div className="flex flex-col min-h-screen px-2 sm:px-4 md:px-8 text-text font-sans">
+        {!isMobile && <Header />}
 
-        <div className="flex-grow flex flex-col gap-6 overflow-auto pb-[96px]">
-          <DashboardView currentTab={currentTab} groceryItems={groceryItems} setGroceryItems={setGroceryItems} tasks={tasks} setTasks={setTasks} meals={meals} setMeals={setMeals} />
+        <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[80px] pt-4' : 'pb-[96px]'}`}>
+          <DashboardView 
+            currentTab={currentTab} 
+            groceryItems={groceryItems} 
+            setGroceryItems={setGroceryItems}
+            addGroceryItem={addGroceryItem}
+            updateGroceryItem={updateGroceryItem}
+            removeGroceryItem={removeGroceryItem}
+            tasks={tasks} 
+            setTasks={setTasks}
+            addTask={addTask}
+            updateTask={updateTask}
+            removeTask={removeTask}
+            meals={meals} 
+            setMeals={setMeals} 
+          />
         </div>
 
         <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} onSaveTask={handleSaveTask} onSaveMeals={handleSaveMeals} groceryItems={groceryItems} />
