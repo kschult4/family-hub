@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const daysOfWeek = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
@@ -6,6 +6,13 @@ const daysOfWeek = [
 
 export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
   const [formData, setFormData] = useState(initialData || {});
+  const firstInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && firstInputRef.current) {
+      firstInputRef.current.focus();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null; // ✅ Don't render if not open
 
@@ -42,6 +49,7 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
                 {day}
               </label>
               <input
+                ref={day === daysOfWeek[0] ? firstInputRef : null}
                 type="text"
                 value={formData[day] || ""}
                 onChange={(e) => handleChange(day, e.target.value)}

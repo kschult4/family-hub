@@ -198,7 +198,7 @@ export default function TaskList({ tasks = [], setTasks }) {
           className="mb-4"
         />
 
-        <div className="bg-white rounded-2xl shadow-md p-6 h-[500px] overflow-y-auto flex flex-col scrollbar-hide">
+        <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-6 h-[500px] overflow-y-auto flex flex-col scrollbar-hide">
           {frequencies.map((group) => {
             const groupTasks = tasks.filter(
               (t) => t.frequency === group && !t.done
@@ -256,6 +256,12 @@ export default function TaskList({ tasks = [], setTasks }) {
                   task.id === updatedTask.id ? updatedTask : task
                 )
               );
+            }
+            setEditTask(null);
+          }}
+          onDelete={(taskToDelete) => {
+            if (setTasks) {
+              setTasks((prev) => prev.filter((task) => task.id !== taskToDelete.id));
             }
             setEditTask(null);
           }}

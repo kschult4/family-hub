@@ -62,14 +62,13 @@ export default function WeeklyMeals({ meals = {} }) {
         position: 'relative',
       }}>
         {/* Left Card (2/3 width) */}
-        <div style={{
+        <div className="parallax-bg" style={{
           flex: '2 1 0',
           height: '380px',
           borderRadius: '16px',
           backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.0) 66%, rgba(0,0,0,0.0) 100%), url('${bgImages[todayCardIdx]}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: '1px solid rgba(229, 231, 235, 1)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -83,14 +82,13 @@ export default function WeeklyMeals({ meals = {} }) {
           <div style={{ fontWeight: '200', fontSize: '2.75rem', color: '#ffffff', textAlign: 'left' }}>{mealNames[todayCardIdx]}</div>
         </div>
         {/* Right Card (1/3 width) */}
-        <div style={{
+        <div className="parallax-bg" style={{
           flex: '1 1 0',
           height: '380px',
           borderRadius: '16px',
           backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.0) 66%, rgba(0,0,0,0.0) 100%), url('${bgImages[upcomingCardIdx]}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: '1px solid rgba(229, 231, 235, 1)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',

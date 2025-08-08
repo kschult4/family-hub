@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
 
 export default function WeatherWidget() {
   const [temp, setTemp] = useState(null);
   const [code, setCode] = useState(null);
 
-  // Your real lat/lon
   const latitude = 37.471561;
   const longitude = -77.776657;
 
@@ -27,44 +25,50 @@ export default function WeatherWidget() {
       });
   }, []);
 
-  // Map weather codes to emoji icons
-  const emojiIconMap = {
-    0: "☀️",     // Clear day
-    1: "⛅",     // Partly cloudy
-    2: "☁️",     // Cloudy
-    3: "☁️",     // Overcast
-    45: "🌫️",    // Fog
-    48: "🌫️",    // Depositing rime fog
-    51: "🌦️",    // Light drizzle
-    53: "🌦️",    // Moderate drizzle
-    55: "🌧️",    // Dense drizzle
-    56: "🧊",    // Light freezing drizzle
-    57: "🧊",    // Dense freezing drizzle
-    61: "🌧️",    // Slight rain
-    63: "🌧️",    // Moderate rain
-    65: "🌧️",    // Heavy rain
-    66: "🧊",    // Light freezing rain
-    67: "🧊",    // Heavy freezing rain
-    71: "❄️",    // Slight snow fall
-    73: "❄️",    // Moderate snow fall
-    75: "❄️",    // Heavy snow fall
-    77: "❄️",    // Snow grains
-    80: "🌦️",    // Slight rain showers
-    81: "🌧️",    // Moderate rain showers
-    82: "⛈️",    // Violent rain showers
-    85: "❄️",    // Slight snow showers
-    86: "❄️",    // Heavy snow showers
-    95: "⛈️",    // Thunderstorm
-    96: "⛈️",    // Thunderstorm with slight hail
-    99: "⛈️",    // Thunderstorm with heavy hail
-  };
+  // Map weather codes to your SVG icon filenames
+ const iconMap = {
+  0: "clear.svg",
+  1: "partlycloudy.svg",
+  2: "cloudy.svg",
+  3: "cloudy.svg",
+  45: "fog.svg",
+  48: "fog.svg",
+  51: "rain.svg",
+  53: "rain.svg",
+  55: "rain.svg",
+  56: "rain.svg",
+  57: "rain.svg",
+  61: "rain.svg",
+  63: "rain.svg",
+  65: "rain.svg",
+  66: "rain.svg",
+  67: "rain.svg",
+  71: "snow.svg",
+  73: "snow.svg",
+  75: "snow.svg",
+  77: "snow.svg",
+  80: "rain.svg",
+  81: "rain.svg",
+  82: "thunderstorm.svg",
+  85: "snow.svg",
+  86: "snow.svg",
+  95: "thunderstorm.svg",
+  96: "thunderstorm.svg",
+  99: "thunderstorm.svg",
+};
 
-  const emojiIcon = emojiIconMap[code] || "☁️";
+
+  const iconFilename = iconMap[code] || "cloudy.svg";
 
   return (
     <div className="flex items-center gap-3 text-3xl font-bold text-[#5A3210]">
-      {/* Use emoji icons directly for reliability */}
-      <span className="text-4xl">{emojiIcon}</span>
+      <img
+        src={`/weather/${iconFilename}`}
+        alt={iconFilename.replace(".svg", "")}
+        className="w-10 h-10 object-contain"
+        style={{ filter: 'brightness(0) saturate(100%) invert(23%) sepia(63%) saturate(1027%) hue-rotate(20deg) brightness(94%) contrast(95%)' }}
+        title={iconFilename.replace(".svg", "")}
+      />
       {temp !== null ? <span>{temp}°F</span> : <span>--°F</span>}
     </div>
   );
