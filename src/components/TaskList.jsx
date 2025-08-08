@@ -83,7 +83,7 @@ const frequencyColors = {
   quarterly: "#6AA968",
 };
 
-export default function TaskList({ tasks = [], setTasks }) {
+export default function TaskList({ tasks = [], setTasks, addTask, updateTask, removeTask }) {
   // Initialize with default tasks if no tasks provided
   const defaultTasks = [
     {
@@ -135,51 +135,64 @@ export default function TaskList({ tasks = [], setTasks }) {
     }
   }, [tasks.length, setTasks, defaultTasks]);
 
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
 
   useEffect(() => {
-    if (setTasks) {
-      setTasks((prev) =>
-        prev.map((task) => {
-          if (!task.recurring || !task.lastCompleted || !task.done) return task;
+    if (setTasks && tasks.length > 0) {
+      const updatedTasks = tasks.map((task) => {
+        if (!task.recurring || !task.lastCompleted || !task.done) return task;
 
-          const last = new Date(task.lastCompleted);
-          const now = new Date();
-          const diff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
-          const days = {
-            daily: 1,
-            weekly: 7,
-            monthly: 30,
-            quarterly: 120,
-          }[task.frequency];
-          if (diff >= days)
-            return { ...task, done: false, lastCompleted: null };
-          return task;
-        })
-      );
+        const last = new Date(task.lastCompleted);
+        const now = new Date();
+        const diff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+        const days = {
+          daily: 1,
+          weekly: 7,
+          monthly: 30,
+          quarterly: 120,
+        }[task.frequency];
+        if (diff >= days)
+          return { ...task, done: false, lastCompleted: null };
+        return task;
+      });
+      
+      // Only update if there were actual changes
+      if (JSON.stringify(updatedTasks) !== JSON.stringify(tasks)) {
+        setTasks(updatedTasks);
+      }
     }
-  }, [setTasks]);
+  }, [setTasks, tasks]);
 
   function toggleTask(id) {
     setDeletedTaskIds((prev) => [...prev, id]);
 
     setTimeout(() => {
-      if (setTasks) {
-        setTasks((prev) =>
-          prev
-            .map((task) =>
-              task.id === id
-                ? {
-                    ...task,
-                    done: !task.done,
-                    lastCompleted: !task.done ? new Date().toISOString() : null,
-                  }
-                : task
-            )
-            .filter((task) => !(task.id === id && !task.recurring))
-        );
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const updatedTask = {
+        ...task,
+        done: !task.done,
+        lastCompleted: !task.done ? new Date().toISOString() : null,
+      };
+
+      if (!task.recurring && !task.done) {
+        // Remove non-recurring completed tasks
+        if (removeTask) {
+          removeTask(id);
+        } else if (setTasks) {
+          const updatedTasks = tasks.filter((task) => task.id !== id);
+          setTasks(updatedTasks);
+        }
+      } else {
+        // Update recurring or unchecked tasks
+        if (updateTask) {
+          updateTask(id, updatedTask);
+        } else if (setTasks) {
+          const updatedTasks = tasks.map((task) =>
+            task.id === id ? updatedTask : task
+          );
+          setTasks(updatedTasks);
+        }
       }
 
       setDeletedTaskIds((prev) => prev.filter((tid) => tid !== id));
@@ -236,8 +249,10 @@ export default function TaskList({ tasks = [], setTasks }) {
         <AddTaskModal
           onClose={() => setShowModal(false)}
           onSave={(newTask) => {
-            if (setTasks) {
-              setTasks((prev) => [...prev, newTask]);
+            if (addTask) {
+              addTask(newTask);
+            } else if (setTasks) {
+              setTasks([...tasks, newTask]);
             }
             setShowModal(false);
           }}
@@ -250,18 +265,22 @@ export default function TaskList({ tasks = [], setTasks }) {
           task={editTask}
           onClose={() => setEditTask(null)}
           onSave={(updatedTask) => {
-            if (setTasks) {
-              setTasks((prev) =>
-                prev.map((task) =>
-                  task.id === updatedTask.id ? updatedTask : task
-                )
+            if (updateTask) {
+              updateTask(updatedTask.id, updatedTask);
+            } else if (setTasks) {
+              const updatedTasks = tasks.map((task) =>
+                task.id === updatedTask.id ? updatedTask : task
               );
+              setTasks(updatedTasks);
             }
             setEditTask(null);
           }}
           onDelete={(taskToDelete) => {
-            if (setTasks) {
-              setTasks((prev) => prev.filter((task) => task.id !== taskToDelete.id));
+            if (removeTask) {
+              removeTask(taskToDelete.id);
+            } else if (setTasks) {
+              const updatedTasks = tasks.filter((task) => task.id !== taskToDelete.id);
+              setTasks(updatedTasks);
             }
             setEditTask(null);
           }}
