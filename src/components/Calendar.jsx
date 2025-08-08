@@ -1,9 +1,18 @@
+import { useState, useEffect } from "react";
 import SectionHeader from "./SectionHeader";
+import googleCalendarService from "../services/googleCalendar";
+import { CALENDAR_CONFIG, isConfigured } from "../config/calendar";
 
 export default function Calendar() {
+  const [eventsByDay, setEventsByDay] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [usingMockData, setUsingMockData] = useState(false);
+
   const today = new Date();
 
-  const eventsByDay = [
+  // Mock data fallback
+  const mockEventsByDay = [
     [
       {
         id: 1,
@@ -75,11 +84,79 @@ export default function Calendar() {
     ],
   ];
 
+  useEffect(() => {
+    const fetchCalendarEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (!isConfigured()) {
+          setEventsByDay(mockEventsByDay);
+          setUsingMockData(true);
+          setLoading(false);
+          return;
+        }
+
+        // Initialize the calendar service
+        const initialized = await googleCalendarService.initialize(
+          CALENDAR_CONFIG.API_KEY,
+          CALENDAR_CONFIG.CLIENT_ID
+        );
+
+        if (!initialized) {
+          throw new Error('Failed to initialize calendar service');
+        }
+
+        // Fetch events from Google Calendar
+        const events = await googleCalendarService.getEvents(
+          CALENDAR_CONFIG.CALENDAR_ID,
+          CALENDAR_CONFIG.MAX_RESULTS
+        );
+
+        // Group events by day (today, tomorrow, day after)
+        const groupedEvents = googleCalendarService.groupEventsByDay(events);
+        
+        setEventsByDay(groupedEvents);
+        setUsingMockData(false);
+
+      } catch (err) {
+        console.error('Error fetching calendar events:', err);
+        setError(err.message);
+        // Fallback to mock data on error
+        setEventsByDay(mockEventsByDay);
+        setUsingMockData(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCalendarEvents();
+  }, []);
+
   return (
     <section className="w-full mb-8">
-      <SectionHeader title="Calendar" className="mb-4" />
+      <SectionHeader 
+        title={`Calendar ${usingMockData ? '(Demo)' : ''}`} 
+        className="mb-4" 
+      />
 
-      <div className="bg-white rounded-[16px] shadow-calendar px-6 pt-4 pb-6 overflow-x-auto h-[350px]">
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-yellow-800">
+            Calendar sync issue: {error}. Showing demo data.
+          </p>
+        </div>
+      )}
+
+      <div className="bg-white border border-gray-200 rounded-3xl shadow-xl px-6 pt-6 pb-6 overflow-x-auto h-[350px]">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#48AF55] mx-auto mb-2"></div>
+              <p className="text-gray-500">Loading calendar events...</p>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-gray-300 h-full">
           {eventsByDay.map((events, index) => {
             const date = new Date(today);
@@ -93,7 +170,7 @@ export default function Calendar() {
             });
 
             return (
-              <div key={index} className="px-6 flex flex-col h-full">
+              <div key={index} className={`${index === 2 ? 'pl-6 pr-2' : 'px-6'} flex flex-col h-full`}>
                 <div className="text-base text-gray-500 font-medium leading-none">
                   {dayName}
                 </div>
@@ -118,12 +195,12 @@ export default function Calendar() {
                         return (
                           <div
                             key={event.id}
-                            className={`bg-[#DED2CF] rounded-md px-4 py-4 text-base text-black ${
+                            className={`w-full bg-[#0B3D42] rounded-md px-2 py-4 text-base text-white ${
                               isPast ? "opacity-70" : ""
                             }`}
                           >
                             <div className="relative">
-                              <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#DED2CF] to-transparent pointer-events-none z-10" />
+                              <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#0B3D42] to-transparent pointer-events-none z-10" />
                               <div className="font-semibold text-lg truncate whitespace-nowrap overflow-hidden pr-10">
                                 {event.summary}
                               </div>
@@ -141,6 +218,7 @@ export default function Calendar() {
             );
           })}
         </div>
+        )}
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // Utility for WCAG AA contrast check
 function getContrast(hex1, hex2) {
@@ -24,8 +24,25 @@ function getContrast(hex1, hex2) {
 
 const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
 
+const BACKGROUND_PATTERNS = [
+  "/watermarks/Bowl.svg",
+  "/watermarks/Cheese.svg",
+  "/watermarks/Lemons.svg",
+  "/watermarks/Lettuce.svg",
+  "/watermarks/Strawberries.svg"
+];
+
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null; // ✅ Prevent rendering if modal is closed
 
@@ -57,8 +74,11 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
     }
 
     let bgColor = null;
+    let bgPattern = null;
     if (shouldSpecial) {
       bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];
+      bgPattern = BACKGROUND_PATTERNS[Math.floor(Math.random() * BACKGROUND_PATTERNS.length)];
+      console.log('AddGroceryModal: Assigning pattern:', bgPattern, 'to special item');
     }
 
     const newItem = {
@@ -70,6 +90,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
       checked: false,
       special: shouldSpecial,
       bgColor,
+      bgPattern,
     };
 
     onSave?.(newItem); // Optional chaining in case onSave is not passed
@@ -94,6 +115,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           <div>
             <label className="block text-sm font-medium mb-1">Item</label>
             <input
+              ref={inputRef}
               type="text"
               className="w-full border rounded p-2"
               placeholder="e.g. Bananas"

@@ -24,10 +24,49 @@ function getContrast(hex1, hex2) {
   return (brightest + 0.05) / (darkest + 0.05);
 }
 
+
 const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
 
+const BACKGROUND_PATTERNS = [
+  "/watermarks/Bowl.svg",
+  "/watermarks/Cheese.svg",
+  "/watermarks/Lemons.svg",
+  "/watermarks/Lettuce.svg",
+  "/watermarks/Strawberries.svg"
+];
+
+// Individual adjustments for each background pattern
+const PATTERN_ADJUSTMENTS = {
+  "/watermarks/Bowl.svg": {
+    size: "213px 106px",
+    position: "calc(100% + 25px) calc(50% - 5px)",
+    opacity: 0.6
+  },
+  "/watermarks/Cheese.svg": {
+    size: "238px 119px", 
+    position: "calc(100% + 35px) center",
+    opacity: 0.6
+  },
+  "/watermarks/Lemons.svg": {
+    size: "250px 125px",
+    position: "calc(100% + 25px) center", 
+    opacity: 0.6
+  },
+  "/watermarks/Lettuce.svg": {
+    size: "280px 140px",
+    position: "calc(100% + 55px) calc(50% - 10px)",
+    opacity: 0.6,
+    transform: "rotate(15deg)"
+  },
+  "/watermarks/Strawberries.svg": {
+    size: "250px 125px",
+    position: "calc(100% + 25px) center",
+    opacity: 0.6
+  }
+};
+
 // Component to handle text overflow detection
-function OverflowFadeText({ text, isSpecial, bgColor, className }) {
+function OverflowFadeText({ text, isSpecial, bgColor, bgPattern, className, textColor }) {
   const textRef = useRef(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
 
@@ -56,7 +95,14 @@ function OverflowFadeText({ text, isSpecial, bgColor, className }) {
           style={{
             background: isSpecial 
               ? `linear-gradient(to right, transparent 0%, ${bgColor || '#ffffff'} 100%)`
-              : 'linear-gradient(to right, transparent 0%, rgb(249, 250, 251) 100%)'
+              : 'linear-gradient(to right, transparent 0%, rgb(249, 250, 251) 100%)',
+            backgroundImage: isSpecial && bgPattern ? `url('${bgPattern}')` : undefined,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: isSpecial && bgPattern ? PATTERN_ADJUSTMENTS[bgPattern]?.size?.replace('250px', '125px').replace('125px', '62px') || '125px 62px' : '125px 62px',
+            backgroundPosition: isSpecial && bgPattern ? PATTERN_ADJUSTMENTS[bgPattern]?.position || 'calc(100% + 25px) center' : 'calc(100% + 25px) center',
+            backgroundBlendMode: 'normal',
+            opacity: isSpecial && bgPattern ? (PATTERN_ADJUSTMENTS[bgPattern]?.opacity || 0.6) : 1,
+            filter: isSpecial && bgPattern && textColor ? (textColor === "#000000" ? 'brightness(0) invert(0)' : 'brightness(0) invert(1)') : 'none',
           }}
         />
       )}
@@ -73,15 +119,20 @@ export default function ShoppingList({ items = [], setItems }) {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [input, setInput] = useState("");
+  const inputRef = useRef(null);
 
   // Ensure items is always an array
   items = items || [];
   
-  function handleAddClick() {
-    setInput("");
-    setEditItem(null);
-    setShowModal(true);
-  }
+  useEffect(() => {
+    if (showModal && inputRef.current) {
+      // Small timeout to ensure modal is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [showModal]);
+  
 
   function handleSave() {
     if (!input.trim()) return;
@@ -96,29 +147,41 @@ export default function ShoppingList({ items = [], setItems }) {
         return updated;
       });
     } else {
-      let prev = items;
-      let lastSpecial = prev.length > 0 ? prev[0].special : false;
-      let plainCount = 0;
-      for (let i = 0; i < Math.min(5, prev.length); i++) {
-        if (!prev[i].special) plainCount++;
-        else break;
-      }
-      let shouldSpecial = false;
-      if (!lastSpecial && plainCount >= 5) {
-        shouldSpecial = true;
-      } else if (!lastSpecial && plainCount < 5) {
-        shouldSpecial = false;
-      } else if (lastSpecial) {
-        shouldSpecial = false;
-      }
-
-      if (lastSpecial && plainCount >= 5) {
-        shouldSpecial = false;
-      }
+      // Random chance for special styling (75% for testing watermarks)
+      let shouldSpecial = Math.random() < 0.75;
+      console.log('Random special decision:', shouldSpecial);
 
       let bgColor = null;
+      let bgPattern = null;
       if (shouldSpecial) {
         bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];
+        
+        // Debug: show current items structure
+        console.log('Current items array:', prev.slice(0, 5).map(item => ({
+          text: item.text,
+          special: item.special,
+          pattern: item.bgPattern
+        })));
+        
+        // Avoid using the same pattern as the most recent special item
+        let lastSpecialPattern = null;
+        for (let i = 0; i < Math.min(10, prev.length); i++) { // Check up to 10 recent items
+          if (prev[i].special && prev[i].bgPattern) {
+            lastSpecialPattern = prev[i].bgPattern;
+            console.log('Found last special pattern at index', i, ':', lastSpecialPattern);
+            break;
+          }
+        }
+        
+        let availablePatterns = BACKGROUND_PATTERNS.filter(pattern => pattern !== lastSpecialPattern);
+        if (availablePatterns.length === 0) {
+          availablePatterns = BACKGROUND_PATTERNS; // fallback if somehow all patterns are filtered
+        }
+        
+        bgPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
+        console.log('Assigning pattern:', bgPattern, 'to special item (avoiding:', lastSpecialPattern, ')');
+        console.log('Available patterns were:', availablePatterns);
+        console.log('All patterns:', BACKGROUND_PATTERNS);
       }
 
       const newItem = {
@@ -127,8 +190,9 @@ export default function ShoppingList({ items = [], setItems }) {
         checked: false,
         special: shouldSpecial,
         bgColor,
+        bgPattern,
       };
-      console.log('Adding new item:', newItem);
+      console.log('Adding new item with pattern:', newItem);
       setItems((prev) => {
         const updated = [newItem, ...prev];
         console.log('Updated items after add:', updated);
@@ -149,26 +213,26 @@ export default function ShoppingList({ items = [], setItems }) {
     );
   }
 
-  function handleDelete(id) {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  }
 
   return (
     <div className="h-full">
       <SectionHeader
         title="Shopping List"
         className="mb-4"
+        rightSlot={
+          <button
+            onClick={() => setItems([])}
+            className="text-gray-500 hover:text-red-500 text-sm font-medium transition-all duration-200 active:scale-95 active:text-red-600"
+            style={{ marginRight: '50px' }}
+          >
+            Delete All
+          </button>
+        }
       />
 
       <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-8 h-[500px] flex flex-col">
         {items.filter((item) => !item.checked).length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🛒</div>
-              <p className="text-gray-500 text-lg font-medium">Your shopping list is empty</p>
-              <p className="text-gray-400 text-sm mt-2">Add items to get started</p>
-            </div>
-          </div>
+          <div className="flex-1"></div>
         ) : (
           <ul className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
             <AnimatePresence>
@@ -186,8 +250,17 @@ export default function ShoppingList({ items = [], setItems }) {
                     const contrast = getContrast(item.bgColor, textColor);
                     if (contrast < 4.5) textColor = "#000000";
                   }
+                  // Debug: log the pattern info
+                  console.log('Special item - bgColor:', item.bgColor, 'bgPattern:', item.bgPattern, 'textColor:', textColor);
+                  
                   styleProps = {
                     background: item.bgColor,
+                    backgroundImage: 'none',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '250px 125px',
+                    backgroundPosition: 'calc(100% + 25px) center',
+                    backgroundBlendMode: 'normal',
+                    position: 'relative',
                     color: textColor,
                     fontSize,
                     height,
@@ -217,14 +290,30 @@ export default function ShoppingList({ items = [], setItems }) {
                     />
                     <div
                       className={item.special
-                        ? "flex-1 flex items-center justify-between overflow-hidden"
+                        ? "flex-1 flex items-center justify-between overflow-hidden relative"
                         : "bg-gray-50 rounded-xl px-4 py-3 text-base text-gray-800 flex-1 flex items-center shadow-sm border border-gray-100 hover:shadow-md transition overflow-hidden"}
                       style={item.special ? styleProps : {}}
                     >
+                      {item.special && item.bgPattern && (
+                        <div
+                          className="absolute inset-0 pointer-events-none"
+                          style={{
+                            backgroundImage: `url('${item.bgPattern}')`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: PATTERN_ADJUSTMENTS[item.bgPattern]?.size || '250px 125px',
+                            backgroundPosition: PATTERN_ADJUSTMENTS[item.bgPattern]?.position || 'calc(100% + 25px) center',
+                            opacity: PATTERN_ADJUSTMENTS[item.bgPattern]?.opacity || 0.6,
+                            transform: PATTERN_ADJUSTMENTS[item.bgPattern]?.transform || 'none',
+                            filter: textColor === "#000000" ? 'brightness(0) invert(0)' : 'brightness(0) invert(1)',
+                          }}
+                        />
+                      )}
                       <OverflowFadeText
                         text={toSentenceCase(item.text || item.name || "")}
                         isSpecial={item.special}
                         bgColor={item.bgColor}
+                        bgPattern={item.bgPattern}
+                        textColor={textColor}
                         className={item.special ? "tracking-wide" : "font-medium tracking-wide"}
                       />
                     </div>
@@ -254,12 +343,12 @@ export default function ShoppingList({ items = [], setItems }) {
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
               <input
+                ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors text-base"
                 placeholder="e.g., Bananas, Milk, Bread..."
-                autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               />
             </div>

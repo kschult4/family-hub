@@ -87,39 +87,73 @@
     animation: ripple 0.6s ease-out;
   }
 
-  /* 💫 Glint animation */
+  /* 💫 Metallic Glint animation */
   @keyframes glintSweep {
     0% {
-      transform: translate(-100%, -100%);
+      transform: translate(-120%, -120%) rotate(45deg);
       opacity: 0;
     }
-    30% {
-      opacity: 0.4;
+    10% {
+      opacity: 0.8;
+    }
+    25% {
+      opacity: 1;
+    }
+    35% {
+      opacity: 0.8;
     }
     50% {
-      transform: translate(100%, 100%);
+      transform: translate(120%, 120%) rotate(45deg);
       opacity: 0;
     }
     100% {
+      transform: translate(120%, 120%) rotate(45deg);
       opacity: 0;
     }
   }
 
   .glint-mask {
-    width: 200%;
-    height: 200%;
+    width: 150%;
+    height: 150%;
     background: linear-gradient(
-      135deg,
-      transparent 40%,
-      rgba(0, 0, 0, 0.8),
-      transparent 60%
+      90deg,
+      transparent 30%,
+      rgba(205, 127, 50, 0.4) 45%,
+      rgba(255, 193, 107, 0.8) 50%,
+      rgba(205, 127, 50, 0.4) 55%,
+      transparent 70%
     );
-    animation: glintSweep 8s ease-in-out infinite;
-    mix-blend-mode: screen;
+    animation: glintSweep 12s ease-in-out infinite;
+    mix-blend-mode: overlay;
     pointer-events: none;
     position: absolute;
-    top: 0;
-    left: 0;
+    top: -25%;
+    left: -25%;
+    transform-origin: center center;
+    mask-image: url("/PatternBG.svg");
+    mask-repeat: repeat;
+    mask-size: 33.33% 33.33%;
+    -webkit-mask-image: url("/PatternBG.svg");
+    -webkit-mask-repeat: repeat;
+    -webkit-mask-size: 33.33% 33.33%;
+  }
+
+  /* 🍽️ Meal card background zoom animation */
+  @keyframes backgroundZoom {
+    0% {
+      background-size: 100%;
+    }
+    50% {
+      background-size: 125%;
+    }
+    100% {
+      background-size: 100%;
+    }
+  }
+
+  .parallax-bg {
+    animation: backgroundZoom 40s ease-in-out infinite;
+    background-position: center;
   }
 
   /* Hide scrollbars */

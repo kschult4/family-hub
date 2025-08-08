@@ -14,9 +14,9 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
   return (
     <>
       {/* Responsive height: 91px at 1920px, scales down for smaller screens */}
-      <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[91px] md:h-[88px] sm:h-[72px]">
+      <footer className="fixed bottom-0 left-0 w-full z-30 bg-[#F7E4C3] h-[111px] md:h-[108px] sm:h-[92px]">
         <div className="flex items-center justify-between max-w-screen-xl mx-auto px-8 h-full">
-          <div className="flex gap-16 text-[#5A3210] text-xl md:text-2xl lg:text-3xl font-bold font-condensed uppercase tracking-wide -ml-[55px]">
+          <div className="flex gap-16 text-[#5A3210] text-2xl md:text-3xl lg:text-4xl font-bold font-condensed uppercase tracking-wide ml-[25px]">
             {navItems.map((item) => (
               <button
                 key={item}
@@ -30,8 +30,8 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
             ))}
           </div>
 
-          <div className="relative z-10" style={{ right: '-40px', position: 'relative' }}>
-            <div className="flex gap-8 bg-[#F7E4C3] rounded-tl-[64px] rounded-tr-[64px] px-4 pt-6 pb-3 -translate-y-6">
+          <div className="relative z-10" style={{ right: '5px', position: 'relative' }}>
+            <div className="flex gap-8 bg-[#F7E4C3] rounded-tl-[74px] rounded-tr-[74px] px-5 pt-7 pb-4 -translate-y-6" style={{transform: 'translateY(-24px) scale(1.15)'}}>
               <FloatingButtonWithMenu onSelect={setActiveModal} />
               <FloatingMicButton />
             </div>
@@ -88,10 +88,10 @@ function FloatingButtonWithMenu({ onSelect }) {
         {open && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            animate={{ opacity: 1, y: -50, scale: 1.25, x: -75 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-20 left-0 w-64 bg-white rounded-xl shadow-lg p-4 text-left z-20"
+            className="absolute bottom-20 left-0 w-56 bg-white rounded-xl shadow-lg p-6 text-left z-20"
           >
             <div className="text-sm text-gray-500 mb-1 text-left pl-2">Create a new</div>
             <ul className="space-y-2 text-left">

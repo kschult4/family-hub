@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-export default function AddTaskModal({ isOpen, task, onClose, onSave }) {
+export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }) {
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState("");
   const [recurring, setRecurring] = useState("");
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (task) {
@@ -13,8 +14,14 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave }) {
     }
   }, [task]);
 
-  // ✅ Don't render if not open
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // ✅ Don't render if not open (but allow rendering if task exists for editing)
+  if (!isOpen && !task) return null;
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -52,6 +59,7 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave }) {
           <div>
             <label className="block text-sm font-medium mb-1">Description</label>
             <input
+              ref={inputRef}
               type="text"
               className="w-full border rounded p-2"
               value={description}
@@ -88,13 +96,27 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave }) {
           </div>
 
           <div className="flex justify-between mt-6">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              {task && onDelete && (
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  onClick={() => {
+                    onDelete(task);
+                    onClose();
+                  }}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
             <button
               type="submit"
               className="px-4 py-2 bg-primary text-white rounded hover:bg-indigo-700"
