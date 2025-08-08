@@ -110,8 +110,12 @@ function OverflowFadeText({ text, isSpecial, bgColor, bgPattern, className, text
   );
 }
 
-export default function ShoppingList({ items = [], setItems }) {
+export default function ShoppingList({ items = [], setItems, addGroceryItem, updateGroceryItem }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
+  // Debug logging
+  console.log('ShoppingList render - items:', items);
+  console.log('ShoppingList render - unchecked items:', items.filter(item => !item.checked));
   
   // Utility to convert a string to sentence case
   function toSentenceCase(str) {
@@ -141,13 +145,17 @@ export default function ShoppingList({ items = [], setItems }) {
     console.log('handleSave called. editItem:', editItem, 'input:', input);
 
     if (editItem) {
-      setItems((prev) => {
-        const updated = prev.map((item) =>
+      // Use Firebase updateItem for individual item updates
+      if (updateGroceryItem) {
+        updateGroceryItem(editItem.id, { text: input });
+      } else {
+        // Fallback to full array update
+        const updated = items.map((item) =>
           item.id === editItem.id ? { ...item, text: input } : item
         );
         console.log('Updated items after edit:', updated);
-        return updated;
-      });
+        setItems(updated);
+      }
     } else {
       // Random chance for special styling (75% for testing watermarks) - disabled on mobile
       let shouldSpecial = !isMobile && Math.random() < 0.75;
@@ -159,7 +167,7 @@ export default function ShoppingList({ items = [], setItems }) {
         bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];
         
         // Debug: show current items structure
-        console.log('Current items array:', prev.slice(0, 5).map(item => ({
+        console.log('Current items array:', items.slice(0, 5).map(item => ({
           text: item.text,
           special: item.special,
           pattern: item.bgPattern
@@ -167,9 +175,9 @@ export default function ShoppingList({ items = [], setItems }) {
         
         // Avoid using the same pattern as the most recent special item
         let lastSpecialPattern = null;
-        for (let i = 0; i < Math.min(10, prev.length); i++) { // Check up to 10 recent items
-          if (prev[i].special && prev[i].bgPattern) {
-            lastSpecialPattern = prev[i].bgPattern;
+        for (let i = 0; i < Math.min(10, items.length); i++) { // Check up to 10 recent items
+          if (items[i].special && items[i].bgPattern) {
+            lastSpecialPattern = items[i].bgPattern;
             console.log('Found last special pattern at index', i, ':', lastSpecialPattern);
             break;
           }
@@ -195,11 +203,16 @@ export default function ShoppingList({ items = [], setItems }) {
         bgPattern,
       };
       console.log('Adding new item with pattern:', newItem);
-      setItems((prev) => {
-        const updated = [newItem, ...prev];
+      
+      // Use Firebase push() for adding individual items
+      if (addGroceryItem) {
+        addGroceryItem(newItem);
+      } else {
+        // Fallback to full array update
+        const updated = [newItem, ...items];
         console.log('Updated items after add:', updated);
-        return updated;
-      });
+        setItems(updated);
+      }
     }
 
     setShowModal(false);
@@ -208,11 +221,19 @@ export default function ShoppingList({ items = [], setItems }) {
   }
 
   function handleCheck(id) {
-    setItems((prev) =>
-      prev.map((item) =>
+    // Use Firebase updateItem for individual item updates
+    if (updateGroceryItem) {
+      const item = items.find(item => item.id === id);
+      if (item) {
+        updateGroceryItem(id, { checked: !item.checked });
+      }
+    } else {
+      // Fallback to full array update
+      const updated = items.map((item) =>
         item.id === id ? { ...item, checked: !item.checked } : item
-      )
-    );
+      );
+      setItems(updated);
+    }
   }
 
 
@@ -223,9 +244,12 @@ export default function ShoppingList({ items = [], setItems }) {
         className="mb-4"
         rightSlot={
           <button
-            onClick={() => setItems([])}
-            className="text-gray-500 hover:text-red-500 text-sm font-medium transition-all duration-200 active:scale-95 active:text-red-600"
-            style={{ marginRight: '50px' }}
+            onClick={() => {
+              // Use Firebase set() to clear all items or fallback to local state
+              setItems([]);
+            }}
+            className="text-gray-500 hover:text-red-500 text-sm font-medium transition-all duration-200 active:scale-95"
+            style={{ marginRight: isMobile ? '0px' : '50px' }}
           >
             Delete All
           </button>
