@@ -77,12 +77,7 @@ export default function TouchKeyboard({
           ]
         }}
         display={display}
-        buttonTheme={[
-          {
-            class: "hg-grey",
-            buttons: "{shift} {space} {bksp} {enter}"
-          }
-        ]}
+        buttonTheme={[]}
       />
     </div>
   );

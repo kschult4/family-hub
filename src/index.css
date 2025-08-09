@@ -110,6 +110,25 @@
   touch-action: manipulation !important;
 }
 
+/* Force all keyboard buttons to have the same styling */
+.touch-keyboard .hg-button.hg-red,
+.touch-keyboard .hg-button.hg-blue,
+.touch-keyboard .hg-button.hg-green,
+.touch-keyboard .hg-button[data-skbtn="{bksp}"],
+.touch-keyboard .hg-button[data-skbtn="{enter}"] {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.touch-keyboard .hg-button.hg-red:hover,
+.touch-keyboard .hg-button.hg-blue:hover,
+.touch-keyboard .hg-button.hg-green:hover,
+.touch-keyboard .hg-button[data-skbtn="{bksp}"]:hover,
+.touch-keyboard .hg-button[data-skbtn="{enter}"]:hover {
+  background: #e2e8f0 !important;
+}
+
 .touch-keyboard .hg-button:hover {
   background: #e2e8f0 !important;
 }
@@ -128,22 +147,17 @@
   background: #2563eb !important;
 }
 
-.touch-keyboard .hg-red {
-  background: #ef4444 !important;
-  color: white !important;
-}
-
-.touch-keyboard .hg-red:hover {
-  background: #dc2626 !important;
-}
-
-.touch-keyboard .hg-blue {
-  background: #10b981 !important;
-  color: white !important;
-}
-
+.touch-keyboard .hg-red,
+.touch-keyboard .hg-blue,
+.touch-keyboard .hg-red:hover,
 .touch-keyboard .hg-blue:hover {
-  background: #059669 !important;
+  background: #6b7280 !important;
+  color: white !important;
+}
+
+.touch-keyboard .hg-red:hover,
+.touch-keyboard .hg-blue:hover {
+  background: #4b5563 !important;
 }
 
 .touch-keyboard .hg-grey {
