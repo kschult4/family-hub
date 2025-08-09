@@ -188,7 +188,8 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
         </div>
       </div>
       
-      {showKeyboard && (
+      {/* Temporarily disabled keyboard for debugging */}
+      {false && showKeyboard && (
         <TouchKeyboard
           onChange={handleKeyboardChange}
           onKeyPress={handleKeyboardKeyPress}
