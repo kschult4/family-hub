@@ -19,11 +19,32 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) {
+      // Check if we're on a touch device (Pi) - multiple detection methods
+      const isTouchDevice = 'ontouchstart' in window || 
+                           navigator.maxTouchPoints > 0 ||
+                           navigator.msMaxTouchPoints > 0 ||
+                           window.TouchEvent !== undefined;
+      
+      // Debug logging
+      console.log('Touch device detection:', {
+        ontouchstart: 'ontouchstart' in window,
+        maxTouchPoints: navigator.maxTouchPoints,
+        msMaxTouchPoints: navigator.msMaxTouchPoints,
+        TouchEvent: window.TouchEvent !== undefined,
+        userAgent: navigator.userAgent,
+        isTouchDevice
+      });
+      
+      // Always show keyboard on Linux (Raspberry Pi detection)
+      const isLinux = navigator.platform.toLowerCase().includes('linux') || 
+                     navigator.userAgent.toLowerCase().includes('linux');
+      
+      if (isTouchDevice || isLinux) {
+        console.log('Showing TouchKeyboard');
         setShowKeyboard(true);
-        inputRef.current?.blur();
+        inputRef.current?.blur(); // Don't show system keyboard
       } else {
+        console.log('Desktop mode - using regular keyboard');
         inputRef.current.focus();
       }
     }
@@ -81,15 +102,24 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium mb-1">Description</label>
-            <input
-              ref={inputRef}
-              type="text"
-              className="w-full border rounded p-2"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onFocus={() => setShowKeyboard(true)}
-              readOnly={showKeyboard}
-            />
+            <div className="flex gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                className="flex-1 border rounded p-2"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onFocus={() => setShowKeyboard(true)}
+                readOnly={showKeyboard}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKeyboard(!showKeyboard)}
+                className="px-3 py-2 bg-blue-500 text-white rounded text-sm"
+              >
+                ⌨️
+              </button>
+            </div>
           </div>
 
           {showKeyboard && (
