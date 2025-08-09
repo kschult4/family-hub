@@ -34,6 +34,7 @@ const BACKGROUND_PATTERNS = [
 
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
+  const [showKeyboard, setShowKeyboard] = useState(false);
 
 
   if (!isOpen) return null; // ✅ Prevent rendering if modal is closed
@@ -113,7 +114,11 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
                 placeholder="e.g. Bananas"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                onFocus={() => setShowKeyboard(true)}
               />
+              <div className="text-xs text-gray-500 mt-1">
+                Keyboard: {showKeyboard ? 'ON' : 'OFF'}
+              </div>
             </div>
 
 
