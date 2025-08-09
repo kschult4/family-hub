@@ -140,8 +140,9 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md">
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md" style={{ marginBottom: showKeyboard ? '300px' : '0' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">Add a New Grocery Item</h2>
           <button
@@ -184,14 +185,6 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
             Debug: showKeyboard = {showKeyboard.toString()}, isOpen = {isOpen.toString()}
           </div>
 
-          {showKeyboard && (
-            <TouchKeyboard
-              onChange={handleKeyboardChange}
-              onKeyPress={handleKeyboardKeyPress}
-              keyboardRef={keyboardRef}
-            />
-          )}
-
           <div className="flex justify-between mt-6">
             <button
               type="button"
@@ -208,7 +201,16 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+      
+      {showKeyboard && (
+        <TouchKeyboard
+          onChange={handleKeyboardChange}
+          onKeyPress={handleKeyboardKeyPress}
+          keyboardRef={keyboardRef}
+        />
+      )}
+    </>
   );
 }

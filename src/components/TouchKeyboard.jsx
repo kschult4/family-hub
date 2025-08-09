@@ -54,7 +54,7 @@ export default function TouchKeyboard({
   };
 
   return (
-    <div className="touch-keyboard-container mt-4">
+    <div className="fixed bottom-0 left-0 right-0 z-50 touch-keyboard-container-fixed">
       <Keyboard
         keyboardRef={r => (keyboard.current = r)}
         layoutName={layoutName}

@@ -82,8 +82,9 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md">
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md" style={{ marginBottom: showKeyboard ? '300px' : '0' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">
             {task ? "Edit Task" : "Add a New To-Do"}
@@ -126,13 +127,6 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
             </div>
           </div>
 
-          {showKeyboard && (
-            <TouchKeyboard
-              onChange={handleKeyboardChange}
-              onKeyPress={handleKeyboardKeyPress}
-              keyboardRef={keyboardRef}
-            />
-          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">Frequency</label>
@@ -196,7 +190,16 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+      
+      {showKeyboard && (
+        <TouchKeyboard
+          onChange={handleKeyboardChange}
+          onKeyPress={handleKeyboardKeyPress}
+          keyboardRef={keyboardRef}
+        />
+      )}
+    </>
   );
 }
