@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import TouchKeyboard from "./TouchKeyboard";
 
 // Utility for WCAG AA contrast check
 function getContrast(hex1, hex2) {
@@ -35,54 +34,7 @@ const BACKGROUND_PATTERNS = [
 
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
-  const [showKeyboard, setShowKeyboard] = useState(false);
-  const inputRef = useRef(null);
-  const keyboardRef = useRef(null);
 
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      // Check if we're on a touch device (Pi) - multiple detection methods
-      const isTouchDevice = 'ontouchstart' in window || 
-                           navigator.maxTouchPoints > 0 ||
-                           navigator.msMaxTouchPoints > 0 ||
-                           window.TouchEvent !== undefined;
-      
-      // Debug logging
-      console.log('Touch device detection:', {
-        ontouchstart: 'ontouchstart' in window,
-        maxTouchPoints: navigator.maxTouchPoints,
-        msMaxTouchPoints: navigator.msMaxTouchPoints,
-        TouchEvent: window.TouchEvent !== undefined,
-        userAgent: navigator.userAgent,
-        isTouchDevice
-      });
-      
-      // Always show keyboard on Linux (Raspberry Pi detection)
-      const isLinux = navigator.platform.toLowerCase().includes('linux') || 
-                     navigator.userAgent.toLowerCase().includes('linux');
-      
-      if (isTouchDevice || isLinux) {
-        console.log('Showing TouchKeyboard');
-        setShowKeyboard(true);
-        inputRef.current?.blur(); // Don't show system keyboard
-      } else {
-        console.log('Desktop mode - using regular keyboard');
-        setTimeout(() => {
-          inputRef.current?.focus();
-        }, 100);
-      }
-    }
-  }, [isOpen]);
-
-  const handleKeyboardChange = (input) => {
-    setDescription(input);
-  };
-
-  const handleKeyboardKeyPress = (button) => {
-    if (button === '{enter}') {
-      handleSubmit({ preventDefault: () => {} });
-    }
-  };
 
   if (!isOpen) return null; // ✅ Prevent rendering if modal is closed
 
@@ -136,13 +88,12 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
     onSave?.(newItem); // Optional chaining in case onSave is not passed
     onClose();
     setDescription(""); // Reset form
-    setShowKeyboard(false); // Hide keyboard
   }
 
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border" style={{ marginBottom: showKeyboard ? '300px' : '0' }}>
+        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold">Add a New Grocery Item</h2>
             <button
@@ -157,14 +108,11 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
             <div>
               <label className="block text-sm font-medium mb-1">Item</label>
               <input
-                ref={inputRef}
                 type="text"
                 className="w-full border rounded p-2"
                 placeholder="e.g. Bananas"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onFocus={() => setShowKeyboard(true)}
-                readOnly={showKeyboard} // Prevent system keyboard on touch devices
               />
             </div>
 
@@ -188,14 +136,6 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
         </div>
       </div>
       
-      {/* Temporarily disabled keyboard for debugging */}
-      {false && showKeyboard && (
-        <TouchKeyboard
-          onChange={handleKeyboardChange}
-          onKeyPress={handleKeyboardKeyPress}
-          keyboardRef={keyboardRef}
-        />
-      )}
     </>
   );
 }
