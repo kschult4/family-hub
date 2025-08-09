@@ -119,6 +119,13 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
               <div className="text-xs text-gray-500 mt-1">
                 Keyboard: {showKeyboard ? 'ON' : 'OFF'}
               </div>
+              <button 
+                type="button"
+                onClick={() => setShowKeyboard(!showKeyboard)}
+                className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
+              >
+                Toggle Keyboard ({showKeyboard ? 'ON' : 'OFF'})
+              </button>
             </div>
 
 
