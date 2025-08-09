@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import TouchKeyboard from "./TouchKeyboard";
 
 // Utility for WCAG AA contrast check
 function getContrast(hex1, hex2) {
@@ -34,15 +35,34 @@ const BACKGROUND_PATTERNS = [
 
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
+  const [showKeyboard, setShowKeyboard] = useState(false);
   const inputRef = useRef(null);
+  const keyboardRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      // Check if we're on a touch device (Pi)
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouchDevice) {
+        setShowKeyboard(true);
+        inputRef.current?.blur(); // Don't show system keyboard
+      } else {
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      }
     }
   }, [isOpen]);
+
+  const handleKeyboardChange = (input) => {
+    setDescription(input);
+  };
+
+  const handleKeyboardKeyPress = (button) => {
+    if (button === '{enter}') {
+      handleSubmit({ preventDefault: () => {} });
+    }
+  };
 
   if (!isOpen) return null; // ✅ Prevent rendering if modal is closed
 
@@ -96,6 +116,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
     onSave?.(newItem); // Optional chaining in case onSave is not passed
     onClose();
     setDescription(""); // Reset form
+    setShowKeyboard(false); // Hide keyboard
   }
 
   return (
@@ -121,8 +142,18 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
               placeholder="e.g. Bananas"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onFocus={() => setShowKeyboard(true)}
+              readOnly={showKeyboard} // Prevent system keyboard on touch devices
             />
           </div>
+
+          {showKeyboard && (
+            <TouchKeyboard
+              onChange={handleKeyboardChange}
+              onKeyPress={handleKeyboardKeyPress}
+              keyboardRef={keyboardRef}
+            />
+          )}
 
           <div className="flex justify-between mt-6">
             <button

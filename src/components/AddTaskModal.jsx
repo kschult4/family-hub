@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
+import TouchKeyboard from "./TouchKeyboard";
 
 export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }) {
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState("");
   const [recurring, setRecurring] = useState("");
+  const [showKeyboard, setShowKeyboard] = useState(false);
   const inputRef = useRef(null);
+  const keyboardRef = useRef(null);
 
   useEffect(() => {
     if (task) {
@@ -16,9 +19,25 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouchDevice) {
+        setShowKeyboard(true);
+        inputRef.current?.blur();
+      } else {
+        inputRef.current.focus();
+      }
     }
   }, [isOpen]);
+
+  const handleKeyboardChange = (input) => {
+    setDescription(input);
+  };
+
+  const handleKeyboardKeyPress = (button) => {
+    if (button === '{enter}') {
+      handleSubmit({ preventDefault: () => {} });
+    }
+  };
 
   // ✅ Don't render if not open (but allow rendering if task exists for editing)
   if (!isOpen && !task) return null;
@@ -38,6 +57,7 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
     onSave?.(newTask);
     onClose();
+    setShowKeyboard(false);
   }
 
   return (
@@ -48,7 +68,10 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
             {task ? "Edit Task" : "Add a New To-Do"}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              setShowKeyboard(false);
+            }}
             className="text-gray-500 hover:text-gray-700 text-2xl font-light"
           >
             ✕
@@ -64,8 +87,18 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
               className="w-full border rounded p-2"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onFocus={() => setShowKeyboard(true)}
+              readOnly={showKeyboard}
             />
           </div>
+
+          {showKeyboard && (
+            <TouchKeyboard
+              onChange={handleKeyboardChange}
+              onKeyPress={handleKeyboardKeyPress}
+              keyboardRef={keyboardRef}
+            />
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">Frequency</label>
@@ -100,7 +133,10 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
               <button
                 type="button"
                 className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  setShowKeyboard(false);
+                }}
               >
                 Cancel
               </button>
@@ -111,6 +147,7 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
                   onClick={() => {
                     onDelete(task);
                     onClose();
+                    setShowKeyboard(false);
                   }}
                 >
                   Delete
