@@ -103,28 +103,15 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium mb-1">Description</label>
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                className="flex-1 border rounded p-2"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onFocus={() => setShowKeyboard(true)}
-                readOnly={showKeyboard}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('Keyboard toggle clicked, current state:', showKeyboard);
-                  setShowKeyboard(!showKeyboard);
-                }}
-                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-bold border-2 border-blue-700"
-                style={{ backgroundColor: '#3b82f6', color: 'white', minWidth: '50px' }}
-              >
-                KB
-              </button>
-            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              className="w-full border rounded p-2"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onFocus={() => setShowKeyboard(true)}
+              readOnly={showKeyboard}
+            />
           </div>
 
 

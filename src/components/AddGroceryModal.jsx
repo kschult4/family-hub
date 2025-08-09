@@ -156,29 +156,16 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium mb-1">Item</label>
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                className="flex-1 border rounded p-2"
-                placeholder="e.g. Bananas"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onFocus={() => setShowKeyboard(true)}
-                readOnly={showKeyboard} // Prevent system keyboard on touch devices
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('Keyboard toggle clicked, current state:', showKeyboard);
-                  setShowKeyboard(!showKeyboard);
-                }}
-                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-bold border-2 border-blue-700"
-                style={{ backgroundColor: '#3b82f6', color: 'white', minWidth: '50px' }}
-              >
-                KB
-              </button>
-            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              className="w-full border rounded p-2"
+              placeholder="e.g. Bananas"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onFocus={() => setShowKeyboard(true)}
+              readOnly={showKeyboard} // Prevent system keyboard on touch devices
+            />
           </div>
 
           <div className="text-xs text-gray-500 mt-1">
