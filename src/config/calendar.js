@@ -7,13 +7,13 @@
 
 export const CALENDAR_CONFIG = {
   // Replace with your Google Calendar API key
-  API_KEY: import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY || '',
+  API_KEY: import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY || 'AIzaSyAYiobTSL1_Zn2ZZQXp140AM23U7wlELpk',
   
   // Replace with your OAuth2 client ID (if accessing private calendars)
   CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
   
   // Default calendar ID (use 'primary' for main calendar or specific calendar ID)
-  CALENDAR_ID: import.meta.env.VITE_CALENDAR_ID || 'primary',
+  CALENDAR_ID: import.meta.env.VITE_CALENDAR_ID || 'kyle.e.schultz@gmail.com',
   
   // Maximum number of events to fetch
   MAX_RESULTS: 20,
