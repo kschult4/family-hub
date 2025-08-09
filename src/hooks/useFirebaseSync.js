@@ -1,56 +1,13 @@
 import { useState, useEffect } from 'react';
-
-let firebaseImports = null;
-let database = null;
+import { ref, onValue, set, push, remove, update } from 'firebase/database';
+import { database } from '../config/firebase';
 
 export function useFirebaseSync(path, defaultValue = []) {
   const [data, setData] = useState(defaultValue);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [firebaseReady, setFirebaseReady] = useState(false);
-
-  // Initialize Firebase on first use
-  useEffect(() => {
-    const initFirebase = async () => {
-      try {
-        const { ref, onValue, set, push, remove, update } = await import('firebase/database');
-        const { database: db } = await import('../config/firebase');
-        firebaseImports = { ref, onValue, set, push, remove, update };
-        database = db;
-        setFirebaseReady(true);
-      } catch (err) {
-        console.log('Firebase not available, using local state:', err.message);
-        setFirebaseReady(false);
-        setLoading(false);
-      }
-    };
-
-    if (!firebaseImports) {
-      initFirebase();
-    } else {
-      setFirebaseReady(true);
-    }
-  }, []);
-
-  // Return local state fallback if Firebase isn't ready
-  const localFallback = {
-    data,
-    loading: false,
-    error: null,
-    updateData: (newData) => setData(newData),
-    addItem: (item) => setData(prev => [item, ...prev]),
-    updateItem: (id, updates) => setData(prev => prev.map(item => item.id === id ? {...item, ...updates} : item)),
-    removeItem: (id) => setData(prev => prev.filter(item => item.id !== id))
-  };
-
-  if (!firebaseReady) {
-    return localFallback;
-  }
 
   useEffect(() => {
-    if (!firebaseReady || !firebaseImports) return;
-
-    const { ref, onValue } = firebaseImports;
     const dataRef = ref(database, path);
     
     const unsubscribe = onValue(dataRef, (snapshot) => {
@@ -91,12 +48,10 @@ export function useFirebaseSync(path, defaultValue = []) {
     });
 
     return () => unsubscribe();
-  }, [path, defaultValue, firebaseReady]);
+  }, [path, defaultValue]);
 
   const updateData = async (newData) => {
-    if (!firebaseReady || !firebaseImports) return;
     try {
-      const { ref, set } = firebaseImports;
       console.log(`Updating data for ${path}:`, newData);
       const dataRef = ref(database, path);
       await set(dataRef, newData);
@@ -108,9 +63,7 @@ export function useFirebaseSync(path, defaultValue = []) {
   };
 
   const addItem = async (item) => {
-    if (!firebaseReady || !firebaseImports) return;
     try {
-      const { ref, push } = firebaseImports;
       console.log(`Adding item to ${path}:`, item);
       const dataRef = ref(database, path);
       const result = await push(dataRef, item);
@@ -122,9 +75,7 @@ export function useFirebaseSync(path, defaultValue = []) {
   };
 
   const updateItem = async (id, updates) => {
-    if (!firebaseReady || !firebaseImports) return;
     try {
-      const { ref, update } = firebaseImports;
       // Find the item to get its Firebase key
       const item = data.find(item => item.id === id);
       const firebaseKey = item?.firebaseId || id;
@@ -140,9 +91,7 @@ export function useFirebaseSync(path, defaultValue = []) {
   };
 
   const removeItem = async (id) => {
-    if (!firebaseReady || !firebaseImports) return;
     try {
-      const { ref, remove } = firebaseImports;
       // Find the item to get its Firebase key
       const item = data.find(item => item.id === id);
       const firebaseKey = item?.firebaseId || id;
