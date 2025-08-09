@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: "/family-hub/",
+  build: {
+    target: 'es2015', // Better compatibility with older browsers
+    polyfillModulePreload: true,
+  },
   plugins: [
     react(),
     VitePWA({
