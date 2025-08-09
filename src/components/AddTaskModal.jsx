@@ -109,8 +109,6 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
                 className="w-full border rounded p-2"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onFocus={() => setShowKeyboard(true)}
-                readOnly={showKeyboard}
               />
             </div>
 
