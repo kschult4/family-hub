@@ -8,6 +8,12 @@ export default function WeatherWidget() {
   const longitude = -77.776657;
 
   useEffect(() => {
+    // Use fallback data on GitHub Pages initially, then try to fetch real data
+    if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) {
+      setTemp(72);
+      setCode(1); // Partly cloudy
+    }
+
     fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode`
     )

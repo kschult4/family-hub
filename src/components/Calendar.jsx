@@ -90,6 +90,14 @@ export default function Calendar() {
         setLoading(true);
         setError(null);
 
+        // Always use mock data on GitHub Pages to avoid API errors
+        if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) {
+          setEventsByDay(mockEventsByDay);
+          setUsingMockData(true);
+          setLoading(false);
+          return;
+        }
+
         if (!isConfigured()) {
           setEventsByDay(mockEventsByDay);
           setUsingMockData(true);
@@ -121,7 +129,12 @@ export default function Calendar() {
 
       } catch (err) {
         console.error('Error fetching calendar events:', err);
-        setError(err.message);
+        // Don't show error message on GitHub Pages, just use mock data
+        if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) {
+          setError(null);
+        } else {
+          setError(err.message);
+        }
         // Fallback to mock data on error
         setEventsByDay(mockEventsByDay);
         setUsingMockData(true);
