@@ -168,12 +168,20 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
               />
               <button
                 type="button"
-                onClick={() => setShowKeyboard(!showKeyboard)}
-                className="px-3 py-2 bg-blue-500 text-white rounded text-sm"
+                onClick={() => {
+                  console.log('Keyboard toggle clicked, current state:', showKeyboard);
+                  setShowKeyboard(!showKeyboard);
+                }}
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-bold border-2 border-blue-700"
+                style={{ backgroundColor: '#3b82f6', color: 'white', minWidth: '50px' }}
               >
-                ⌨️
+                KB
               </button>
             </div>
+          </div>
+
+          <div className="text-xs text-gray-500 mt-1">
+            Debug: showKeyboard = {showKeyboard.toString()}, isOpen = {isOpen.toString()}
           </div>
 
           {showKeyboard && (
