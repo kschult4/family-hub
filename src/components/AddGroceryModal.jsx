@@ -160,10 +160,19 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
       </div>
       
       {showKeyboard && (
-        <TouchKeyboard
-          onChange={handleKeyboardChange}
-          onKeyPress={handleKeyboardKeyPress}
-        />
+        <div style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          right: 0, 
+          background: 'red', 
+          color: 'white', 
+          padding: '20px', 
+          textAlign: 'center',
+          zIndex: 9999 
+        }}>
+          TEST KEYBOARD PLACEHOLDER - This should appear at bottom
+        </div>
       )}
     </>
   );
