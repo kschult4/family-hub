@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
@@ -53,8 +54,8 @@ export default function TouchKeyboard({
     });
   };
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 touch-keyboard-container-fixed">
+  const keyboardContent = (
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] touch-keyboard-container-fixed">
       <Keyboard
         keyboardRef={r => (keyboard.current = r)}
         layoutName={layoutName}
@@ -93,4 +94,9 @@ export default function TouchKeyboard({
       />
     </div>
   );
+
+  // Render keyboard using portal to break out of modal context
+  return typeof document !== 'undefined' 
+    ? createPortal(keyboardContent, document.body)
+    : null;
 }
