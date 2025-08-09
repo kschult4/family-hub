@@ -180,7 +180,8 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
         </div>
       </div>
       
-      {showKeyboard && (
+      {/* Temporarily disabled keyboard for debugging */}
+      {false && showKeyboard && (
         <TouchKeyboard
           onChange={handleKeyboardChange}
           onKeyPress={handleKeyboardKeyPress}
