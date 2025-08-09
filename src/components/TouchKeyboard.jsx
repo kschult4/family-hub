@@ -61,7 +61,7 @@ export default function TouchKeyboard({
         layoutName={layoutName}
         onChange={onChangeInput}
         onKeyPress={handleKeyPress}
-        theme={`${theme} touch-keyboard`}
+        theme="touch-keyboard-uniform"
         layout={{
           'default': [
             'q w e r t y u i o p {bksp}',

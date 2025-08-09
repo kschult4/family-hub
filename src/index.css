@@ -110,26 +110,86 @@
   touch-action: manipulation !important;
 }
 
-/* Force all keyboard buttons to have the same styling */
+/* Force all keyboard buttons to have the same styling - maximum specificity */
+.touch-keyboard .hg-theme-default .hg-button.hg-red,
+.touch-keyboard .hg-theme-default .hg-button.hg-blue, 
+.touch-keyboard .hg-theme-default .hg-button.hg-green,
+.touch-keyboard .hg-theme-default .hg-button.hg-highlight,
+.touch-keyboard .hg-button.hg-red.hg-highlight,
+.touch-keyboard .hg-button.hg-blue.hg-highlight,
 .touch-keyboard .hg-button.hg-red,
 .touch-keyboard .hg-button.hg-blue,
 .touch-keyboard .hg-button.hg-green,
 .touch-keyboard .hg-button[data-skbtn="{bksp}"],
-.touch-keyboard .hg-button[data-skbtn="{enter}"] {
+.touch-keyboard .hg-button[data-skbtn="{enter}"],
+.touch-keyboard .simple-keyboard .hg-button.hg-red,
+.touch-keyboard .simple-keyboard .hg-button.hg-blue {
+  background-color: #f8fafc !important;
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   color: #334155 !important;
 }
 
+.touch-keyboard .hg-theme-default .hg-button.hg-red:hover,
+.touch-keyboard .hg-theme-default .hg-button.hg-blue:hover,
+.touch-keyboard .hg-theme-default .hg-button.hg-green:hover,
+.touch-keyboard .hg-theme-default .hg-button.hg-highlight:hover,
+.touch-keyboard .hg-button.hg-red.hg-highlight:hover,
+.touch-keyboard .hg-button.hg-blue.hg-highlight:hover,
 .touch-keyboard .hg-button.hg-red:hover,
 .touch-keyboard .hg-button.hg-blue:hover,
 .touch-keyboard .hg-button.hg-green:hover,
 .touch-keyboard .hg-button[data-skbtn="{bksp}"]:hover,
-.touch-keyboard .hg-button[data-skbtn="{enter}"]:hover {
+.touch-keyboard .hg-button[data-skbtn="{enter}"]:hover,
+.touch-keyboard .simple-keyboard .hg-button.hg-red:hover,
+.touch-keyboard .simple-keyboard .hg-button.hg-blue:hover {
+  background-color: #e2e8f0 !important;
   background: #e2e8f0 !important;
 }
 
 .touch-keyboard .hg-button:hover {
+  background: #e2e8f0 !important;
+}
+
+/* Custom uniform theme - completely override all default colors */
+.touch-keyboard-uniform .hg-button {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  color: #334155 !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  margin: 2px !important;
+  touch-action: manipulation !important;
+}
+
+.touch-keyboard-uniform .hg-button:hover,
+.touch-keyboard-uniform .hg-button:active {
+  background: #e2e8f0 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+/* Override ALL possible color classes */
+.touch-keyboard-uniform .hg-button.hg-red,
+.touch-keyboard-uniform .hg-button.hg-blue,
+.touch-keyboard-uniform .hg-button.hg-green,
+.touch-keyboard-uniform .hg-button.hg-grey,
+.touch-keyboard-uniform .hg-button.hg-highlight,
+.touch-keyboard-uniform .hg-button.hg-red.hg-highlight,
+.touch-keyboard-uniform .hg-button.hg-blue.hg-highlight {
+  background: #f8fafc !important;
+  color: #334155 !important;
+}
+
+.touch-keyboard-uniform .hg-button.hg-red:hover,
+.touch-keyboard-uniform .hg-button.hg-blue:hover,
+.touch-keyboard-uniform .hg-button.hg-green:hover,
+.touch-keyboard-uniform .hg-button.hg-grey:hover,
+.touch-keyboard-uniform .hg-button.hg-highlight:hover,
+.touch-keyboard-uniform .hg-button.hg-red.hg-highlight:hover,
+.touch-keyboard-uniform .hg-button.hg-blue.hg-highlight:hover {
   background: #e2e8f0 !important;
 }
 
