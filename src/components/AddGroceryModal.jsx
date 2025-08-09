@@ -103,7 +103,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
   }
 
   return (
-    <>
+    <div>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
         <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border">
           <div className="flex justify-between items-center mb-4">
@@ -171,9 +171,9 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           textAlign: 'center',
           zIndex: 9999 
         }}>
-          TEST KEYBOARD PLACEHOLDER - This should appear at bottom
+          TEST KEYBOARD PLACEHOLDER - State: {showKeyboard ? 'TRUE' : 'FALSE'}
         </div>
       )}
-    </>
+    </div>
   );
 }
