@@ -77,6 +77,73 @@
   }
 }
 
+/* Touch Keyboard Styles */
+.touch-keyboard-container {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  border: 1px solid #e5e7eb;
+}
+
+.touch-keyboard .hg-button {
+  height: 48px !important;
+  min-width: 48px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  color: #334155 !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  margin: 2px !important;
+  touch-action: manipulation !important;
+}
+
+.touch-keyboard .hg-button:hover {
+  background: #e2e8f0 !important;
+}
+
+.touch-keyboard .hg-button:active {
+  background: #cbd5e1 !important;
+  transform: scale(0.95);
+}
+
+.touch-keyboard .hg-highlight {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+
+.touch-keyboard .hg-highlight:hover {
+  background: #2563eb !important;
+}
+
+.touch-keyboard .hg-red {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
+.touch-keyboard .hg-red:hover {
+  background: #dc2626 !important;
+}
+
+.touch-keyboard .hg-blue {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+.touch-keyboard .hg-blue:hover {
+  background: #059669 !important;
+}
+
+.touch-keyboard .hg-grey {
+  background: #6b7280 !important;
+  color: white !important;
+}
+
+.touch-keyboard .hg-grey:hover {
+  background: #4b5563 !important;
+}
+
 /* === Base Styles === */
 @layer base {
   body {
