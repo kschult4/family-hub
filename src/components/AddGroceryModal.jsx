@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import TouchKeyboard from "./TouchKeyboard";
 
 // Utility for WCAG AA contrast check
 function getContrast(hex1, hex2) {
@@ -35,6 +36,16 @@ const BACKGROUND_PATTERNS = [
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
   const [showKeyboard, setShowKeyboard] = useState(false);
+  
+  const handleKeyboardChange = (input) => {
+    setDescription(input);
+  };
+
+  const handleKeyboardKeyPress = (button) => {
+    if (button === '{enter}') {
+      handleSubmit({ preventDefault: () => {} });
+    }
+  };
 
 
   if (!isOpen) return null; // ✅ Prevent rendering if modal is closed
@@ -148,6 +159,12 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
         </div>
       </div>
       
+      {showKeyboard && (
+        <TouchKeyboard
+          onChange={handleKeyboardChange}
+          onKeyPress={handleKeyboardKeyPress}
+        />
+      )}
     </>
   );
 }
