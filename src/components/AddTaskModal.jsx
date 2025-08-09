@@ -85,98 +85,98 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
         <div className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md" style={{ marginBottom: showKeyboard ? '300px' : '0' }}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">
-            {task ? "Edit Task" : "Add a New To-Do"}
-          </h2>
-          <button
-            onClick={() => {
-              onClose();
-              setShowKeyboard(false);
-            }}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-light"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <input
-              ref={inputRef}
-              type="text"
-              className="w-full border rounded p-2"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onFocus={() => setShowKeyboard(true)}
-              readOnly={showKeyboard}
-            />
-          </div>
-
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Frequency</label>
-            <select
-              className="w-full border rounded p-2"
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold">
+              {task ? "Edit Task" : "Add a New To-Do"}
+            </h2>
+            <button
+              onClick={() => {
+                onClose();
+                setShowKeyboard(false);
+              }}
+              className="text-gray-500 hover:text-gray-700 text-2xl font-light"
             >
-              <option value="">Select...</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-            </select>
+              ✕
+            </button>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Recurring</label>
-            <select
-              className="w-full border rounded p-2"
-              value={recurring}
-              onChange={(e) => setRecurring(e.target.value)}
-            >
-              <option value="">Select...</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-          </div>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full border rounded p-2"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onFocus={() => setShowKeyboard(true)}
+                readOnly={showKeyboard}
+              />
+            </div>
 
-          <div className="flex justify-between mt-6">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={() => {
-                  onClose();
-                  setShowKeyboard(false);
-                }}
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Frequency</label>
+              <select
+                className="w-full border rounded p-2"
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value)}
               >
-                Cancel
-              </button>
-              {task && onDelete && (
+                <option value="">Select...</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Recurring</label>
+              <select
+                className="w-full border rounded p-2"
+                value={recurring}
+                onChange={(e) => setRecurring(e.target.value)}
+              >
+                <option value="">Select...</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div className="flex justify-between mt-6">
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
                   onClick={() => {
-                    onDelete(task);
                     onClose();
                     setShowKeyboard(false);
                   }}
                 >
-                  Delete
+                  Cancel
                 </button>
-              )}
+                {task && onDelete && (
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    onClick={() => {
+                      onDelete(task);
+                      onClose();
+                      setShowKeyboard(false);
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-indigo-700"
+              >
+                Save
+              </button>
             </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-indigo-700"
-            >
-              Save
-            </button>
-          </div>
-        </form>
+          </form>
         </div>
       </div>
       
