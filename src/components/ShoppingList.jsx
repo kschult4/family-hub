@@ -28,37 +28,37 @@ function getContrast(hex1, hex2) {
 const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
 
 const BACKGROUND_PATTERNS = [
-  "/watermarks/Bowl.svg",
-  "/watermarks/Cheese.svg",
-  "/watermarks/Lemons.svg",
-  "/watermarks/Lettuce.svg",
-  "/watermarks/Strawberries.svg"
+  "/family-hub/watermarks/Bowl.svg",
+  "/family-hub/watermarks/Cheese.svg",
+  "/family-hub/watermarks/Lemons.svg",
+  "/family-hub/watermarks/Lettuce.svg",
+  "/family-hub/watermarks/Strawberries.svg"
 ];
 
 // Individual adjustments for each background pattern
 const PATTERN_ADJUSTMENTS = {
-  "/watermarks/Bowl.svg": {
+  "/family-hub/watermarks/Bowl.svg": {
     size: "213px 106px",
     position: "calc(100% + 25px) calc(50% - 5px)",
     opacity: 0.6
   },
-  "/watermarks/Cheese.svg": {
+  "/family-hub/watermarks/Cheese.svg": {
     size: "238px 119px", 
     position: "calc(100% + 35px) center",
     opacity: 0.6
   },
-  "/watermarks/Lemons.svg": {
+  "/family-hub/watermarks/Lemons.svg": {
     size: "250px 125px",
     position: "calc(100% + 25px) center", 
     opacity: 0.6
   },
-  "/watermarks/Lettuce.svg": {
+  "/family-hub/watermarks/Lettuce.svg": {
     size: "280px 140px",
     position: "calc(100% + 55px) calc(50% - 10px)",
     opacity: 0.6,
     transform: "rotate(15deg)"
   },
-  "/watermarks/Strawberries.svg": {
+  "/family-hub/watermarks/Strawberries.svg": {
     size: "250px 125px",
     position: "calc(100% + 25px) center",
     opacity: 0.6
