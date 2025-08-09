@@ -114,10 +114,14 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
               />
               <button
                 type="button"
-                onClick={() => setShowKeyboard(!showKeyboard)}
-                className="px-3 py-2 bg-blue-500 text-white rounded text-sm"
+                onClick={() => {
+                  console.log('Keyboard toggle clicked, current state:', showKeyboard);
+                  setShowKeyboard(!showKeyboard);
+                }}
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-bold border-2 border-blue-700"
+                style={{ backgroundColor: '#3b82f6', color: 'white', minWidth: '50px' }}
               >
-                ⌨️
+                KB
               </button>
             </div>
           </div>
