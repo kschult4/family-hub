@@ -310,6 +310,11 @@
     -webkit-mask-size: 33.33% 33.33%;
   }
 
+  /* Disable glint mask for Weekly Meal Plan small card */
+  .meals-small-card .glint-mask {
+    display: none;
+  }
+
   /* 🍽️ Meal card background zoom animation */
   @keyframes backgroundZoom {
     0% {

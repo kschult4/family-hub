@@ -34,42 +34,67 @@ function TaskItem({ task, onToggle, onLongPress, isDeleting, frequencyColor }) {
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
-      className={`
-        relative overflow-hidden flex items-center justify-between
-        rounded-md px-4 py-4 text-base text-white transition-all duration-300
-        ${isDeleting ? "opacity-0 translate-x-4" : ""}
-      `}
       style={{
         backgroundColor: frequencyColor,
+        height: '48px',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '14px 12px',
+        borderRadius: '6px',
+        marginBottom: '8px',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
+        opacity: isDeleting ? 0 : 1,
+        transform: isDeleting ? 'translateX(16px)' : 'translateX(0)'
       }}
     >
       {ripples.map((ripple) => (
         <span
           key={ripple.id}
           onAnimationEnd={() => onAnimationEnd(ripple.id)}
-          className="absolute pointer-events-none animate-ripple bg-black/10 rounded-full"
           style={{
+            position: 'absolute',
+            pointerEvents: 'none',
+            backgroundColor: 'rgba(0,0,0,0.1)',
+            borderRadius: '50%',
             left: ripple.x,
             top: ripple.y,
             width: 100,
             height: 100,
             marginLeft: -50,
             marginTop: -50,
+            animation: 'ripple 0.6s linear'
           }}
         />
       ))}
 
-      <div className="flex items-center gap-3 w-full">
-        <input
-          type="checkbox"
-          className="w-5 h-5"
-          checked={task.done}
-          onChange={() => onToggle(task.id)}
-        />
-        <span className="w-full cursor-pointer">
-          {task.description}
-        </span>
-      </div>
+      <input
+        type="checkbox"
+        checked={task.done}
+        onChange={() => onToggle(task.id)}
+        style={{
+          width: '16px',
+          height: '16px',
+          marginRight: '12px',
+          flexShrink: 0
+        }}
+      />
+      <span 
+        onClick={() => onToggle(task.id)}
+        style={{
+          flex: 1,
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: '500',
+          fontFamily: 'Lato, sans-serif',
+          cursor: 'pointer',
+          lineHeight: '1.2'
+        }}
+      >
+        {task.description}
+      </span>
+      {/* Cache buster v4 - COMPLETE REWRITE */}
     </li>
   );
 }
@@ -226,7 +251,7 @@ export default function TaskList({ tasks = [], setTasks, addTask, updateTask, re
                 >
                   {group}
                 </h3>
-                <ul className="space-y-2">
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {groupTasks.map((task) => (
                     <TaskItem 
                       key={task.id} 

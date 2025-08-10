@@ -5,7 +5,7 @@ import AddGroceryModal from "./AddGroceryModal";
 import AddTaskModal from "./AddTaskModal";
 import MealsModal from "./MealsModal";
 
-export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems }) {
+export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems, meals }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const navItems = isMobile ? ["ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
@@ -42,7 +42,7 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
 
       <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} onSave={onSaveGrocery} currentItems={groceryItems} />
       <AddTaskModal isOpen={activeModal === "task"} task={null} onClose={closeModal} onSave={onSaveTask} />
-      <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} onSave={onSaveMeals} />
+      <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} onSave={onSaveMeals} initialData={meals} />
     </>
   );
 }

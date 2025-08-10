@@ -19,17 +19,13 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Check if we're on a touch device (Pi) - multiple detection methods
-      const isTouchDevice = 'ontouchstart' in window || 
-                           navigator.maxTouchPoints > 0 ||
-                           navigator.msMaxTouchPoints > 0 ||
-                           window.TouchEvent !== undefined;
+      // Never show custom keyboard on mobile devices or web browsers
+      // Only show on specific Raspberry Pi setup
+      const isRaspberryPi = navigator.userAgent.includes('Linux') && 
+                           navigator.userAgent.includes('armv') &&
+                           window.innerWidth >= 1024; // Large screen
       
-      // Always show keyboard on Linux (Raspberry Pi detection)
-      const isLinux = navigator.platform.toLowerCase().includes('linux') || 
-                     navigator.userAgent.toLowerCase().includes('linux');
-      
-      if (isTouchDevice || isLinux) {
+      if (isRaspberryPi) {
         setShowKeyboard(true);
         inputRef.current?.blur(); // Don't show system keyboard
       } else {
@@ -166,13 +162,191 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
         </div>
       </div>
       
-      {showKeyboard && (
-        <TouchKeyboard
-          onChange={handleKeyboardChange}
-          onKeyPress={handleKeyboardKeyPress}
-          keyboardRef={keyboardRef}
-        />
-      )}
+      {showKeyboard ? (
+        <div style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          right: 0, 
+          background: '#f5f5f5', 
+          padding: '12px', 
+          borderTop: '1px solid #d1d5db',
+          zIndex: 9999
+        }}>
+          
+          {/* Top row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '2px', marginBottom: '2px' }}>
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setDescription(prev => prev + key)}
+                style={{ 
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+          
+          {/* QWERTY row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '2px', marginBottom: '2px' }}>
+            {['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setDescription(prev => prev + key)}
+                style={{ 
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {key.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {/* ASDF row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px', marginBottom: '2px' }}>
+            {['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setDescription(prev => prev + key)}
+                style={{ 
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {key.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {/* ZXCV row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '8px' }}>
+            {['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setDescription(prev => prev + key)}
+                style={{ 
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {key.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {/* Action buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '2px' }}>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setDescription(prev => prev + ' ')}
+              style={{ 
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
+              }}
+            >
+              space
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setDescription(prev => prev.slice(0, -1))}
+              style={{ 
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
+              }}
+            >
+              ⌫
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setDescription('')}
+              style={{ 
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
+              }}
+            >
+              clear
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowKeyboard(false)}
+              style={{ 
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

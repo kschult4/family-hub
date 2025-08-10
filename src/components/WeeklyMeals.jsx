@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import SectionHeader from "./SectionHeader";
 
 export default function WeeklyMeals({ meals = {} }) {
-  console.log('WeeklyMeals: received meals prop:', meals);
+  console.log('WeeklyMeals: component rendered with meals prop:', meals);
+  console.log('WeeklyMeals: meals prop type:', typeof meals);
+  console.log('WeeklyMeals: meals prop keys:', Object.keys(meals));
   
   // Default meal names for each day (Monday-Sunday)
   const defaultMealNames = [
@@ -117,7 +119,7 @@ export default function WeeklyMeals({ meals = {} }) {
         
         {/* Right Card (1/3 width) - All 7 days scrollable */}
         <motion.div 
-          className="relative overflow-hidden bg-cover bg-center bg-no-repeat" 
+          className="relative overflow-hidden bg-cover bg-center bg-no-repeat meals-small-card" 
           style={{
             flex: '1 1 0',
             height: '380px',

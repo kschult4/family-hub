@@ -335,7 +335,7 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
                         />
                       )}
                       <OverflowFadeText
-                        text={toSentenceCase(item.text || item.name || "")}
+                        text={toSentenceCase(item.text || "")}
                         isSpecial={item.special && !isMobile}
                         bgColor={item.bgColor}
                         bgPattern={item.bgPattern}

@@ -16,20 +16,31 @@ export function useFirebaseSync(path, defaultValue = []) {
         console.log(`Firebase onValue for ${path}:`, value);
         
         if (value) {
-          // Convert Firebase object to array if needed, preserving Firebase keys as IDs
-          let arrayData;
-          if (Array.isArray(value)) {
-            arrayData = value;
+          // Handle different data types based on defaultValue
+          if (Array.isArray(defaultValue)) {
+            // Convert Firebase object to array if needed, preserving Firebase keys as IDs
+            let arrayData;
+            if (Array.isArray(value)) {
+              arrayData = value;
+            } else {
+              // Convert object to array and preserve Firebase keys as IDs
+              arrayData = Object.entries(value).map(([firebaseKey, item]) => ({
+                ...item,
+                firebaseId: firebaseKey, // Preserve Firebase key
+                id: item.id || firebaseKey // Use original ID if exists, otherwise use Firebase key
+              }));
+            }
+            console.log(`Converted to array for ${path}:`, arrayData);
+            setData(arrayData);
           } else {
-            // Convert object to array and preserve Firebase keys as IDs
-            arrayData = Object.entries(value).map(([firebaseKey, item]) => ({
-              ...item,
-              firebaseId: firebaseKey, // Preserve Firebase key
-              id: item.id || firebaseKey // Use original ID if exists, otherwise use Firebase key
-            }));
+            // Keep as object for non-array default values (like meals)
+            // Force new object reference to trigger React re-render
+            const newObjectData = { ...value };
+            console.log(`Keeping as object for ${path}:`, newObjectData);
+            console.log(`Setting data for ${path}, current data:`, data);
+            setData(newObjectData);
+            console.log(`Data should now be updated for ${path}`);
           }
-          console.log(`Converted to array for ${path}:`, arrayData);
-          setData(arrayData);
         } else {
           console.log(`No data found for ${path}, using default:`, defaultValue);
           setData(defaultValue);
