@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import TouchKeyboard from "./TouchKeyboard";
 
 // Utility for WCAG AA contrast check
 function getContrast(hex1, hex2) {
@@ -41,9 +40,9 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Completely disable custom keyboard by default
+      // Completely disable custom keyboard by default (v2024.1.17)
       // Only enable with explicit localStorage flag for Raspberry Pi
-      const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
+      const enableCustomKeyboard = false; // Force disable regardless of localStorage
       
       if (enableCustomKeyboard) {
         setShowKeyboard(true);
