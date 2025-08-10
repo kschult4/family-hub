@@ -110,6 +110,17 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+              <button 
+                type="button"
+                onClick={() => {
+                  console.log('Manual toggle - Before:', showKeyboard);
+                  setShowKeyboard(!showKeyboard);
+                  console.log('Manual toggle - After should be:', !showKeyboard);
+                }}
+                className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
+              >
+                Toggle Keyboard ({showKeyboard ? 'ON' : 'OFF'})
+              </button>
             </div>
 
 
@@ -178,13 +189,16 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
         </div>
       </div>
       
-      {/* Temporarily disabled keyboard for debugging */}
-      {false && showKeyboard && (
+      {showKeyboard ? (
         <TouchKeyboard
           onChange={handleKeyboardChange}
           onKeyPress={handleKeyboardKeyPress}
           keyboardRef={keyboardRef}
         />
+      ) : (
+        <div style={{ position: 'fixed', bottom: '10px', right: '10px', background: 'yellow', padding: '5px', fontSize: '12px' }}>
+          Keyboard OFF
+        </div>
       )}
     </>
   );
