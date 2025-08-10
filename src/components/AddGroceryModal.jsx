@@ -41,17 +41,13 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Check if we're on a touch device (Pi) - multiple detection methods
-      const isTouchDevice = 'ontouchstart' in window || 
-                           navigator.maxTouchPoints > 0 ||
-                           navigator.msMaxTouchPoints > 0 ||
-                           window.TouchEvent !== undefined;
+      // Never show custom keyboard on mobile devices or web browsers
+      // Only show on specific Raspberry Pi setup
+      const isRaspberryPi = navigator.userAgent.includes('Linux') && 
+                           navigator.userAgent.includes('armv') &&
+                           window.innerWidth >= 1024; // Large screen
       
-      // Always show keyboard on Linux (Raspberry Pi detection)
-      const isLinux = navigator.platform.toLowerCase().includes('linux') || 
-                     navigator.userAgent.toLowerCase().includes('linux');
-      
-      if (isTouchDevice || isLinux) {
+      if (isRaspberryPi) {
         setShowKeyboard(true);
         inputRef.current?.blur(); // Don't show system keyboard
       } else {
@@ -110,8 +106,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
 
     const newItem = {
       id: Date.now(),
-      name: trimmed,
-      text: trimmed, // Add both name and text for compatibility
+      text: trimmed,
       addedAt: Date.now(),
       done: false,
       checked: false,
@@ -186,36 +181,30 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           bottom: 0, 
           left: 0, 
           right: 0, 
-          background: 'white', 
-          padding: '15px', 
-          border: '3px solid green',
-          zIndex: 9999,
-          maxHeight: '40vh',
-          overflow: 'auto'
+          background: '#f5f5f5', 
+          padding: '12px', 
+          borderTop: '1px solid #d1d5db',
+          zIndex: 9999
         }}>
-          <div style={{ background: 'green', color: 'white', padding: '8px', textAlign: 'center', marginBottom: '15px', borderRadius: '5px' }}>
-            🎹 SIMPLE TOUCH KEYBOARD - Working!
-          </div>
           
           {/* Top row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '3px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '2px', marginBottom: '2px' }}>
             {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(key => (
               <button 
                 key={key}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setDescription(prev => prev + key);
-                }}
+                onClick={() => setDescription(prev => prev + key)}
                 style={{ 
-                  padding: '12px 8px', 
-                  backgroundColor: '#e3f2fd', 
-                  border: '1px solid #90caf9',
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
                   borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
                   touchAction: 'manipulation',
-                  userSelect: 'none'
+                  userSelect: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 {key}
@@ -224,24 +213,23 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           </div>
           
           {/* QWERTY row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '3px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '2px', marginBottom: '2px' }}>
             {['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(key => (
               <button 
                 key={key}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setDescription(prev => prev + key);
-                }}
+                onClick={() => setDescription(prev => prev + key)}
                 style={{ 
-                  padding: '12px 8px', 
-                  backgroundColor: '#f3e5f5', 
-                  border: '1px solid #ce93d8',
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
                   borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
                   touchAction: 'manipulation',
-                  userSelect: 'none'
+                  userSelect: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 {key.toUpperCase()}
@@ -250,24 +238,23 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           </div>
           
           {/* ASDF row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '3px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px', marginBottom: '2px' }}>
             {['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(key => (
               <button 
                 key={key}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setDescription(prev => prev + key);
-                }}
+                onClick={() => setDescription(prev => prev + key)}
                 style={{ 
-                  padding: '12px 8px', 
-                  backgroundColor: '#fff3e0', 
-                  border: '1px solid #ffcc80',
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
                   borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
                   touchAction: 'manipulation',
-                  userSelect: 'none'
+                  userSelect: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 {key.toUpperCase()}
@@ -276,24 +263,23 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           </div>
           
           {/* ZXCV row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '15px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '8px' }}>
             {['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(key => (
               <button 
                 key={key}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setDescription(prev => prev + key);
-                }}
+                onClick={() => setDescription(prev => prev + key)}
                 style={{ 
-                  padding: '12px 8px', 
-                  backgroundColor: '#e8f5e8', 
-                  border: '1px solid #a5d6a7',
+                  padding: '14px 8px', 
+                  backgroundColor: '#ffffff', 
+                  border: '1px solid #d1d5db',
                   borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
+                  color: '#374151',
+                  fontSize: '16px',
+                  fontWeight: 'normal',
                   touchAction: 'manipulation',
-                  userSelect: 'none'
+                  userSelect: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 {key.toUpperCase()}
@@ -302,37 +288,37 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           </div>
           
           {/* Action buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '2px' }}>
             <button 
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setDescription(prev => prev + ' ')}
               style={{ 
-                padding: '15px', 
-                backgroundColor: '#2196f3', 
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                touchAction: 'manipulation'
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
               }}
             >
-              SPACE
+              space
             </button>
             <button 
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setDescription(prev => prev.slice(0, -1))}
               style={{ 
-                padding: '15px', 
-                backgroundColor: '#f44336', 
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                touchAction: 'manipulation'
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
               }}
             >
               ⌫
@@ -341,32 +327,32 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setDescription('')}
               style={{ 
-                padding: '15px', 
-                backgroundColor: '#ff9800', 
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                touchAction: 'manipulation'
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
               }}
             >
-              CLR
+              clear
             </button>
             <button 
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setShowKeyboard(false)}
               style={{ 
-                padding: '15px', 
-                backgroundColor: '#9e9e9e', 
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                touchAction: 'manipulation'
+                padding: '12px', 
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                touchAction: 'manipulation',
+                cursor: 'pointer'
               }}
             >
               ✕
