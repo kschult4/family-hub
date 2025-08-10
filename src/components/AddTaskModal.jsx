@@ -25,26 +25,14 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
                            navigator.msMaxTouchPoints > 0 ||
                            window.TouchEvent !== undefined;
       
-      // Debug logging
-      console.log('Touch device detection:', {
-        ontouchstart: 'ontouchstart' in window,
-        maxTouchPoints: navigator.maxTouchPoints,
-        msMaxTouchPoints: navigator.msMaxTouchPoints,
-        TouchEvent: window.TouchEvent !== undefined,
-        userAgent: navigator.userAgent,
-        isTouchDevice
-      });
-      
       // Always show keyboard on Linux (Raspberry Pi detection)
       const isLinux = navigator.platform.toLowerCase().includes('linux') || 
                      navigator.userAgent.toLowerCase().includes('linux');
       
       if (isTouchDevice || isLinux) {
-        console.log('Showing TouchKeyboard');
         setShowKeyboard(true);
         inputRef.current?.blur(); // Don't show system keyboard
       } else {
-        console.log('Desktop mode - using regular keyboard');
         inputRef.current.focus();
       }
     }
@@ -110,17 +98,6 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
-              <button 
-                type="button"
-                onClick={() => {
-                  console.log('Manual toggle - Before:', showKeyboard);
-                  setShowKeyboard(!showKeyboard);
-                  console.log('Manual toggle - After should be:', !showKeyboard);
-                }}
-                className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
-              >
-                Toggle Keyboard ({showKeyboard ? 'ON' : 'OFF'})
-              </button>
             </div>
 
 
@@ -189,16 +166,12 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
         </div>
       </div>
       
-      {showKeyboard ? (
+      {showKeyboard && (
         <TouchKeyboard
           onChange={handleKeyboardChange}
           onKeyPress={handleKeyboardKeyPress}
           keyboardRef={keyboardRef}
         />
-      ) : (
-        <div style={{ position: 'fixed', bottom: '10px', right: '10px', background: 'yellow', padding: '5px', fontSize: '12px' }}>
-          Keyboard OFF
-        </div>
       )}
     </>
   );

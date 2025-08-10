@@ -51,25 +51,10 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
       const isLinux = navigator.platform.toLowerCase().includes('linux') || 
                      navigator.userAgent.toLowerCase().includes('linux');
       
-      // Debug logging
-      console.log('GroceryModal Touch device detection:', {
-        ontouchstart: 'ontouchstart' in window,
-        maxTouchPoints: navigator.maxTouchPoints,
-        msMaxTouchPoints: navigator.msMaxTouchPoints,
-        TouchEvent: window.TouchEvent !== undefined,
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        isLinux,
-        isTouchDevice,
-        shouldShowKeyboard: isTouchDevice || isLinux
-      });
-      
       if (isTouchDevice || isLinux) {
-        console.log('GroceryModal: Showing TouchKeyboard');
         setShowKeyboard(true);
         inputRef.current?.blur(); // Don't show system keyboard
       } else {
-        console.log('GroceryModal: Desktop mode - using regular keyboard');
         inputRef.current.focus();
       }
     }
@@ -146,7 +131,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
         <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border" style={{ marginBottom: showKeyboard ? '300px' : '0' }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold" style={{background: 'yellow', padding: '10px'}}>🔧 DEBUG MODE - Add Grocery Item</h2>
+            <h2 className="text-lg font-bold">Add a New Grocery Item</h2>
             <button
               onClick={() => {
                 onClose();
@@ -169,43 +154,6 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
-              <div className="text-xs text-gray-500 mt-1">
-                Keyboard State: {JSON.stringify(showKeyboard)} | Type: {typeof showKeyboard}
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button 
-                  type="button"
-                  onClick={() => {
-                    console.log('Manual toggle - Before:', showKeyboard, typeof showKeyboard);
-                    const newState = !showKeyboard;
-                    setShowKeyboard(newState);
-                    console.log('Manual toggle - Setting to:', newState, typeof newState);
-                  }}
-                  className="px-2 py-1 bg-blue-500 text-white text-xs rounded"
-                >
-                  Toggle ({showKeyboard ? 'ON' : 'OFF'})
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    console.log('Force TRUE clicked');
-                    setShowKeyboard(true);
-                  }}
-                  className="px-2 py-1 bg-green-500 text-white text-xs rounded"
-                >
-                  Force TRUE
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    console.log('Force FALSE clicked');
-                    setShowKeyboard(false);
-                  }}
-                  className="px-2 py-1 bg-red-500 text-white text-xs rounded"
-                >
-                  Force FALSE
-                </button>
-              </div>
             </div>
 
 
@@ -231,24 +179,6 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
         </div>
       </div>
       
-      {/* Always visible debug panel */}
-      <div style={{ 
-        position: 'fixed', 
-        top: '10px', 
-        left: '10px', 
-        background: 'black', 
-        color: 'white', 
-        padding: '10px', 
-        fontSize: '12px',
-        zIndex: 10001,
-        fontFamily: 'monospace'
-      }}>
-        DEBUG PANEL<br/>
-        showKeyboard: {String(showKeyboard)}<br/>
-        Type: {typeof showKeyboard}<br/>
-        isOpen: {String(isOpen)}<br/>
-        Time: {new Date().toLocaleTimeString()}
-      </div>
       
       {showKeyboard ? (
         <div style={{ 
@@ -257,84 +187,193 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
           left: 0, 
           right: 0, 
           background: 'white', 
-          padding: '20px', 
-          border: '2px solid green',
-          zIndex: 9999
+          padding: '15px', 
+          border: '3px solid green',
+          zIndex: 9999,
+          maxHeight: '40vh',
+          overflow: 'auto'
         }}>
-          <div style={{ background: 'green', color: 'white', padding: '10px', textAlign: 'center', marginBottom: '10px' }}>
-            INLINE KEYBOARD TEST
+          <div style={{ background: 'green', color: 'white', padding: '8px', textAlign: 'center', marginBottom: '15px', borderRadius: '5px' }}>
+            🎹 SIMPLE TOUCH KEYBOARD - Working!
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '5px', marginBottom: '10px' }}>
-            {['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(key => (
+          
+          {/* Top row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '3px', marginBottom: '8px' }}>
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(key => (
               <button 
                 key={key}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
-                  console.log('Key pressed:', key);
                   setDescription(prev => prev + key);
                 }}
                 style={{ 
-                  padding: '15px', 
-                  backgroundColor: '#f0f0f0', 
-                  border: '1px solid #ccc',
-                  borderRadius: '5px',
+                  padding: '12px 8px', 
+                  backgroundColor: '#e3f2fd', 
+                  border: '1px solid #90caf9',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '16px'
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  touchAction: 'manipulation',
+                  userSelect: 'none'
                 }}
               >
                 {key}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          
+          {/* QWERTY row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '3px', marginBottom: '8px' }}>
+            {['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setDescription(prev => prev + key);
+                }}
+                style={{ 
+                  padding: '12px 8px', 
+                  backgroundColor: '#f3e5f5', 
+                  border: '1px solid #ce93d8',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  touchAction: 'manipulation',
+                  userSelect: 'none'
+                }}
+              >
+                {key.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {/* ASDF row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '3px', marginBottom: '8px' }}>
+            {['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setDescription(prev => prev + key);
+                }}
+                style={{ 
+                  padding: '12px 8px', 
+                  backgroundColor: '#fff3e0', 
+                  border: '1px solid #ffcc80',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  touchAction: 'manipulation',
+                  userSelect: 'none'
+                }}
+              >
+                {key.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {/* ZXCV row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', marginBottom: '15px' }}>
+            {['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(key => (
+              <button 
+                key={key}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setDescription(prev => prev + key);
+                }}
+                style={{ 
+                  padding: '12px 8px', 
+                  backgroundColor: '#e8f5e8', 
+                  border: '1px solid #a5d6a7',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  touchAction: 'manipulation',
+                  userSelect: 'none'
+                }}
+              >
+                {key.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {/* Action buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px' }}>
             <button 
-              onClick={() => setDescription('')}
-              style={{ 
-                padding: '15px 30px', 
-                backgroundColor: '#ff6b6b', 
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              Clear
-            </button>
-            <button 
-              onClick={() => setDescription(prev => prev.slice(0, -1))}
-              style={{ 
-                padding: '15px 30px', 
-                backgroundColor: '#4ecdc4', 
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              Backspace
-            </button>
-            <button 
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setDescription(prev => prev + ' ')}
               style={{ 
-                padding: '15px 30px', 
-                backgroundColor: '#45b7d1', 
+                padding: '15px', 
+                backgroundColor: '#2196f3', 
                 color: 'white',
                 border: 'none',
-                borderRadius: '5px',
+                borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '16px'
+                fontSize: '16px',
+                fontWeight: 'bold',
+                touchAction: 'manipulation'
               }}
             >
-              Space
+              SPACE
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setDescription(prev => prev.slice(0, -1))}
+              style={{ 
+                padding: '15px', 
+                backgroundColor: '#f44336', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                touchAction: 'manipulation'
+              }}
+            >
+              ⌫
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setDescription('')}
+              style={{ 
+                padding: '15px', 
+                backgroundColor: '#ff9800', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                touchAction: 'manipulation'
+              }}
+            >
+              CLR
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowKeyboard(false)}
+              style={{ 
+                padding: '15px', 
+                backgroundColor: '#9e9e9e', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                touchAction: 'manipulation'
+              }}
+            >
+              ✕
             </button>
           </div>
         </div>
-      ) : (
-        <div style={{ position: 'fixed', bottom: '10px', left: '10px', background: 'red', color: 'white', padding: '5px', fontSize: '12px' }}>
-          Grocery Keyboard OFF
-        </div>
-      )}
+      ) : null}
     </>
   );
 }

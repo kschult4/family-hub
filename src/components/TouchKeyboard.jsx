@@ -23,8 +23,6 @@ export default function TouchKeyboard({
   }
 }) {
   const keyboard = useRef();
-  
-  console.log('TouchKeyboard component rendered');
 
   useEffect(() => {
     if (keyboardRef) {
@@ -105,29 +103,8 @@ export default function TouchKeyboard({
     </div>
   );
 
-  // Add error boundary check
-  try {
-    console.log('TouchKeyboard: About to render portal');
-    // Render keyboard using portal to break out of modal context
-    return typeof document !== 'undefined' 
-      ? createPortal(keyboardContent, document.body)
-      : null;
-  } catch (error) {
-    console.error('TouchKeyboard render error:', error);
-    return (
-      <div style={{ 
-        position: 'fixed', 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        background: 'red', 
-        color: 'white', 
-        padding: '20px',
-        textAlign: 'center',
-        zIndex: 9999 
-      }}>
-        TouchKeyboard Error: {error.message}
-      </div>
-    );
-  }
+  // Render keyboard using portal to break out of modal context
+  return typeof document !== 'undefined' 
+    ? createPortal(keyboardContent, document.body)
+    : null;
 }
