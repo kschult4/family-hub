@@ -36,6 +36,44 @@ const BACKGROUND_PATTERNS = [
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {
   const [description, setDescription] = useState("");
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const inputRef = useRef(null);
+  const keyboardRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      // Check if we're on a touch device (Pi) - multiple detection methods
+      const isTouchDevice = 'ontouchstart' in window || 
+                           navigator.maxTouchPoints > 0 ||
+                           navigator.msMaxTouchPoints > 0 ||
+                           window.TouchEvent !== undefined;
+      
+      // Always show keyboard on Linux (Raspberry Pi detection)
+      const isLinux = navigator.platform.toLowerCase().includes('linux') || 
+                     navigator.userAgent.toLowerCase().includes('linux');
+      
+      // Debug logging
+      console.log('GroceryModal Touch device detection:', {
+        ontouchstart: 'ontouchstart' in window,
+        maxTouchPoints: navigator.maxTouchPoints,
+        msMaxTouchPoints: navigator.msMaxTouchPoints,
+        TouchEvent: window.TouchEvent !== undefined,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        isLinux,
+        isTouchDevice,
+        shouldShowKeyboard: isTouchDevice || isLinux
+      });
+      
+      if (isTouchDevice || isLinux) {
+        console.log('GroceryModal: Showing TouchKeyboard');
+        setShowKeyboard(true);
+        inputRef.current?.blur(); // Don't show system keyboard
+      } else {
+        console.log('GroceryModal: Desktop mode - using regular keyboard');
+        inputRef.current.focus();
+      }
+    }
+  }, [isOpen]);
   
   const handleKeyboardChange = (input) => {
     setDescription(input);
@@ -100,16 +138,20 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
     onSave?.(newItem); // Optional chaining in case onSave is not passed
     onClose();
     setDescription(""); // Reset form
+    setShowKeyboard(false);
   }
 
   return (
-    <div>
+    <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border">
+        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border" style={{ marginBottom: showKeyboard ? '300px' : '0' }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Add a New Grocery Item</h2>
+            <h2 className="text-lg font-bold" style={{background: 'yellow', padding: '10px'}}>🔧 DEBUG MODE - Add Grocery Item</h2>
             <button
-              onClick={onClose}
+              onClick={() => {
+                onClose();
+                setShowKeyboard(false);
+              }}
               className="text-gray-500 hover:text-gray-700 text-2xl font-light"
             >
               ✕
@@ -120,6 +162,7 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
             <div>
               <label className="block text-sm font-medium mb-1">Item</label>
               <input
+                ref={inputRef}
                 type="text"
                 className="w-full border rounded p-2"
                 placeholder="e.g. Bananas"
@@ -127,19 +170,42 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
                 onChange={(e) => setDescription(e.target.value)}
               />
               <div className="text-xs text-gray-500 mt-1">
-                Keyboard: {showKeyboard ? 'ON' : 'OFF'}
+                Keyboard State: {JSON.stringify(showKeyboard)} | Type: {typeof showKeyboard}
               </div>
-              <button 
-                type="button"
-                onClick={() => {
-                  console.log('Before toggle:', showKeyboard);
-                  setShowKeyboard(!showKeyboard);
-                  console.log('After toggle should be:', !showKeyboard);
-                }}
-                className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
-              >
-                Toggle Keyboard ({showKeyboard ? 'ON' : 'OFF'})
-              </button>
+              <div className="flex gap-2 mt-2">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    console.log('Manual toggle - Before:', showKeyboard, typeof showKeyboard);
+                    const newState = !showKeyboard;
+                    setShowKeyboard(newState);
+                    console.log('Manual toggle - Setting to:', newState, typeof newState);
+                  }}
+                  className="px-2 py-1 bg-blue-500 text-white text-xs rounded"
+                >
+                  Toggle ({showKeyboard ? 'ON' : 'OFF'})
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    console.log('Force TRUE clicked');
+                    setShowKeyboard(true);
+                  }}
+                  className="px-2 py-1 bg-green-500 text-white text-xs rounded"
+                >
+                  Force TRUE
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    console.log('Force FALSE clicked');
+                    setShowKeyboard(false);
+                  }}
+                  className="px-2 py-1 bg-red-500 text-white text-xs rounded"
+                >
+                  Force FALSE
+                </button>
+              </div>
             </div>
 
 
@@ -147,7 +213,10 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
               <button
                 type="button"
                 className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  setShowKeyboard(false);
+                }}
               >
                 Cancel
               </button>
@@ -162,21 +231,110 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
         </div>
       </div>
       
-      {showKeyboard && (
+      {/* Always visible debug panel */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '10px', 
+        left: '10px', 
+        background: 'black', 
+        color: 'white', 
+        padding: '10px', 
+        fontSize: '12px',
+        zIndex: 10001,
+        fontFamily: 'monospace'
+      }}>
+        DEBUG PANEL<br/>
+        showKeyboard: {String(showKeyboard)}<br/>
+        Type: {typeof showKeyboard}<br/>
+        isOpen: {String(isOpen)}<br/>
+        Time: {new Date().toLocaleTimeString()}
+      </div>
+      
+      {showKeyboard ? (
         <div style={{ 
           position: 'fixed', 
           bottom: 0, 
           left: 0, 
           right: 0, 
-          background: 'red', 
-          color: 'white', 
+          background: 'white', 
           padding: '20px', 
-          textAlign: 'center',
-          zIndex: 9999 
+          border: '2px solid green',
+          zIndex: 9999
         }}>
-          TEST KEYBOARD PLACEHOLDER - State: {showKeyboard ? 'TRUE' : 'FALSE'}
+          <div style={{ background: 'green', color: 'white', padding: '10px', textAlign: 'center', marginBottom: '10px' }}>
+            INLINE KEYBOARD TEST
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '5px', marginBottom: '10px' }}>
+            {['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(key => (
+              <button 
+                key={key}
+                onClick={() => {
+                  console.log('Key pressed:', key);
+                  setDescription(prev => prev + key);
+                }}
+                style={{ 
+                  padding: '15px', 
+                  backgroundColor: '#f0f0f0', 
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => setDescription('')}
+              style={{ 
+                padding: '15px 30px', 
+                backgroundColor: '#ff6b6b', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Clear
+            </button>
+            <button 
+              onClick={() => setDescription(prev => prev.slice(0, -1))}
+              style={{ 
+                padding: '15px 30px', 
+                backgroundColor: '#4ecdc4', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Backspace
+            </button>
+            <button 
+              onClick={() => setDescription(prev => prev + ' ')}
+              style={{ 
+                padding: '15px 30px', 
+                backgroundColor: '#45b7d1', 
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Space
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ position: 'fixed', bottom: '10px', left: '10px', background: 'red', color: 'white', padding: '5px', fontSize: '12px' }}>
+          Grocery Keyboard OFF
         </div>
       )}
-    </div>
+    </>
   );
 }
