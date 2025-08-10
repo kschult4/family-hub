@@ -14,13 +14,11 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
 
   useEffect(() => {
     if (isOpen && firstInputRef.current) {
-      // Never show custom keyboard on mobile devices or web browsers
-      // Only show on specific Raspberry Pi setup
-      const isRaspberryPi = navigator.userAgent.includes('Linux') && 
-                           navigator.userAgent.includes('armv') &&
-                           window.innerWidth >= 1024; // Large screen
+      // Completely disable custom keyboard by default
+      // Only enable with explicit localStorage flag for Raspberry Pi
+      const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
       
-      if (isRaspberryPi) {
+      if (enableCustomKeyboard) {
         setShowKeyboard(true);
         setActiveField(daysOfWeek[0]);
         setKeyboardDismissed(false); // Reset dismissal state when modal opens
@@ -58,14 +56,12 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
   const handleInputFocus = (day) => {
     setActiveField(day);
     
-    // Never show custom keyboard on mobile devices or web browsers
-    // Only show on specific Raspberry Pi setup
-    const isRaspberryPi = navigator.userAgent.includes('Linux') && 
-                         navigator.userAgent.includes('armv') &&
-                         window.innerWidth >= 1024; // Large screen
+    // Completely disable custom keyboard by default
+    // Only enable with explicit localStorage flag for Raspberry Pi
+    const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
     
-    // Force keyboard to show only on Raspberry Pi, even if it was manually dismissed
-    if (isRaspberryPi) {
+    // Force keyboard to show only if explicitly enabled, even if it was manually dismissed
+    if (enableCustomKeyboard) {
       setShowKeyboard(true);
       setKeyboardDismissed(false); // Clear dismissal state when focusing
     }

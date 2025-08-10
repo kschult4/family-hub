@@ -41,13 +41,11 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Never show custom keyboard on mobile devices or web browsers
-      // Only show on specific Raspberry Pi setup
-      const isRaspberryPi = navigator.userAgent.includes('Linux') && 
-                           navigator.userAgent.includes('armv') &&
-                           window.innerWidth >= 1024; // Large screen
+      // Completely disable custom keyboard by default
+      // Only enable with explicit localStorage flag for Raspberry Pi
+      const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
       
-      if (isRaspberryPi) {
+      if (enableCustomKeyboard) {
         setShowKeyboard(true);
         inputRef.current?.blur(); // Don't show system keyboard
       } else {
