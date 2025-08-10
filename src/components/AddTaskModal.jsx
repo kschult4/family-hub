@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import TouchKeyboard from "./TouchKeyboard";
 
 export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }) {
   const [description, setDescription] = useState("");
@@ -19,9 +18,9 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Completely disable custom keyboard by default
+      // Completely disable custom keyboard by default (v2024.1.17)
       // Only enable with explicit localStorage flag for Raspberry Pi
-      const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
+      const enableCustomKeyboard = false; // Force disable regardless of localStorage
       
       if (enableCustomKeyboard) {
         setShowKeyboard(true);

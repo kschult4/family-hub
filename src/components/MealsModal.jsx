@@ -14,9 +14,9 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
 
   useEffect(() => {
     if (isOpen && firstInputRef.current) {
-      // Completely disable custom keyboard by default
+      // Completely disable custom keyboard by default (v2024.1.17)
       // Only enable with explicit localStorage flag for Raspberry Pi
-      const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
+      const enableCustomKeyboard = false; // Force disable regardless of localStorage
       
       if (enableCustomKeyboard) {
         setShowKeyboard(true);
@@ -56,9 +56,9 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
   const handleInputFocus = (day) => {
     setActiveField(day);
     
-    // Completely disable custom keyboard by default
+    // Completely disable custom keyboard by default (v2024.1.17)
     // Only enable with explicit localStorage flag for Raspberry Pi
-    const enableCustomKeyboard = localStorage.getItem('enableCustomKeyboard') === 'true';
+    const enableCustomKeyboard = false; // Force disable regardless of localStorage
     
     // Force keyboard to show only if explicitly enabled, even if it was manually dismissed
     if (enableCustomKeyboard) {
