@@ -1,9 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import AlertsDashboard from "../views/AlertsDashboard";
-
-function HomeDashboard() {
-  return <div className="text-center p-10 text-xl">Coming soon: Home Dashboard</div>;
-}
+import FreshHomeDashboard from "../views/FreshHomeDashboard";
 
 function FamilyDashboard() {
   return <div className="text-center p-10 text-xl">Coming soon: Family Dashboard</div>;
@@ -11,7 +8,7 @@ function FamilyDashboard() {
 
 const views = {
   ALERTS: AlertsDashboard,
-  HOME: HomeDashboard,
+  HOME: FreshHomeDashboard,
   FAMILY: FamilyDashboard,
 };
 
