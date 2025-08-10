@@ -113,10 +113,6 @@ function OverflowFadeText({ text, isSpecial, bgColor, bgPattern, className, text
 export default function ShoppingList({ items = [], setItems, addGroceryItem, updateGroceryItem }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   
-  // Debug logging
-  console.log('ShoppingList render - items:', items);
-  console.log('ShoppingList render - unchecked items:', items.filter(item => !item.checked));
-  
   // Utility to convert a string to sentence case
   function toSentenceCase(str) {
     if (!str) return "";
@@ -142,7 +138,6 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
 
   function handleSave() {
     if (!input.trim()) return;
-    console.log('handleSave called. editItem:', editItem, 'input:', input);
 
     if (editItem) {
       // Use Firebase updateItem for individual item updates
@@ -153,45 +148,32 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
         const updated = items.map((item) =>
           item.id === editItem.id ? { ...item, text: input } : item
         );
-        console.log('Updated items after edit:', updated);
         setItems(updated);
       }
     } else {
-      // Random chance for special styling (75% for testing watermarks) - disabled on mobile
+      // Random chance for special styling - disabled on mobile
       let shouldSpecial = !isMobile && Math.random() < 0.75;
-      console.log('Random special decision:', shouldSpecial, 'isMobile:', isMobile);
 
       let bgColor = null;
       let bgPattern = null;
       if (shouldSpecial) {
         bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];
         
-        // Debug: show current items structure
-        console.log('Current items array:', items.slice(0, 5).map(item => ({
-          text: item.text,
-          special: item.special,
-          pattern: item.bgPattern
-        })));
-        
         // Avoid using the same pattern as the most recent special item
         let lastSpecialPattern = null;
-        for (let i = 0; i < Math.min(10, items.length); i++) { // Check up to 10 recent items
+        for (let i = 0; i < Math.min(10, items.length); i++) {
           if (items[i].special && items[i].bgPattern) {
             lastSpecialPattern = items[i].bgPattern;
-            console.log('Found last special pattern at index', i, ':', lastSpecialPattern);
             break;
           }
         }
         
         let availablePatterns = BACKGROUND_PATTERNS.filter(pattern => pattern !== lastSpecialPattern);
         if (availablePatterns.length === 0) {
-          availablePatterns = BACKGROUND_PATTERNS; // fallback if somehow all patterns are filtered
+          availablePatterns = BACKGROUND_PATTERNS;
         }
         
         bgPattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
-        console.log('Assigning pattern:', bgPattern, 'to special item (avoiding:', lastSpecialPattern, ')');
-        console.log('Available patterns were:', availablePatterns);
-        console.log('All patterns:', BACKGROUND_PATTERNS);
       }
 
       const newItem = {
@@ -202,7 +184,6 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
         bgColor,
         bgPattern,
       };
-      console.log('Adding new item with pattern:', newItem);
       
       // Use Firebase push() for adding individual items
       if (addGroceryItem) {
@@ -210,7 +191,6 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
       } else {
         // Fallback to full array update
         const updated = [newItem, ...items];
-        console.log('Updated items after add:', updated);
         setItems(updated);
       }
     }
@@ -276,8 +256,6 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
                     const contrast = getContrast(item.bgColor, textColor);
                     if (contrast < 4.5) textColor = "#000000";
                   }
-                  // Debug: log the pattern info
-                  console.log('Special item - bgColor:', item.bgColor, 'bgPattern:', item.bgPattern, 'textColor:', textColor);
                   
                   styleProps = {
                     background: item.bgColor,
