@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shield, ShieldAlert, ShieldCheck, ShieldX, Clock, Home, Users, Siren, Lock, Unlock } from 'lucide-react';
+import AlarmSoundingModal from './AlarmSoundingModal';
 
 export default function RingAlarmWidget({ 
   alarmData = {}, 
@@ -10,6 +11,8 @@ export default function RingAlarmWidget({
 }) {
   const [isChanging, setIsChanging] = useState(false);
   const [localStatus, setLocalStatus] = useState(null);
+  const [iconAnimating, setIconAnimating] = useState(false);
+  const [showTestModal, setShowTestModal] = useState(false);
 
   const {
     status = 'disarmed', // 'disarmed', 'armed_home', 'armed_away', 'pending', 'triggered'
@@ -71,6 +74,7 @@ export default function RingAlarmWidget({
     if (isChanging) return;
     
     setIsChanging(true);
+    setIconAnimating(true);
     try {
       // Update local state immediately for visual feedback
       switch (action) {
@@ -92,7 +96,10 @@ export default function RingAlarmWidget({
       // Reset local status on error
       setLocalStatus(null);
     } finally {
-      setTimeout(() => setIsChanging(false), 2000);
+      setTimeout(() => {
+        setIsChanging(false);
+        setIconAnimating(false);
+      }, 2000);
     }
   };
 
@@ -100,7 +107,7 @@ export default function RingAlarmWidget({
 
   if (!isConnected) {
     return (
-      <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 h-full flex flex-col">
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 h-full flex flex-col">
         <div className="flex items-center justify-center flex-1">
           <div className="text-center">
             <Siren className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -130,13 +137,58 @@ export default function RingAlarmWidget({
   };
 
   return (
-    <div 
-      className={`rounded-lg p-4 border-2 h-full flex flex-col cursor-pointer transition-all duration-200 active:scale-95 ${getCardStyles()}`}
+    <>
+      {/* Alarm Sounding Modal */}
+      <AlarmSoundingModal 
+        isVisible={currentStatus === 'triggered' || showTestModal} 
+        onDisarm={() => {
+          setShowTestModal(false);
+          handleAction('disarm');
+        }}
+      />
+      
+      <div 
+      className={`rounded-lg p-4 border h-full flex flex-col cursor-pointer transition-all duration-200 active:scale-95 ${getCardStyles()}`}
       onClick={handleCardClick}
     >
+      <style jsx>{`
+        @keyframes lockOpen {
+          0% { transform: rotate(0deg) scale(1); }
+          25% { transform: rotate(-10deg) scale(1.1); }
+          50% { transform: rotate(10deg) scale(1.2); }
+          75% { transform: rotate(-5deg) scale(1.1); }
+          100% { transform: rotate(0deg) scale(1); }
+        }
+        
+        @keyframes lockClose {
+          0% { transform: rotate(0deg) scale(1); }
+          25% { transform: rotate(10deg) scale(1.1); }
+          50% { transform: rotate(-10deg) scale(1.2); }
+          75% { transform: rotate(5deg) scale(1.1); }
+          100% { transform: rotate(0deg) scale(1); }
+        }
+        
+        .lock-animating-open {
+          animation: lockOpen 600ms ease-in-out;
+        }
+        
+        .lock-animating-close {
+          animation: lockClose 600ms ease-in-out;
+        }
+      `}</style>
       {/* Header */}
-      <div className="flex items-center mb-3">
+      <div className="flex items-center justify-between mb-3">
         <Siren className="w-8 h-8" />
+        {/* Temporary Test Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowTestModal(true);
+          }}
+          className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+        >
+          Test Modal
+        </button>
       </div>
 
       {/* Status Label - Center of Card */}
@@ -162,16 +214,29 @@ export default function RingAlarmWidget({
           } ${isChanging ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={isChanging}
         >
-          {isChanging ? (
-            <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <>
-              {isArmed ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-              {isArmed ? 'Disarm' : 'Arm'}
-            </>
-          )}
+          <>
+            {isArmed ? (
+              <Unlock 
+                className={`w-5 h-5 ${
+                  iconAnimating && localStatus === 'disarmed' 
+                    ? 'lock-animating-open' 
+                    : ''
+                }`} 
+              />
+            ) : (
+              <Lock 
+                className={`w-5 h-5 ${
+                  iconAnimating && (localStatus === 'armed_home' || localStatus === 'armed_away') 
+                    ? 'lock-animating-close' 
+                    : ''
+                }`} 
+              />
+            )}
+            {isArmed ? 'Disarm' : 'Arm'}
+          </>
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
