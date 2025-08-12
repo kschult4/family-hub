@@ -51,130 +51,128 @@ export default function SpotifyWidget({
     );
   }
 
+  // Get background image - use placeholder for testing
+  const backgroundImage = album?.imageUrl && album.imageUrl !== 'https://upload.wikimedia.org/wikipedia/commons/1/16/Blank_album.jpg' 
+    ? album.imageUrl 
+    : 'https://www.ultimatequeen.co.uk/queen/gallery/albums-1/a-night-at-the-opera-uklpfront.jpg';
+
   return (
-    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-200 h-full flex flex-col">
-      {/* Album Art and Track Info */}
-      <div className="flex gap-3 mb-3">
-        <div className="w-16 h-16 bg-gray-300 rounded-lg overflow-hidden flex-shrink-0">
-          {album?.imageUrl ? (
-            <img 
-              src={album.imageUrl} 
-              alt={album.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Music className="w-6 h-6 text-gray-500" />
+    <div 
+      className="rounded-lg h-full flex flex-col overflow-hidden relative"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/75 rounded-lg"></div>
+      
+      {/* Content overlay */}
+      <div className="relative z-10 p-4 h-full flex flex-col">
+        
+        {/* Top Section: Volume - Takes up 1/3 */}
+        <div className="flex-1 flex justify-end items-start">
+          {/* Volume Control - Upper Right */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+              className="p-2 rounded-full transition-colors hover:bg-white/20 backdrop-blur-sm"
+            >
+              <Volume2 className="w-4 h-4 text-white/80 drop-shadow" />
+            </button>
+            
+            {showVolumeSlider ? (
+              <div className="flex items-center gap-2 w-20">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={volume}
+                  onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+                  className="flex-1 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer backdrop-blur-sm"
+                  style={{
+                    background: `linear-gradient(to right, white 0%, white ${volume}%, rgba(255,255,255,0.2) ${volume}%, rgba(255,255,255,0.2) 100%)`
+                  }}
+                />
+                <span className="text-xs text-white/80 w-8 text-right font-medium drop-shadow">{volume}%</span>
+              </div>
+            ) : (
+              <span className="text-xs text-white/80 font-medium drop-shadow">{volume}%</span>
+            )}
+          </div>
+        </div>
+
+        {/* Middle Section: Track Info - Takes up 1/3 */}
+        <div className="flex-1 flex gap-4 items-center">
+          {/* Smaller left space */}
+          <div className="w-8"></div>
+          
+          {/* Track Info - Centered */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <h3 className="font-bold text-2xl text-white truncate leading-tight mb-1 drop-shadow-lg">
+              {currentTrack || 'No track playing'}
+            </h3>
+            <p className="text-lg text-white/90 truncate mb-0.5 drop-shadow">
+              {artist || 'Unknown artist'}
+            </p>
+            <p className="text-sm text-white/70 truncate drop-shadow">
+              {album?.name || 'Unknown album'}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Section: Progress Bar and Controls - Takes up 1/3 */}
+        <div className="flex-1 flex flex-col justify-end gap-3">
+          {/* Progress Bar - Reduced Width */}
+          {currentTrack && (
+            <div className="px-8">
+              <div className="flex items-center gap-3 text-xs text-white/80 mb-2">
+                <span className="text-xs font-medium w-10 text-left drop-shadow">{formatTime(position)}</span>
+                <div className="flex-1 bg-white/20 rounded-full h-2 backdrop-blur-sm">
+                  <div 
+                    className="bg-white h-2 rounded-full transition-all duration-300 shadow-sm"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium w-10 text-right drop-shadow">{formatTime(duration)}</span>
+              </div>
             </div>
           )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm text-gray-800 truncate">
-            {currentTrack || 'No track playing'}
-          </h3>
-          <p className="text-xs text-gray-600 truncate">
-            {artist || 'Unknown artist'}
-          </p>
-          <p className="text-xs text-gray-500 truncate">
-            {album?.name || 'Unknown album'}
-          </p>
-        </div>
-        {currentTrack && (
-          <button
-            onClick={onToggleLike}
-            className="p-1 hover:bg-green-200 rounded-full transition-colors"
-          >
-            <Heart className={`w-4 h-4 ${isLiked ? 'text-red-500 fill-current' : 'text-gray-500'}`} />
-          </button>
-        )}
-      </div>
 
-      {/* Progress Bar */}
-      {currentTrack && (
-        <div className="mb-3">
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-            <span>{formatTime(position)}</span>
-            <div className="flex-1 bg-gray-200 rounded-full h-1">
-              <div 
-                className="bg-green-500 h-1 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-            <span>{formatTime(duration)}</span>
+          {/* Centered Playback Controls */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={onPrevious}
+              disabled={!currentTrack}
+              className="p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 backdrop-blur-sm"
+            >
+              <SkipBack className="w-6 h-6 text-white drop-shadow" />
+            </button>
+            
+            <button
+              onClick={isPlaying ? onPause : onPlay}
+              disabled={!currentTrack}
+              className="p-4 bg-white/90 text-gray-900 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white shadow-lg backdrop-blur-sm"
+            >
+              {isPlaying ? (
+                <Pause className="w-6 h-6 fill-current" />
+              ) : (
+                <Play className="w-6 h-6 fill-current ml-0.5" />
+              )}
+            </button>
+            
+            <button
+              onClick={onNext}
+              disabled={!currentTrack}
+              className="p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 backdrop-blur-sm"
+            >
+              <SkipForward className="w-6 h-6 text-white drop-shadow" />
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Playback Controls */}
-      <div className="flex items-center justify-center gap-4 mb-3">
-        <button
-          onClick={onPrevious}
-          disabled={!currentTrack}
-          className="p-2 hover:bg-green-200 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <SkipBack className="w-5 h-5 text-gray-700" />
-        </button>
-        
-        <button
-          onClick={isPlaying ? onPause : onPlay}
-          disabled={!currentTrack}
-          className="p-3 bg-green-600 hover:bg-green-700 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
-          ) : (
-            <Play className="w-5 h-5 fill-current" />
-          )}
-        </button>
-        
-        <button
-          onClick={onNext}
-          disabled={!currentTrack}
-          className="p-2 hover:bg-green-200 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <SkipForward className="w-5 h-5 text-gray-700" />
-        </button>
-      </div>
-
-      {/* Volume Control */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-          className="p-1 hover:bg-green-200 rounded-full transition-colors"
-        >
-          <Volume2 className="w-4 h-4 text-gray-600" />
-        </button>
-        
-        {showVolumeSlider ? (
-          <div className="flex-1 flex items-center gap-2">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={volume}
-              onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
-              className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #22c55e 0%, #22c55e ${volume}%, #e5e7eb ${volume}%, #e5e7eb 100%)`
-              }}
-            />
-            <span className="text-xs text-gray-500 w-8 text-right">{volume}%</span>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-between">
-            <span className="text-xs text-gray-500">
-              {isPlaying ? 'Playing' : 'Paused'}
-            </span>
-            <span className="text-xs text-gray-500">{volume}%</span>
-          </div>
-        )}
-      </div>
-
-      {/* Spotify Logo */}
-      <div className="absolute top-2 right-2">
-        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-          <Music className="w-3 h-3 text-white" />
-        </div>
       </div>
     </div>
   );
