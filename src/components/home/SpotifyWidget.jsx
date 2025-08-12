@@ -16,6 +16,7 @@ export default function SpotifyWidget({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showDeviceSelector, setShowDeviceSelector] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [tempGroupSelection, setTempGroupSelection] = useState(new Set());
   const [tempRoomVolumes, setTempRoomVolumes] = useState({});
   const [showApplyFeedback, setShowApplyFeedback] = useState(false);
@@ -34,15 +35,15 @@ export default function SpotifyWidget({
     activeDevice = null
   } = spotifyData;
 
-  // Enhanced mock data with group leader and playback info
-  const individualRooms = availableDevices.length > 0 ? availableDevices : [
-    { id: 'living_room', name: 'Living Room', isOnline: true, isGrouped: true, volume: 65, isGroupLeader: true },
-    { id: 'kitchen', name: 'Kitchen', isOnline: true, isGrouped: true, volume: 50, isGroupLeader: false },
-    { id: 'bedroom', name: 'Bedroom', isOnline: true, isGrouped: false, volume: 30, isGroupLeader: false },
-    { id: 'office', name: 'Office', isOnline: false, isGrouped: false, volume: 0, isGroupLeader: false },
-    { id: 'bathroom', name: 'Bathroom', isOnline: true, isGrouped: false, volume: 40, isGroupLeader: false },
-    { id: 'dining_room', name: 'Dining Room', isOnline: true, isGrouped: false, volume: 35, isGroupLeader: false },
-    { id: 'patio', name: 'Patio', isOnline: true, isGrouped: false, volume: 70, isGroupLeader: false }
+  // Enhanced mock data with proper Sonos device/group coordinator concept
+  const sonosDevices = availableDevices.length > 0 ? availableDevices : [
+    { id: 'living_room_sonos', name: 'Living Room', type: 'One SL', isOnline: true, isInGroup: true, isGroupCoordinator: true, volume: 65, groupId: 'group_1' },
+    { id: 'kitchen_sonos', name: 'Kitchen', type: 'Play:1', isOnline: true, isInGroup: true, isGroupCoordinator: false, volume: 50, groupId: 'group_1' },
+    { id: 'bedroom_sonos', name: 'Bedroom', type: 'One', isOnline: true, isInGroup: true, isGroupCoordinator: true, volume: 30, groupId: 'group_2' },
+    { id: 'bathroom_sonos', name: 'Bathroom', type: 'One SL', isOnline: true, isInGroup: true, isGroupCoordinator: false, volume: 40, groupId: 'group_2' },
+    { id: 'office_sonos', name: 'Office', type: 'Play:5', isOnline: false, isInGroup: false, isGroupCoordinator: false, volume: 0, groupId: null },
+    { id: 'dining_sonos', name: 'Dining Room', type: 'Play:3', isOnline: true, isInGroup: false, isGroupCoordinator: false, volume: 35, groupId: null },
+    { id: 'patio_sonos', name: 'Patio', type: 'Move', isOnline: true, isInGroup: false, isGroupCoordinator: false, volume: 70, groupId: null }
   ];
 
   // Current playback metadata
@@ -52,24 +53,45 @@ export default function SpotifyWidget({
     artist: 'Queen'
   };
 
-  // Current group is rooms that are currently grouped
-  const currentGroup = individualRooms.filter(room => room.isGrouped);
-  const availableRooms = individualRooms.filter(room => !room.isGrouped && room.isOnline);
-  const groupLeader = individualRooms.find(room => room.isGroupLeader);
+  // Get all existing groups and individual devices
+  const existingGroups = [...new Set(sonosDevices.filter(d => d.groupId).map(d => d.groupId))];
+  const groups = existingGroups.map(groupId => {
+    const devicesInGroup = sonosDevices.filter(d => d.groupId === groupId);
+    const coordinator = devicesInGroup.find(d => d.isGroupCoordinator);
+    return {
+      id: groupId,
+      name: `${coordinator?.name || 'Unknown'} + ${devicesInGroup.length - 1}`,
+      coordinator: coordinator,
+      members: devicesInGroup.filter(d => !d.isGroupCoordinator),
+      allDevices: devicesInGroup
+    };
+  });
   
-  // Create grouped and ungrouped lists based on temp selection
-  const tempGroupedRooms = individualRooms.filter(room => tempGroupSelection.has(room.id));
-  const tempAvailableRooms = individualRooms.filter(room => !tempGroupSelection.has(room.id) && room.isOnline);
+  const ungroupedDevices = sonosDevices.filter(device => !device.groupId && device.isOnline);
+  
+  // Initialize selectedGroupId with first group if it exists
+  useEffect(() => {
+    if (!selectedGroupId && groups.length > 0) {
+      setSelectedGroupId(groups[0].id);
+    }
+  }, [groups.length, selectedGroupId]);
+  
+  const currentGroup = selectedGroupId ? groups.find(g => g.id === selectedGroupId) : null;
+  const groupCoordinator = currentGroup?.coordinator;
+  
+  // Create grouped and ungrouped lists based on temp selection for currently selected group
+  const tempGroupedDevices = currentGroup ? sonosDevices.filter(device => tempGroupSelection.has(device.id)) : [];
+  const tempAvailableDevices = sonosDevices.filter(device => !tempGroupSelection.has(device.id) && device.isOnline);
 
-  // Initialize temp selection with current group when opening dropdown
+  // Initialize temp selection with current group when opening modal
   const initializeTempSelection = () => {
-    const currentlyGrouped = new Set(currentGroup.map(room => room.id));
+    const currentlyGrouped = currentGroup ? new Set(currentGroup.allDevices.map(device => device.id)) : new Set();
     setTempGroupSelection(currentlyGrouped);
     
-    // Initialize temp volumes with current room volumes
+    // Initialize temp volumes with current device volumes
     const volumes = {};
-    individualRooms.forEach(room => {
-      volumes[room.id] = room.volume;
+    sonosDevices.forEach(device => {
+      volumes[device.id] = device.volume;
     });
     setTempRoomVolumes(volumes);
   };
@@ -93,40 +115,40 @@ export default function SpotifyWidget({
     onVolumeChange?.(newVolume);
   };
 
-  const handleRoomToggle = (roomId) => {
+  const handleDeviceToggle = (deviceId) => {
     const newSelection = new Set(tempGroupSelection);
-    if (newSelection.has(roomId)) {
-      newSelection.delete(roomId);
+    if (newSelection.has(deviceId)) {
+      newSelection.delete(deviceId);
     } else {
-      newSelection.add(roomId);
+      newSelection.add(deviceId);
     }
     setTempGroupSelection(newSelection);
   };
 
-  const handleRoomVolumeChange = (roomId, newVolume) => {
+  const handleDeviceVolumeChange = (deviceId, newVolume) => {
     setTempRoomVolumes(prev => ({
       ...prev,
-      [roomId]: newVolume
+      [deviceId]: newVolume
     }));
   };
 
   const handleApplyGrouping = () => {
-    const selectedRooms = individualRooms.filter(room => tempGroupSelection.has(room.id));
-    const previousGroupSize = currentGroup.length;
-    const newGroupSize = selectedRooms.length;
+    const selectedDevices = sonosDevices.filter(device => tempGroupSelection.has(device.id));
+    const previousGroupSize = currentGroup?.allDevices.length || 0;
+    const newGroupSize = selectedDevices.length;
     
     // Create feedback message
     let message = '';
     if (newGroupSize === 0) {
-      message = 'All rooms ungrouped';
+      message = 'All devices ungrouped';
     } else if (newGroupSize === 1) {
-      message = `${selectedRooms[0].name} playing solo`;
+      message = `${selectedDevices[0].name} playing solo`;
     } else if (previousGroupSize !== newGroupSize) {
-      const roomNames = selectedRooms.slice(0, 2).map(r => r.name).join(' and ');
+      const deviceNames = selectedDevices.slice(0, 2).map(d => d.name).join(' and ');
       const remaining = newGroupSize - 2;
       message = remaining > 0 
-        ? `${roomNames} and ${remaining} other${remaining > 1 ? 's' : ''} grouped`
-        : `${roomNames} grouped`;
+        ? `${deviceNames} and ${remaining} other${remaining > 1 ? 's' : ''} grouped`
+        : `${deviceNames} grouped`;
     } else {
       message = 'Group updated';
     }
@@ -138,7 +160,7 @@ export default function SpotifyWidget({
     // Hide feedback after 3 seconds
     setTimeout(() => setShowApplyFeedback(false), 3000);
     
-    onDeviceChange?.(selectedRooms, tempRoomVolumes);
+    onDeviceChange?.(selectedDevices, tempRoomVolumes);
   };
 
   const handleShowGrouping = () => {
@@ -213,9 +235,9 @@ export default function SpotifyWidget({
               onClick={handleShowGrouping}
               className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/20 backdrop-blur-sm"
             >
-              {currentGroup.length > 1 ? <Users className="w-4 h-4" /> : <Home className="w-4 h-4" />}
+              {currentGroup ? <Users className="w-4 h-4" /> : <Home className="w-4 h-4" />}
               <span className="text-sm text-white/90 font-medium drop-shadow max-w-24 truncate">
-                {currentGroup.length > 1 ? `${currentGroup.length} Rooms` : currentGroup[0]?.name || 'No Room'}
+                {currentGroup ? currentGroup.name : ungroupedDevices[0]?.name || 'No Device'}
               </span>
               <ChevronDown className={`w-3 h-3 text-white/70 transition-transform ${
                 showDeviceSelector ? 'rotate-180' : ''
@@ -235,10 +257,10 @@ export default function SpotifyWidget({
                   {/* Modal Header */}
                   <div className="px-6 py-4 border-b border-white/20 flex items-center justify-between">
                     <div>
-                      <h3 className="text-white/95 font-semibold text-lg">Room Grouping</h3>
+                      <h3 className="text-white/95 font-semibold text-lg">Device Grouping</h3>
                       <p className="text-white/70 text-sm mt-1">
-                        {tempGroupSelection.size} room{tempGroupSelection.size !== 1 ? 's' : ''} selected
-                        {groupLeader && ` • ${groupLeader.name} is playing`}
+                        {tempGroupSelection.size} device{tempGroupSelection.size !== 1 ? 's' : ''} selected
+                        {groupCoordinator && ` • ${groupCoordinator.name} (${groupCoordinator.type}) is coordinating`}
                       </p>
                     </div>
                     <button
@@ -249,43 +271,86 @@ export default function SpotifyWidget({
                     </button>
                   </div>
                 
+                  {/* Group Selection Section */}
+                  {(groups.length > 1 || ungroupedDevices.length > 0) && (
+                    <div className="px-6 py-4 border-b border-white/10">
+                      <h4 className="text-white/80 text-sm font-semibold mb-3">SELECT GROUP TO CONTROL</h4>
+                      <div className="flex gap-2 flex-wrap">
+                        {groups.map((group) => (
+                          <button
+                            key={group.id}
+                            onClick={() => {
+                              setSelectedGroupId(group.id);
+                              setTimeout(() => initializeTempSelection(), 0);
+                            }}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                              selectedGroupId === group.id 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'
+                            }`}
+                          >
+                            <Users className="w-4 h-4" />
+                            {group.name}
+                          </button>
+                        ))}
+                        {ungroupedDevices.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setSelectedGroupId(null);
+                              setTimeout(() => initializeTempSelection(), 0);
+                            }}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                              !selectedGroupId 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'
+                            }`}
+                          >
+                            <Home className="w-4 h-4" />
+                            Individual Devices
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Modal Content */}
                   <div className="flex-1 overflow-y-auto max-h-[60vh] p-6">
                     {/* Currently Grouped Section */}
-                    {tempGroupedRooms.length > 0 && (
+                    {tempGroupedDevices.length > 0 && (
                       <div className="mb-8">
                         <h4 className="text-white/80 text-sm font-semibold mb-4 flex items-center gap-3">
                           <Users className="w-4 h-4" />
-                          CURRENTLY GROUPED
+                          CURRENT GROUP
                         </h4>
                       
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {tempGroupedRooms.map((room) => {
-                            const currentVolume = tempRoomVolumes[room.id] || room.volume;
+                          {tempGroupedDevices.map((device) => {
+                            const currentVolume = tempRoomVolumes[device.id] || device.volume;
                             
                             return (
-                              <div key={room.id} className="p-4 bg-white/8 rounded-xl border border-white/15 hover:bg-white/10 transition-colors">
+                              <div key={device.id} className="p-4 bg-white/8 rounded-xl border border-white/15 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-3 mb-3">
                                   {/* Ungroup Button */}
                                   <button
-                                    onClick={() => handleRoomToggle(room.id)}
+                                    onClick={() => handleDeviceToggle(device.id)}
                                     className="w-6 h-6 rounded-lg border-2 bg-green-500 border-green-500 flex items-center justify-center hover:bg-green-600 transition-colors"
                                   >
                                     <Check className="w-4 h-4 text-white" />
                                   </button>
                               
-                                  {/* Room Info */}
+                                  {/* Device Info */}
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-white/95 font-semibold text-base">{room.name}</span>
-                                      {room.isGroupLeader && (
+                                      <span className="text-white/95 font-semibold text-base">{device.name}</span>
+                                      {device.isGroupCoordinator && (
                                         <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full">
                                           <PlayCircle className="w-4 h-4 text-blue-400" />
-                                          <span className="text-blue-400 text-sm font-medium">Now Playing</span>
+                                          <span className="text-blue-400 text-sm font-medium">Coordinator</span>
                                         </div>
                                       )}
                                     </div>
-                                    {room.isGroupLeader && currentPlayback && (
+                                    <p className="text-white/60 text-sm">{device.type}</p>
+                                    {device.isGroupCoordinator && currentPlayback && (
                                       <p className="text-white/70 text-sm mt-1">
                                         {currentPlayback.source} • {currentPlayback.track}
                                       </p>
@@ -294,7 +359,7 @@ export default function SpotifyWidget({
                               
                                   {/* Remove from group */}
                                   <button
-                                    onClick={() => handleRoomToggle(room.id)}
+                                    onClick={() => handleDeviceToggle(device.id)}
                                     className="p-2 text-white/50 hover:text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
                                     title="Remove from group"
                                   >
@@ -310,7 +375,7 @@ export default function SpotifyWidget({
                                     min="0"
                                     max="100"
                                     value={currentVolume}
-                                    onChange={(e) => handleRoomVolumeChange(room.id, parseInt(e.target.value))}
+                                    onChange={(e) => handleDeviceVolumeChange(device.id, parseInt(e.target.value))}
                                     className="flex-1 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
                                     style={{
                                       background: `linear-gradient(to right, #10b981 0%, #10b981 ${currentVolume}%, rgba(255,255,255,0.2) ${currentVolume}%, rgba(255,255,255,0.2) 100%)`
@@ -326,7 +391,7 @@ export default function SpotifyWidget({
                     )}
                   
                     {/* Available to Add Section */}
-                    {tempAvailableRooms.length > 0 && (
+                    {tempAvailableDevices.length > 0 && (
                       <div className="mb-8">
                         <h4 className="text-white/80 text-sm font-semibold mb-4 flex items-center gap-3">
                           <Plus className="w-4 h-4" />
@@ -334,33 +399,34 @@ export default function SpotifyWidget({
                         </h4>
                       
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {tempAvailableRooms.map((room) => {
-                            const currentVolume = tempRoomVolumes[room.id] || room.volume;
+                          {tempAvailableDevices.map((device) => {
+                            const currentVolume = tempRoomVolumes[device.id] || device.volume;
                             
                             return (
-                              <div key={room.id} className="p-4 rounded-xl border border-white/10 hover:bg-white/5 hover:border-white/20 transition-colors cursor-pointer" onClick={() => handleRoomToggle(room.id)}>
+                              <div key={device.id} className="p-4 rounded-xl border border-white/10 hover:bg-white/5 hover:border-white/20 transition-colors cursor-pointer" onClick={() => handleDeviceToggle(device.id)}>
                                 <div className="flex items-center gap-3 mb-3">
                                   {/* Add to Group Checkbox */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleRoomToggle(room.id);
+                                      handleDeviceToggle(device.id);
                                     }}
                                     className="w-6 h-6 rounded-lg border-2 border-white/40 bg-transparent flex items-center justify-center hover:border-white/60 transition-colors"
                                   >
                                     {/* Empty checkbox */}
                                   </button>
                               
-                                  {/* Room Info */}
+                                  {/* Device Info */}
                                   <div className="flex-1">
-                                    <div className="text-white/95 font-semibold text-base">{room.name}</div>
+                                    <div className="text-white/95 font-semibold text-base">{device.name}</div>
+                                    <p className="text-white/60 text-sm">{device.type}</p>
                                   </div>
                               
                                   {/* Add to group */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleRoomToggle(room.id);
+                                      handleDeviceToggle(device.id);
                                     }}
                                     className="p-2 text-white/50 hover:text-green-400 hover:bg-green-400/20 rounded-lg transition-colors"
                                     title="Add to group"
@@ -379,7 +445,7 @@ export default function SpotifyWidget({
                                     value={currentVolume}
                                     onChange={(e) => {
                                       e.stopPropagation();
-                                      handleRoomVolumeChange(room.id, parseInt(e.target.value));
+                                      handleDeviceVolumeChange(device.id, parseInt(e.target.value));
                                     }}
                                     className="flex-1 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
                                     style={{
@@ -395,18 +461,21 @@ export default function SpotifyWidget({
                       </div>
                     )}
                   
-                    {/* Offline Rooms (if any) */}
-                    {individualRooms.filter(r => !r.isOnline).length > 0 && (
+                    {/* Offline Devices (if any) */}
+                    {sonosDevices.filter(d => !d.isOnline).length > 0 && (
                       <div>
                         <h4 className="text-white/60 text-sm font-semibold mb-4 flex items-center gap-3">
                           <X className="w-4 h-4" />
                           OFFLINE
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {individualRooms.filter(r => !r.isOnline).map((room) => (
-                            <div key={room.id} className="flex items-center gap-3 p-4 opacity-50 rounded-xl border border-white/10">
+                          {sonosDevices.filter(d => !d.isOnline).map((device) => (
+                            <div key={device.id} className="flex items-center gap-3 p-4 opacity-50 rounded-xl border border-white/10">
                               <div className="w-6 h-6 rounded-lg border-2 border-white/20 bg-transparent"></div>
-                              <span className="text-white/70 text-base font-medium">{room.name}</span>
+                              <div className="flex-1">
+                                <span className="text-white/70 text-base font-medium">{device.name}</span>
+                                <p className="text-white/50 text-sm">{device.type}</p>
+                              </div>
                               <span className="text-red-400 text-sm ml-auto">(Offline)</span>
                             </div>
                           ))}
@@ -418,10 +487,10 @@ export default function SpotifyWidget({
                   {/* Modal Footer */}
                   <div className="px-6 py-4 border-t border-white/20 flex gap-3">
                     <button
-                      onClick={() => setTempGroupSelection(new Set(individualRooms.filter(r => r.isOnline).map(r => r.id)))}
+                      onClick={() => setTempGroupSelection(new Set(sonosDevices.filter(d => d.isOnline).map(d => d.id)))}
                       className="flex-1 px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors font-medium"
                     >
-                      Select All
+                      Group All
                     </button>
                     <button
                       onClick={() => setTempGroupSelection(new Set())}
