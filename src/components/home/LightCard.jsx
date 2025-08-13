@@ -1,11 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { Lightbulb, Power } from 'lucide-react';
+import { useHomeAssistantEntity } from '../../hooks/useHomeAssistantEntity';
 
 export default function LightCard({ 
+  lightId,
   device, 
   onToggle, 
   onLongPress 
 }) {
+  // Use Home Assistant integration if lightId is provided
+  const { entity, loading, error, toggle, turnOn, turnOff } = useHomeAssistantEntity(lightId, !!lightId);
+  
+  // Debug logging (only log if there's an issue)
+  if (lightId && (loading || error || entity?.state === 'unavailable')) {
+    console.log('🔍 LightCard debug:', {
+      lightId: lightId, 
+      loading: loading, 
+      hasError: !!error,
+      entityState: entity?.state,
+      entityId: entity?.entity_id,
+      isUnavailable: entity?.state === 'unavailable' || loading
+    });
+  }
+  
   const [isPressed, setIsPressed] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [rippleActive, setRippleActive] = useState(false);
@@ -16,8 +33,11 @@ export default function LightCard({
   const cardRef = useRef(null);
   const buttonRef = useRef(null);
   
-  const isOn = device.state === 'on';
-  const isUnavailable = device.state === 'unavailable';
+  // Use entity from HA client if available, otherwise fall back to passed device prop
+  const lightData = entity || device;
+  const isOn = lightData?.isOn ?? (lightData?.state === 'on');
+  const isUnavailable = lightData?.state === 'unavailable' || loading;
+  const hasError = !!error;
   
   // Sync ripple state with actual device state
   useEffect(() => {
@@ -52,28 +72,34 @@ export default function LightCard({
     return () => window.removeEventListener('resize', calculateButtonCenter);
   }, []);
   
-  const friendlyName = device.attributes?.friendly_name || device.entity_id;
+  const friendlyName = lightData?.name || lightData?.attributes?.friendly_name || lightData?.entity_id || lightData?.id;
+  const entityId = lightData?.id || lightData?.entity_id;
   
   // Extract room name from entity_id or friendly_name
   const getRoomName = () => {
+    if (!friendlyName) return '';
     if (friendlyName.includes('Light')) {
       return friendlyName.replace(' Light', '');
     }
     // Extract from entity_id like "light.living_room" -> "Living Room"
-    const roomPart = device.entity_id.split('.')[1];
-    return roomPart.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    if (entityId) {
+      const roomPart = entityId.split('.')[1];
+      return roomPart.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+    }
+    return '';
   };
   
   // Extract device name (remove room from friendly name)
   const getDeviceName = () => {
+    if (!friendlyName) return 'Light';
     const roomName = getRoomName();
-    return friendlyName.replace(roomName, '').trim();
+    return friendlyName.replace(roomName, '').trim() || 'Light';
   };
 
-  const handleClick = () => {
-    if (!isUnavailable && !isToggling) {
+  const handleClick = async () => {
+    if (!isUnavailable && !isToggling && !hasError) {
       setIsToggling(true);
       
       // Capture the current state before toggling
@@ -86,7 +112,16 @@ export default function LightCard({
       }
       // If turning off, ripple is already active from being on
       
-      onToggle?.(device.entity_id);
+      try {
+        // Use HA client if lightId is provided, otherwise use legacy onToggle callback
+        if (lightId && toggle) {
+          await toggle();
+        } else if (onToggle && entityId) {
+          await onToggle(entityId);
+        }
+      } catch (error) {
+        console.error('Error toggling light:', error);
+      }
       
       // Animation runs for 600ms for smoother effect
       setTimeout(() => {
@@ -101,11 +136,11 @@ export default function LightCard({
   };
 
   const handleLongPressStart = () => {
-    if (isUnavailable) return;
+    if (isUnavailable || hasError) return;
     
     setIsPressed(true);
     const timer = setTimeout(() => {
-      onLongPress?.(device.entity_id);
+      onLongPress?.(entityId);
       setIsPressed(false);
     }, 500);
     setLongPressTimer(timer);
@@ -120,6 +155,9 @@ export default function LightCard({
   };
 
   const getCardStyles = () => {
+    if (hasError) {
+      return 'border-red-200 bg-red-50 opacity-75 cursor-not-allowed';
+    }
     if (isUnavailable) {
       return 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed';
     }
@@ -130,10 +168,27 @@ export default function LightCard({
   };
 
   const getIconColor = () => {
+    if (hasError) return 'text-red-400';
     if (isUnavailable) return 'text-gray-400';
     if (isOn) return 'text-yellow-500';
     return 'text-gray-500';
   };
+
+  // Show loading state for HA client
+  if (lightId && loading) {
+    return (
+      <div className="relative p-4 rounded-lg border h-full flex flex-col bg-gray-100 border-gray-200 animate-pulse">
+        <div className="flex items-center mb-3">
+          <div className="w-6 h-6 bg-gray-300 rounded"></div>
+        </div>
+        <div className="h-6 bg-gray-300 rounded mb-1 w-3/4"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+        <div className="absolute bottom-2 right-2">
+          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -150,8 +205,8 @@ export default function LightCard({
       onTouchCancel={handleLongPressEnd}
       onContextMenu={(e) => {
         e.preventDefault();
-        if (!isUnavailable) {
-          onLongPress?.(device.entity_id);
+        if (!isUnavailable && !hasError) {
+          onLongPress?.(entityId);
         }
       }}
     >

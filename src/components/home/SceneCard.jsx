@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Zap, Play, CheckCircle } from 'lucide-react';
+import { useHomeAssistantEntity } from '../../hooks/useHomeAssistantEntity';
 
 // Add CSS animation for the ripple effect
 const animationStyle = `
@@ -41,26 +42,38 @@ if (typeof document !== 'undefined') {
 }
 
 export default function SceneCard({ 
+  sceneId,
   scene, 
   onActivate 
 }) {
+  // Use Home Assistant integration if sceneId is provided
+  const { entity, loading, error, activate } = useHomeAssistantEntity(sceneId, !!sceneId);
+  
   const [isActivating, setIsActivating] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [rippleActive, setRippleActive] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
-  const friendlyName = scene.attributes?.friendly_name || scene.entity_id;
-  const isUnavailable = scene.state === 'unavailable';
+  // Use entity from HA client if available, otherwise fall back to passed scene prop
+  const sceneData = entity || scene;
+  const friendlyName = sceneData?.name || sceneData?.attributes?.friendly_name || sceneData?.entity_id || 'Unknown Scene';
+  const isUnavailable = sceneData?.state === 'unavailable' || loading;
+  const hasError = !!error;
 
   const handleActivate = async () => {
-    if (isUnavailable || isActivating) return;
+    if (isUnavailable || isActivating || hasError) return;
     
     setIsActivating(true);
     setRippleActive(true);
     setIsActive(true);
     
     try {
-      await onActivate?.(scene.entity_id);
+      // Use HA client if sceneId is provided, otherwise use legacy onActivate callback
+      if (sceneId && activate) {
+        await activate();
+      } else if (onActivate && sceneData) {
+        await onActivate(sceneData.entity_id || sceneData.id);
+      }
       
       // Stop ripple after 300ms + 2s pause
       setTimeout(() => {
@@ -86,9 +99,42 @@ export default function SceneCard({
   };
 
   const getStatusColor = () => {
+    if (hasError) return 'text-red-400 bg-red-100 border-red-200';
     if (isUnavailable) return 'text-gray-400 bg-gray-100 border-gray-200';
     return 'text-black';
   };
+
+  // Show loading state for HA client
+  if (sceneId && loading) {
+    return (
+      <div className="relative p-4 rounded-lg border h-[120px] bg-gray-100 border-gray-200 animate-pulse">
+        <div className="flex items-center mb-3">
+          <div className="w-6 h-6 bg-gray-300 rounded"></div>
+        </div>
+        <div className="h-6 bg-gray-300 rounded mb-2 w-3/4"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+      </div>
+    );
+  }
+
+  // Show error state for HA client
+  if (sceneId && hasError) {
+    return (
+      <div className="relative p-4 rounded-lg border h-[120px] bg-red-50 border-red-200">
+        <div className="flex items-center mb-3">
+          <div className="text-red-400">
+            <Zap className="w-6 h-6" />
+          </div>
+        </div>
+        <h3 className="font-semibold text-xl truncate mb-2 text-red-800">
+          Scene Error
+        </h3>
+        <p className="text-xs text-red-600">
+          {error}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -164,17 +210,21 @@ export default function SceneCard({
       
       {/* Status Text */}
       <p className={`text-xs ${
-        isUnavailable 
-          ? 'text-gray-400' 
-          : isActivating 
-            ? 'text-blue-700' 
-            : 'text-black opacity-75'
+        hasError
+          ? 'text-red-400'
+          : isUnavailable 
+            ? 'text-gray-400' 
+            : isActivating 
+              ? 'text-blue-700' 
+              : 'text-black opacity-75'
       }`}>
-        {isUnavailable 
-          ? 'Unavailable' 
-          : isActivating 
-            ? 'Activating...' 
-            : 'Tap to activate'
+        {hasError
+          ? 'Error loading scene'
+          : isUnavailable 
+            ? (loading ? 'Loading...' : 'Unavailable')
+            : isActivating 
+              ? 'Activating...' 
+              : 'Tap to activate'
         }
       </p>
       

@@ -341,6 +341,68 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
   }
+
+  /* Light Card Animations */
+  @keyframes lightTurnOn {
+    0% {
+      clip-path: circle(0% at var(--button-x, 85%) var(--button-y, 85%));
+    }
+    100% {
+      clip-path: circle(150% at 50% 50%);
+    }
+  }
+
+  @keyframes lightTurnOff {
+    0% {
+      clip-path: circle(180% at 50% 50%);
+    }
+    20% {
+      clip-path: circle(160% at calc(50% + (var(--button-x, 85%) - 50%) * 0.2) calc(50% + (var(--button-y, 85%) - 50%) * 0.2));
+    }
+    40% {
+      clip-path: circle(130% at calc(50% + (var(--button-x, 85%) - 50%) * 0.4) calc(50% + (var(--button-y, 85%) - 50%) * 0.4));
+    }
+    60% {
+      clip-path: circle(100% at calc(50% + (var(--button-x, 85%) - 50%) * 0.6) calc(50% + (var(--button-y, 85%) - 50%) * 0.6));
+    }
+    80% {
+      clip-path: circle(60% at calc(50% + (var(--button-x, 85%) - 50%) * 0.8) calc(50% + (var(--button-y, 85%) - 50%) * 0.8));
+    }
+    100% {
+      clip-path: circle(0% at var(--button-x, 85%) var(--button-y, 85%));
+    }
+  }
+
+  /* Switch Card Animations - Same as Light but different naming */
+  @keyframes switchTurnOn {
+    0% {
+      clip-path: circle(0% at var(--button-x, 85%) var(--button-y, 85%));
+    }
+    100% {
+      clip-path: circle(150% at 50% 50%);
+    }
+  }
+
+  @keyframes switchTurnOff {
+    0% {
+      clip-path: circle(180% at 50% 50%);
+    }
+    20% {
+      clip-path: circle(160% at calc(50% + (var(--button-x, 85%) - 50%) * 0.2) calc(50% + (var(--button-y, 85%) - 50%) * 0.2));
+    }
+    40% {
+      clip-path: circle(130% at calc(50% + (var(--button-x, 85%) - 50%) * 0.4) calc(50% + (var(--button-y, 85%) - 50%) * 0.4));
+    }
+    60% {
+      clip-path: circle(100% at calc(50% + (var(--button-x, 85%) - 50%) * 0.6) calc(50% + (var(--button-y, 85%) - 50%) * 0.6));
+    }
+    80% {
+      clip-path: circle(60% at calc(50% + (var(--button-x, 85%) - 50%) * 0.8) calc(50% + (var(--button-y, 85%) - 50%) * 0.8));
+    }
+    100% {
+      clip-path: circle(0% at var(--button-x, 85%) var(--button-y, 85%));
+    }
+  }
 }
 
 /* === Raw CSS (outside @layer) === */

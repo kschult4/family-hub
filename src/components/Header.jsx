@@ -22,12 +22,12 @@ export default function Header() {
   });
 
   return (
-    <header className="w-full bg-transparent shadow-none px-2 sm:px-6 py-3 sm:py-6 mb-3 sm:mb-6 flex justify-between items-center" style={{paddingTop: window.innerWidth < 768 ? '20px' : '50px'}}>
+    <header className="w-full bg-transparent shadow-none px-2 sm:px-6 py-3 sm:py-6 mb-3 sm:mb-6 relative flex justify-between items-center" style={{paddingTop: window.innerWidth < 768 ? '20px' : '50px'}}>
       {/* Left: Moon Phase */}
       <MoonPhaseWidget />
 
-      {/* Center: Date + Time */}
-      <div className="flex flex-col items-center justify-center text-center">
+      {/* Center: Date + Time - Absolutely centered */}
+      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center">
         <div className="text-sm sm:text-2xl font-medium text-[#5A3210] font-serif">
           {fullDate}
         </div>

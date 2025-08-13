@@ -4,10 +4,19 @@ import FooterNav from "./components/FooterNav";
 import DashboardView from "./components/DashboardView";
 import AppBackground from "./components/AppBackground";
 import ShoppingList from "./components/ShoppingList";
+import MotionCameraModal from "./components/home/MotionCameraModal";
+import MotionTestButton from "./components/home/MotionTestButton";
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
+import { useHomeAssistant } from "./hooks/useHomeAssistant";
+import { useMotionDetection } from "./hooks/useMotionDetection";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState("ALERTS");
+  
+  // Home Assistant integration for camera motion detection
+  const { devices } = useHomeAssistant();
+  const cameras = devices?.filter(d => d.entity_id.startsWith('camera.')) || [];
+  const { camerasWithMotion, clearAllMotion, triggerMotion, hasActiveMotion } = useMotionDetection(cameras);
   
   // Use Firebase for real-time synchronization
   const {
@@ -69,7 +78,7 @@ export default function App() {
       <div className="flex flex-col min-h-screen px-2 sm:px-4 md:px-8 text-text font-sans">
         {!isMobile && <Header />}
 
-        <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[80px] pt-4' : 'pb-[96px]'}`}>
+        <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[120px] pt-4' : 'pb-[160px]'}`}>
           <DashboardView 
             currentTab={currentTab} 
             groceryItems={groceryItems} 
@@ -89,6 +98,20 @@ export default function App() {
 
         <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} onSaveTask={handleSaveTask} onSaveMeals={handleSaveMeals} groceryItems={groceryItems} meals={meals} />
       </div>
+
+      {/* Motion Detection Modal - appears across all dashboard views */}
+      <MotionCameraModal
+        camerasWithMotion={camerasWithMotion}
+        onClose={clearAllMotion}
+        isVisible={hasActiveMotion}
+        autoCloseDelay={60000}
+      />
+
+      {/* Test Button for Motion Detection (Development) */}
+      <MotionTestButton
+        cameras={cameras}
+        onTriggerMotion={triggerMotion}
+      />
     </AppBackground>
   );
 }

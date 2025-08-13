@@ -5,8 +5,9 @@ import SwitchCard from '../components/home/SwitchCard';
 import LightConfigModal from '../components/home/LightConfigModal';
 import SceneCard from '../components/home/SceneCard';
 import SpotifyWidget from '../components/home/SpotifyWidget';
+import SonosMediaPlayerCard from '../components/home/SonosMediaPlayerCard';
 import RingAlarmWidget from '../components/home/RingAlarmWidget';
-import CombinedThermostatWidget from '../components/home/CombinedThermostatWidget';
+import ThermostatWidget from '../components/home/ThermostatWidget';
 import SectionHeader from '../components/SectionHeader';
 import { Edit3 } from 'lucide-react';
 
@@ -46,10 +47,42 @@ export default function FreshHomeDashboard() {
   const switches = devices?.filter(d => d.entity_id.startsWith('switch.')) || [];
   const scenes_list = scenes || [];
 
-  // Special devices
-  const spotifyDevice = devices?.find(d => d.entity_id === 'media_player.spotify');
-  const ringAlarm = devices?.find(d => d.entity_id === 'alarm_control_panel.ring_alarm');
+  // Debug logging
+  console.log('🔍 FreshHomeDashboard - Available devices:', devices?.map(d => ({
+    entity_id: d.entity_id,
+    state: d.state,
+    friendly_name: d.attributes?.friendly_name
+  })));
+  console.log('🔍 FreshHomeDashboard - Available scenes:', scenes?.map(s => s.entity_id));
+
+  // Special devices - be more flexible with entity matching
+  const mediaPlayers = devices?.filter(d => d.entity_id.startsWith('media_player.')) || [];
+  const sonosDevices = mediaPlayers.filter(d => 
+    d.attributes?.device_class === 'speaker' || 
+    d.entity_id.toLowerCase().includes('sonos') ||
+    d.attributes?.friendly_name?.toLowerCase().includes('sonos')
+  );
+  const spotifyDevice = mediaPlayers.find(d => 
+    d.entity_id.includes('spotify') || 
+    d.attributes?.friendly_name?.toLowerCase().includes('spotify')
+  );
+  
+  const alarmPanels = devices?.filter(d => d.entity_id.startsWith('alarm_control_panel.')) || [];
+  const ringAlarm = alarmPanels.find(d => 
+    d.entity_id.includes('ring') || 
+    d.attributes?.friendly_name?.toLowerCase().includes('ring')
+  );
+  
   const thermostats = devices?.filter(d => d.entity_id.startsWith('climate.')) || [];
+  
+  console.log('🔍 FreshHomeDashboard - Special devices found:', {
+    spotifyDevice: spotifyDevice?.entity_id || null,
+    sonosDevices: sonosDevices.map(d => d.entity_id),
+    ringAlarm: ringAlarm?.entity_id || null,
+    thermostats: thermostats.map(d => d.entity_id),
+    allMediaPlayers: mediaPlayers.map(d => ({ entity_id: d.entity_id, friendly_name: d.attributes?.friendly_name })),
+    allAlarmPanels: alarmPanels.map(d => ({ entity_id: d.entity_id, friendly_name: d.attributes?.friendly_name }))
+  });
 
   const handleLightLongPress = (entityId) => {
     const light = devices?.find(d => d.entity_id === entityId);
@@ -98,6 +131,7 @@ export default function FreshHomeDashboard() {
               {scenes_list.map(scene => (
                 <SceneCard
                   key={scene.entity_id}
+                  sceneId={scene.entity_id}
                   scene={scene}
                   onActivate={activateScene}
                 />
@@ -126,6 +160,7 @@ export default function FreshHomeDashboard() {
                 {lights.map(light => (
                   <LightCard
                     key={light.entity_id}
+                    lightId={light.entity_id}
                     device={light}
                     onToggle={toggleDevice}
                     onLongPress={handleLightLongPress}
@@ -136,62 +171,11 @@ export default function FreshHomeDashboard() {
                 {switches.map(switchDevice => (
                   <SwitchCard
                     key={switchDevice.entity_id}
+                    switchId={switchDevice.entity_id}
                     device={switchDevice}
                     onToggle={toggleDevice}
                   />
                 ))}
-                
-                {/* Additional Light Cards - Row 3 */}
-                <LightCard
-                  key="light.bedroom"
-                  device={{
-                    entity_id: 'light.bedroom',
-                    state: 'off',
-                    attributes: {
-                      friendly_name: 'Bedroom Light'
-                    }
-                  }}
-                  onToggle={toggleDevice}
-                  onLongPress={handleLightLongPress}
-                />
-                
-                <LightCard
-                  key="light.office"
-                  device={{
-                    entity_id: 'light.office',
-                    state: 'on',
-                    attributes: {
-                      friendly_name: 'Office Light'
-                    }
-                  }}
-                  onToggle={toggleDevice}
-                  onLongPress={handleLightLongPress}
-                />
-                
-                {/* Additional Switch Cards - Row 4 */}
-                <SwitchCard
-                  key="switch.fan"
-                  device={{
-                    entity_id: 'switch.ceiling_fan',
-                    state: 'off',
-                    attributes: {
-                      friendly_name: 'Ceiling Fan'
-                    }
-                  }}
-                  onToggle={toggleDevice}
-                />
-                
-                <SwitchCard
-                  key="switch.air_purifier"
-                  device={{
-                    entity_id: 'switch.air_purifier',
-                    state: 'on',
-                    attributes: {
-                      friendly_name: 'Air Purifier'
-                    }
-                  }}
-                  onToggle={toggleDevice}
-                />
               </div>
               
               {/* Special Widgets - COLUMNS 3-4 ONLY */}
@@ -200,24 +184,17 @@ export default function FreshHomeDashboard() {
                 {ringAlarm && (
                   <div className="col-span-1 row-span-2">
                     <RingAlarmWidget
+                      alarmPanelId={ringAlarm.entity_id}
                       alarmData={{
                         status: ringAlarm.state || 'disarmed',
                         isConnected: ringAlarm.state !== 'unavailable',
                         lastChanged: ringAlarm.last_changed || null,
-                        batteryStatus: {
-                          'Front Door Sensor': 85,
-                          'Motion Detector': 72,
-                          'Keypad': 95
-                        },
-                        sensorStatuses: [
-                          { name: 'Front Door', status: 'ok' },
-                          { name: 'Back Door', status: 'ok' },
-                          { name: 'Living Room Motion', status: 'ok' }
-                        ]
+                        batteryStatus: ringAlarm.attributes?.battery_status || {},
+                        sensorStatuses: ringAlarm.attributes?.sensor_statuses || []
                       }}
-                      onArmHome={() => callService && callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm.entity_id })}
-                      onArmAway={() => callService && callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm.entity_id })}
-                      onDisarm={() => callService && callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm.entity_id })}
+                      onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm.entity_id })}
+                      onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm.entity_id })}
+                      onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm.entity_id })}
                     />
                   </div>
                 )}
@@ -225,48 +202,66 @@ export default function FreshHomeDashboard() {
                 {/* Thermostat - Half width (1 column) - TOP */}
                 {thermostats.length > 0 && (
                   <div className="col-span-1 row-span-2">
-                    <CombinedThermostatWidget
-                      thermostats={thermostats}
-                      onSetTemperature={(thermostatId, temp) => callService && callService('climate', 'set_temperature', { 
-                        entity_id: thermostatId, 
+                    <ThermostatWidget
+                      thermostatData={{
+                        currentTemp: thermostats[0].attributes?.current_temperature || 70,
+                        targetTemp: thermostats[0].attributes?.temperature || 70,
+                        mode: thermostats[0].state || 'off',
+                        location: thermostats[0].attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
+                        isOnline: thermostats[0].state !== 'unavailable',
+                        humidity: thermostats[0].attributes?.current_humidity || null,
+                        isHeating: thermostats[0].attributes?.hvac_action === 'heating',
+                        isCooling: thermostats[0].attributes?.hvac_action === 'cooling',
+                        fanRunning: thermostats[0].attributes?.fan_state === 'on',
+                        schedule: thermostats[0].attributes?.preset_mode === 'schedule'
+                      }}
+                      onSetTemperature={(temp) => callService('climate', 'set_temperature', { 
+                        entity_id: thermostats[0].entity_id, 
                         temperature: temp 
                       })}
-                      onSetMode={(thermostatId, mode) => callService && callService('climate', 'set_hvac_mode', { 
-                        entity_id: thermostatId, 
+                      onSetMode={(mode) => callService('climate', 'set_hvac_mode', { 
+                        entity_id: thermostats[0].entity_id, 
                         hvac_mode: mode 
                       })}
                     />
                   </div>
                 )}
                 
-                {/* Spotify - Spans full width, multiple rows - BOTTOM */}
-                {spotifyDevice && (
+                {/* Media Players - Sonos or Spotify - Spans full width, multiple rows - BOTTOM */}
+                {(sonosDevices.length > 0 || spotifyDevice) && (
                   <div className="col-span-2 row-span-3">
-                    <SpotifyWidget
-                      spotifyData={{
-                        isPlaying: spotifyDevice.state === 'playing',
-                        currentTrack: spotifyDevice.attributes?.media_title || null,
-                        artist: spotifyDevice.attributes?.media_artist || null,
-                        album: {
-                          name: spotifyDevice.attributes?.media_album || null,
-                          imageUrl: null
-                        },
-                        isConnected: spotifyDevice.state !== 'unavailable',
-                        isLiked: false,
-                        duration: 355000, // Mock duration
-                        position: 125000, // Mock position
-                        volume: Math.round((spotifyDevice.attributes?.volume_level || 0.6) * 100)
-                      }}
-                      onPlay={() => callService && callService('media_player', 'media_play', { entity_id: spotifyDevice.entity_id })}
-                      onPause={() => callService && callService('media_player', 'media_pause', { entity_id: spotifyDevice.entity_id })}
-                      onNext={() => callService && callService('media_player', 'media_next_track', { entity_id: spotifyDevice.entity_id })}
-                      onPrevious={() => callService && callService('media_player', 'media_previous_track', { entity_id: spotifyDevice.entity_id })}
-                      onVolumeChange={(vol) => callService && callService('media_player', 'volume_set', { 
-                        entity_id: spotifyDevice.entity_id, 
-                        volume_level: vol / 100 
-                      })}
-                      onToggleLike={() => console.log('Toggle like')}
-                    />
+                    {sonosDevices.length > 0 ? (
+                      <SonosMediaPlayerCard
+                        key="sonos-widget"
+                        onError={(error) => console.error('Sonos error:', error)}
+                      />
+                    ) : spotifyDevice && (
+                      <SpotifyWidget
+                        spotifyData={{
+                          isPlaying: spotifyDevice.state === 'playing',
+                          currentTrack: spotifyDevice.attributes?.media_title || null,
+                          artist: spotifyDevice.attributes?.media_artist || null,
+                          album: {
+                            name: spotifyDevice.attributes?.media_album || null,
+                            imageUrl: null
+                          },
+                          isConnected: spotifyDevice.state !== 'unavailable',
+                          isLiked: false,
+                          duration: 355000, // Mock duration
+                          position: 125000, // Mock position
+                          volume: Math.round((spotifyDevice.attributes?.volume_level || 0.6) * 100)
+                        }}
+                        onPlay={() => callService && callService('media_player', 'media_play', { entity_id: spotifyDevice.entity_id })}
+                        onPause={() => callService && callService('media_player', 'media_pause', { entity_id: spotifyDevice.entity_id })}
+                        onNext={() => callService && callService('media_player', 'media_next_track', { entity_id: spotifyDevice.entity_id })}
+                        onPrevious={() => callService && callService('media_player', 'media_previous_track', { entity_id: spotifyDevice.entity_id })}
+                        onVolumeChange={(vol) => callService && callService('media_player', 'volume_set', { 
+                          entity_id: spotifyDevice.entity_id, 
+                          volume_level: vol / 100 
+                        })}
+                        onToggleLike={() => console.log('Toggle like')}
+                      />
+                    )}
                   </div>
                 )}
               </div>

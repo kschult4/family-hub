@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { ToggleLeft, ToggleRight, Power } from 'lucide-react';
+import { useHomeAssistantEntity } from '../../hooks/useHomeAssistantEntity';
 
 export default function SwitchCard({ 
+  switchId,
   device, 
   onToggle 
 }) {
+  // Use Home Assistant integration if switchId is provided
+  const { entity, loading, error, toggle, turnOn, turnOff } = useHomeAssistantEntity(switchId, !!switchId);
+  
   const [isPressed, setIsPressed] = useState(false);
   const [rippleActive, setRippleActive] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
@@ -14,8 +19,12 @@ export default function SwitchCard({
   const cardRef = useRef(null);
   const buttonRef = useRef(null);
   
-  const isOn = device.state === 'on';
-  const isUnavailable = device.state === 'unavailable';
+  // Use entity from HA client if available, otherwise fall back to passed device prop
+  const switchData = entity || device;
+  const isOn = switchData?.isOn ?? (switchData?.state === 'on');
+  const isUnavailable = switchData?.state === 'unavailable' || loading;
+  const hasError = !!error;
+  const entityId = switchData?.id || switchData?.entity_id;
   
   // Sync ripple state with actual device state
   useEffect(() => {
@@ -50,7 +59,7 @@ export default function SwitchCard({
     return () => window.removeEventListener('resize', calculateButtonCenter);
   }, []);
   
-  const friendlyName = device.attributes?.friendly_name || device.entity_id;
+  const friendlyName = switchData?.name || switchData?.attributes?.friendly_name || switchData?.entity_id || switchData?.id;
   
   // Extract room name from entity_id or friendly_name
   const getRoomName = () => {
@@ -61,7 +70,8 @@ export default function SwitchCard({
     if (friendlyName.toLowerCase().includes('bedroom')) return 'Bedroom';
     
     // Extract from entity_id like "switch.porch_light" -> "Porch"
-    const entityPart = device.entity_id.split('.')[1];
+    if (!entityId) return 'General';
+    const entityPart = entityId.split('.')[1];
     if (entityPart.includes('_')) {
       const parts = entityPart.split('_');
       // Look for room indicators
@@ -77,11 +87,11 @@ export default function SwitchCard({
   
   // Get device name (the friendly name itself for switches)
   const getDeviceName = () => {
-    return friendlyName;
+    return friendlyName || 'Switch';
   };
 
-  const handleClick = () => {
-    if (!isUnavailable && !isToggling) {
+  const handleClick = async () => {
+    if (!isUnavailable && !isToggling && !hasError) {
       setIsToggling(true);
       
       // Capture the current state before toggling
@@ -94,7 +104,16 @@ export default function SwitchCard({
       }
       // If turning off, ripple is already active from being on
       
-      onToggle?.(device.entity_id);
+      try {
+        // Use HA client if switchId is provided, otherwise use legacy onToggle callback
+        if (switchId && toggle) {
+          await toggle();
+        } else if (onToggle && entityId) {
+          await onToggle(entityId);
+        }
+      } catch (error) {
+        console.error('Error toggling switch:', error);
+      }
       
       // Animation runs for 600ms for smoother effect
       setTimeout(() => {
@@ -103,13 +122,13 @@ export default function SwitchCard({
           // We were turning off, hide the ripple after animation completes
           setRippleActive(false);
         }
-        // If we were turning on, ripple stays active to maintain green background
+        // If we were turning on, ripple stays active to maintain purple background
       }, 600);
     }
   };
 
   const handleMouseDown = () => {
-    if (!isUnavailable) {
+    if (!isUnavailable && !hasError) {
       setIsPressed(true);
     }
   };
@@ -119,6 +138,9 @@ export default function SwitchCard({
   };
 
   const getCardStyles = () => {
+    if (hasError) {
+      return 'border-red-200 bg-red-50 opacity-75 cursor-not-allowed';
+    }
     if (isUnavailable) {
       return 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed';
     }
@@ -129,10 +151,45 @@ export default function SwitchCard({
   };
 
   const getIconColor = () => {
+    if (hasError) return 'text-red-400';
     if (isUnavailable) return 'text-gray-400';
     if (isOn) return 'text-purple-600';
     return 'text-gray-500';
   };
+
+  // Show loading state for HA client
+  if (switchId && loading) {
+    return (
+      <div className="relative p-4 rounded-lg border h-full flex flex-col bg-gray-100 border-gray-200 animate-pulse">
+        <div className="flex items-center mb-3">
+          <div className="w-6 h-6 bg-gray-300 rounded"></div>
+        </div>
+        <div className="h-6 bg-gray-300 rounded mb-1 w-3/4"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+        <div className="absolute bottom-2 right-2">
+          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state for HA client
+  if (switchId && hasError) {
+    return (
+      <div className="relative p-4 rounded-lg border h-full flex flex-col bg-red-50 border-red-200">
+        <div className="flex items-center mb-3">
+          <ToggleLeft className="w-6 h-6 text-red-400" />
+        </div>
+        <h3 className="font-semibold text-base text-red-800 truncate mb-1">Switch Error</h3>
+        <p className="text-sm text-red-600 truncate">{error}</p>
+        <div className="absolute bottom-2 right-2">
+          <div className="w-10 h-10 bg-red-200 text-red-400 rounded-full flex items-center justify-center">
+            <Power className="w-4 h-4" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
