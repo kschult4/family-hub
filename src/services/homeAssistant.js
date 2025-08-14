@@ -2,11 +2,16 @@ const BASE_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-function createAuthHeaders(token) {
-  return {
-    ...BASE_HEADERS,
+function createAuthHeaders(token, includeContentType = true) {
+  const headers = {
     'Authorization': `Bearer ${token}`,
   };
+  
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
+  return headers;
 }
 
 function createApiUrl(baseUrl, endpoint) {
@@ -15,7 +20,18 @@ function createApiUrl(baseUrl, endpoint) {
 
 async function makeApiRequest(url, options = {}) {
   try {
+    console.log('Making API request to:', url);
+    console.log('Request options:', JSON.stringify(options, null, 2));
+    
+    // Log the exact headers being sent
+    if (options.headers) {
+      console.log('Request headers:', JSON.stringify(options.headers, null, 2));
+    }
+    
     const response = await fetch(url, options);
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', [...response.headers.entries()]);
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -28,18 +44,26 @@ async function makeApiRequest(url, options = {}) {
     
     return await response.text();
   } catch (error) {
+    console.error('API request error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     throw new Error(`API request failed: ${error.message}`);
   }
 }
 
+const baseUrl = import.meta.env.VITE_HA_BASE_URL;
+const token = import.meta.env.VITE_HA_TOKEN;
+
 export const haApi = {
-  async getStates(baseUrl, token) {
-    const url = createApiUrl(baseUrl, '/states');
-    const headers = createAuthHeaders(token);
+  async getStates(baseUrlParam = baseUrl, tokenParam = token) {
+    const url = createApiUrl(baseUrlParam, '/states');
     
     return await makeApiRequest(url, {
       method: 'GET',
-      headers,
+      headers: { Authorization: `Bearer ${tokenParam}` },
     });
   },
 

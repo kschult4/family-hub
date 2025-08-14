@@ -3,19 +3,26 @@ import { haApi } from '../services/homeAssistant';
 import { createWebSocketConnection } from '../services/haWebSocket';
 import { mockStates, updateMockDeviceState } from '../config/mockHomeAssistantData';
 
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA || 'true';
+const baseUrl = import.meta.env.VITE_HA_BASE_URL;
+const token   = import.meta.env.VITE_HA_TOKEN;
+
+console.log('[HA] baseUrl:', baseUrl);
+console.log('[HA] token prefix:', token ? token.slice(0, 6) + '…' : 'MISSING');
+
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
 
 export function useHomeAssistant(config = {}) {
   const {
     baseUrl = import.meta.env.VITE_HA_BASE_URL || 'http://localhost:8123',
     token = import.meta.env.VITE_HA_TOKEN || '',
-    useMockData = USE_MOCK_DATA === 'true'
+    useMockData = USE_MOCK_DATA
   } = config;
 
   const [devices, setDevices] = useState([]);
   const [scenes, setScenes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
@@ -37,13 +44,20 @@ export function useHomeAssistant(config = {}) {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log('loadStates called with:', { baseUrl, token: token ? 'PRESENT' : 'MISSING', useMockData });
 
       if (useMockData) {
+        console.log('🔍 useHomeAssistant: Using mock data, total mock states:', mockStates.length);
         const allDevices = filterDevices(mockStates);
         const allScenes = filterScenes(mockStates);
         
+        console.log('🔍 Filtered devices:', allDevices.map(d => d.entity_id));
+        console.log('🔍 Filtered scenes:', allScenes.map(s => s.entity_id));
+        
         setDevices(allDevices);
         setScenes(allScenes);
+        setIsConnected(true);
         setLoading(false);
         return;
       }
@@ -54,10 +68,12 @@ export function useHomeAssistant(config = {}) {
       
       setDevices(allDevices);
       setScenes(allScenes);
+      setIsConnected(true);
       setLoading(false);
     } catch (err) {
       console.error('Error loading Home Assistant states:', err);
       setError(err);
+      setIsConnected(false);
       setLoading(false);
     }
   }, [baseUrl, token, useMockData, filterDevices, filterScenes]);
@@ -97,16 +113,33 @@ export function useHomeAssistant(config = {}) {
       return unsubscribe;
     } catch (err) {
       console.error('WebSocket connection error:', err);
-      setError(err);
+      // Don't set error here - continue with REST API polling
+      return null;
     }
   }, [baseUrl, token, useMockData]);
 
   useEffect(() => {
     let wsUnsubscribe;
+    let pollingInterval;
 
     const initialize = async () => {
       await loadStates();
-      wsUnsubscribe = await setupWebSocket();
+      
+      if (!useMockData) {
+        wsUnsubscribe = await setupWebSocket();
+        
+        // If WebSocket fails, use REST API polling
+        if (!wsUnsubscribe) {
+          console.log('WebSocket failed, falling back to REST API polling');
+          pollingInterval = setInterval(async () => {
+            try {
+              await loadStates();
+            } catch (err) {
+              console.error('Polling error:', err);
+            }
+          }, 5000); // Poll every 5 seconds
+        }
+      }
     };
 
     initialize();
@@ -121,8 +154,11 @@ export function useHomeAssistant(config = {}) {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
     };
-  }, [loadStates, setupWebSocket]);
+  }, [loadStates, setupWebSocket, useMockData]);
 
   const toggleDevice = useCallback(async (entityId) => {
     try {
@@ -233,6 +269,6 @@ export function useHomeAssistant(config = {}) {
     turnOffDevice,
     callService,
     refreshStates,
-    isConnected: useMockData || (wsRef.current?.getConnectionState() ?? false)
+    isConnected
   };
 }
