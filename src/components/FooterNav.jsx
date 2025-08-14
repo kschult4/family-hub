@@ -7,7 +7,7 @@ import MealsModal from "./MealsModal";
 
 export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems, meals }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const navItems = isMobile ? ["ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
+  const navItems = isMobile ? ["HOME", "ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
 
   const closeModal = () => setActiveModal(null);

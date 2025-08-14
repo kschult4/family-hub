@@ -23,7 +23,7 @@ class HomeAssistantWebSocket {
 
     this.connectionPromise = new Promise((resolve, reject) => {
       try {
-        const wsUrl = this.baseUrl.replace(/^https?:\/\//, 'ws://').replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+        const wsUrl = this.baseUrl.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://');
         this.ws = new WebSocket(`${wsUrl}/api/websocket`);
 
         this.ws.onopen = () => {

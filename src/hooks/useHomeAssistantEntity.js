@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { haClient } from '../services/homeAssistantClient';
+import { getMockDeviceById } from '../config/mockHomeAssistantData';
+
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
 
 /**
  * Hook for subscribing to and controlling a single Home Assistant entity
@@ -11,7 +14,7 @@ export function useHomeAssistantEntity(entityId, autoConnect = true) {
   const [entity, setEntity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(USE_MOCK_DATA);
 
   // Initialize and fetch entity state
   const fetchEntityState = useCallback(async () => {
@@ -21,8 +24,26 @@ export function useHomeAssistantEntity(entityId, autoConnect = true) {
       setLoading(true);
       setError(null);
       
-      const entityState = await haClient.getEntityState(entityId);
-      setEntity(entityState);
+      console.log(`🔍 useHomeAssistantEntity: Fetching ${entityId}, USE_MOCK_DATA=${USE_MOCK_DATA}`);
+      
+      if (USE_MOCK_DATA) {
+        // Use mock data
+        const mockEntity = getMockDeviceById(entityId);
+        if (mockEntity) {
+          setEntity(mockEntity);
+          setIsConnected(true);
+          console.log(`✅ Successfully loaded mock entity: ${entityId}`);
+        } else {
+          const error = new Error(`Mock entity ${entityId} not found`);
+          console.error(`❌ Mock entity ${entityId} not found in mock data`);
+          setError(error);
+        }
+      } else {
+        // Use real Home Assistant
+        const entityState = await haClient.getEntityState(entityId);
+        setEntity(entityState);
+        setIsConnected(haClient.isConnected);
+      }
     } catch (err) {
       setError(err);
       console.error(`Error fetching entity ${entityId}:`, err);
@@ -39,20 +60,25 @@ export function useHomeAssistantEntity(entityId, autoConnect = true) {
 
     const setupSubscription = async () => {
       try {
-        // Connect to WebSocket if not already connected
-        if (!haClient.isConnected) {
+        if (USE_MOCK_DATA) {
+          // For mock data, just fetch the initial state
+          await fetchEntityState();
+        } else {
+          // Connect to WebSocket if not already connected
           await haClient.connect();
+          
+          // Set connected state based on haClient status
+          setIsConnected(haClient.isConnected);
+
+          // Subscribe to entity changes (real HA only)
+          unsubscribe = haClient.subscribe(entityId, (updatedEntity) => {
+            setEntity(updatedEntity);
+            setError(null);
+          });
+
+          // Fetch initial state
+          await fetchEntityState();
         }
-        setIsConnected(true);
-
-        // Subscribe to entity changes
-        unsubscribe = haClient.subscribe(entityId, (updatedEntity) => {
-          setEntity(updatedEntity);
-          setError(null);
-        });
-
-        // Fetch initial state
-        await fetchEntityState();
       } catch (err) {
         setError(err);
         setIsConnected(false);

@@ -302,10 +302,10 @@
     top: -25%;
     left: -25%;
     transform-origin: center center;
-    mask-image: url("/PatternBG.svg");
+    mask-image: url("/family-hub/PatternBG.svg");
     mask-repeat: repeat;
     mask-size: 33.33% 33.33%;
-    -webkit-mask-image: url("/PatternBG.svg");
+    -webkit-mask-image: url("/family-hub/PatternBG.svg");
     -webkit-mask-repeat: repeat;
     -webkit-mask-size: 33.33% 33.33%;
   }
@@ -407,7 +407,7 @@
 
 /* === Raw CSS (outside @layer) === */
 .texture-overlay {
-  background-image: url("/BackgroundTexture.svg");
+  background-image: url("/family-hub/BackgroundTexture.svg");
   background-repeat: repeat;
   background-size: 160px 160px;
   opacity: 1;
@@ -416,13 +416,13 @@
 
 .texture-overlay-tint {
   background-color: #B75634;
-  background-image: url("/BackgroundTexture.svg");
+  background-image: url("/family-hub/BackgroundTexture.svg");
   background-repeat: repeat;
   background-size: 240px;
-  mask-image: url("/BackgroundTexture.svg");
+  mask-image: url("/family-hub/BackgroundTexture.svg");
   mask-repeat: repeat;
   mask-size: 240px;
-  -webkit-mask-image: url("/BackgroundTexture.svg");
+  -webkit-mask-image: url("/family-hub/BackgroundTexture.svg");
   -webkit-mask-repeat: repeat;
   -webkit-mask-size: 240px;
   mix-blend-mode: multiply;

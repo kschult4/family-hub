@@ -1,37 +1,188 @@
-import { useState } from 'react';
-import { Camera, Video, VideoOff, Maximize, X, Play, Volume2, VolumeX, RotateCcw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, Video, VideoOff, Maximize, X, Play, Volume2, VolumeX, RotateCcw, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { useHomeAssistantEntity } from '../../hooks/useHomeAssistantEntity';
+import { haClient } from '../../services/homeAssistantClient';
+import MotionCameraModal from './MotionCameraModal';
 
 export default function RingCameraWidget({ 
+  cameraEntityId,
+  motionSensorId,
   cameraData = {}, 
   onViewLive,
   onToggleRecording,
   onRefreshFeed 
 }) {
+  // Use Home Assistant integration if cameraEntityId is provided
+  const {
+    entity: haCamera,
+    loading: haLoading,
+    error: haError,
+    callService: haCameraService,
+    isConnected: haConnected
+  } = useHomeAssistantEntity(cameraEntityId, !!cameraEntityId);
+  
+  // Motion sensor integration
+  const {
+    entity: haMotionSensor,
+    callService: haMotionService
+  } = useHomeAssistantEntity(motionSensorId, !!motionSensorId);
   const [showLiveModal, setShowLiveModal] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [showMotionModal, setShowMotionModal] = useState(false);
+  const [motionDetected, setMotionDetected] = useState(false);
+  const [cameraSnapshot, setCameraSnapshot] = useState(null);
+  const [streamUrl, setStreamUrl] = useState(null);
 
+  // Use HA entity if available, otherwise fall back to legacy props
+  const currentEntity = haCamera || cameraData;
   const {
-    name = 'Ring Camera',
-    isOnline = false,
-    isRecording = false,
-    lastSnapshot = null,
-    lastMotion = null,
-    batteryLevel = null,
-    liveStreamUrl = null
-  } = cameraData;
+    name = haCamera?.name || 'Ring Camera',
+    state: cameraState = haCamera?.state || 'idle',
+    isOnline = haCamera ? haConnected : (cameraData.isOnline ?? false),
+    isRecording = cameraState === 'recording' || cameraData.isRecording,
+    isStreaming = cameraState === 'streaming',
+    lastSnapshot = cameraSnapshot || cameraData.lastSnapshot || null,
+    lastMotion = cameraData.lastMotion,
+    batteryLevel = cameraData.batteryLevel,
+    liveStreamUrl = showLiveModal ? (streamUrl || cameraData.liveStreamUrl) : null,
+    brandName = haCamera?.brandName,
+    modelName = haCamera?.modelName,
+    motionDetection = haCamera?.motionDetection
+  } = currentEntity;
+  
+  // Monitor motion sensor state
+  useEffect(() => {
+    if (haMotionSensor?.state === 'on' && !motionDetected) {
+      setMotionDetected(true);
+      setShowMotionModal(true);
+      
+      // Auto-hide motion indicator after 5 seconds
+      setTimeout(() => {
+        setMotionDetected(false);
+      }, 5000);
+    }
+  }, [haMotionSensor?.state, motionDetected]);
+  
+  // Get camera snapshot only when requested, not automatically
+  const fetchSnapshot = async () => {
+    if (haCamera && haConnected) {
+      try {
+        // Get camera snapshot URL from HA
+        const snapshotUrl = `${haClient.baseUrl}/api/camera_proxy/${cameraEntityId}?t=${Date.now()}`;
+        setCameraSnapshot(snapshotUrl);
+      } catch (error) {
+        console.error('Error fetching camera snapshot:', error);
+      }
+    }
+  };
+  
+  // Get camera stream URL only when modal is open
+  useEffect(() => {
+    const getStreamUrl = async () => {
+      if (haCamera && haConnected && showLiveModal) {
+        try {
+          // Use HA stream integration if available
+          const streamResponse = await haClient.callService('camera', 'play_stream', {
+            entity_id: cameraEntityId,
+            media_player: 'browser'
+          });
+          if (streamResponse?.url) {
+            setStreamUrl(streamResponse.url);
+          }
+        } catch (error) {
+          console.error('Error getting stream URL:', error);
+        }
+      } else {
+        // Clear stream URL when modal is closed
+        setStreamUrl(null);
+      }
+    };
+    
+    getStreamUrl();
+  }, [haCamera, haConnected, showLiveModal, cameraEntityId]);
 
-  const handleViewLive = () => {
+  const handleViewLive = async () => {
     setShowLiveModal(true);
+    
+    if (haCamera) {
+      try {
+        // Start streaming if camera supports it
+        await haCameraService('turn_on');
+      } catch (error) {
+        console.error('Error starting camera stream:', error);
+      }
+    }
+    
     onViewLive?.();
   };
-
-  const handleToggleRecording = () => {
-    onToggleRecording?.();
+  
+  const handleCloseLiveModal = async () => {
+    setShowLiveModal(false);
+    
+    if (haCamera) {
+      try {
+        // Stop streaming when closing modal
+        await haCameraService('turn_off');
+      } catch (error) {
+        console.error('Error stopping camera stream:', error);
+      }
+    }
   };
 
-  const handleRefresh = () => {
+  const handleToggleRecording = async () => {
+    if (haCamera) {
+      try {
+        // Toggle recording using HA service
+        const service = isRecording ? 'turn_off' : 'turn_on';
+        await haCameraService(service);
+      } catch (error) {
+        console.error('Error toggling camera recording:', error);
+      }
+    } else {
+      onToggleRecording?.();
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (haCamera) {
+      await fetchSnapshot();
+    }
+    
     onRefreshFeed?.();
   };
+  
+  const handleMotionModalClose = () => {
+    setShowMotionModal(false);
+    setMotionDetected(false);
+  };
+  
+  // Loading state for HA integration
+  if (cameraEntityId && haLoading) {
+    return (
+      <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 min-h-[160px]">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2 animate-pulse" />
+            <p className="text-sm text-gray-600 font-medium">Loading camera...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Error state for HA integration
+  if (cameraEntityId && haError) {
+    return (
+      <div className="bg-red-50 rounded-lg p-4 border-2 border-red-200 min-h-[160px]">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+            <p className="text-sm text-red-600 font-medium">Error loading camera</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isOnline) {
     return (
@@ -49,7 +200,24 @@ export default function RingCameraWidget({
 
   return (
     <>
-      <div className="bg-white rounded-lg border-2 border-gray-200 hover:border-gray-300 transition-colors min-h-[160px] overflow-hidden">
+      {/* Motion Alert Modal */}
+      <MotionCameraModal
+        isVisible={showMotionModal}
+        onClose={handleMotionModalClose}
+        camerasWithMotion={motionDetected || haMotionSensor?.state === 'on' ? [{
+          id: cameraEntityId || 'camera',
+          name,
+          snapshot: lastSnapshot,
+          motionTime: new Date()
+        }] : []}
+        autoCloseDelay={60000}
+      />
+      
+      <div className={`bg-white rounded-lg border-2 transition-colors min-h-[160px] overflow-hidden ${
+        motionDetected || haMotionSensor?.state === 'on' 
+          ? 'border-red-300 shadow-lg shadow-red-100' 
+          : 'border-gray-200 hover:border-gray-300'
+      }`}>
         {/* Header */}
         <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -77,7 +245,7 @@ export default function RingCameraWidget({
           </div>
         </div>
 
-        {/* Camera Preview */}
+        {/* Camera Preview - Static snapshot only */}
         <div className="relative aspect-video bg-gray-900">
           {lastSnapshot ? (
             <img 
@@ -101,15 +269,21 @@ export default function RingCameraWidget({
             </button>
           </div>
 
-          {/* Live Indicator */}
-          {liveStreamUrl && (
+          {/* Recording Indicator */}
+          {isRecording && (
             <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
-              LIVE
+              REC
             </div>
           )}
 
           {/* Motion Detection */}
-          {lastMotion && (
+          {(motionDetected || haMotionSensor?.state === 'on') && (
+            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+              🚨 Motion Detected
+            </div>
+          )}
+          
+          {lastMotion && !motionDetected && (
             <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs">
               Motion: {new Date(lastMotion).toLocaleTimeString()}
             </div>
@@ -138,6 +312,20 @@ export default function RingCameraWidget({
             >
               {isRecording ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
             </button>
+            
+            {motionSensorId && (
+              <button
+                onClick={() => setShowMotionModal(true)}
+                className={`p-2 rounded-lg transition-colors ${
+                  haMotionSensor?.state === 'on'
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200 animate-pulse' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                title="Motion Detection"
+              >
+                {haMotionSensor?.state === 'on' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+            )}
           </div>
 
           <button
@@ -156,7 +344,7 @@ export default function RingCameraWidget({
           <div className="relative w-full h-full max-w-4xl max-h-4xl">
             {/* Close Button */}
             <button
-              onClick={() => setShowLiveModal(false)}
+              onClick={handleCloseLiveModal}
               className="absolute top-4 right-4 z-10 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
             >
               <X className="w-6 h-6" />

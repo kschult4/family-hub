@@ -12,6 +12,16 @@ export default function DeviceCard({
   const isOn = device.state === 'on';
   const isUnavailable = device.state === 'unavailable';
   
+  // Debug logging
+  if (device.entity_id?.includes('media_player')) {
+    console.log('🔍 DeviceCard debug:', { 
+      entityId: device.entity_id, 
+      state: device.state, 
+      isUnavailable, 
+      friendlyName: device.attributes?.friendly_name 
+    });
+  }
+  
   const brightness = device.attributes?.brightness || 255;
   const hasColor = device.attributes?.rgb_color;
   const friendlyName = device.attributes?.friendly_name || device.entity_id;

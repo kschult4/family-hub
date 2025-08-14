@@ -35,8 +35,7 @@ export default function SonosMediaPlayerCard({
         
         const entities = await haClient.getEntitiesByType('media_player');
         const sonosDevices = entities.filter(entity => 
-          entity.name.toLowerCase().includes('sonos') || 
-          entity.id.toLowerCase().includes('sonos')
+          entity.raw?.attributes?.device_class === 'speaker'
         );
         
         setMediaPlayers(sonosDevices);
@@ -235,23 +234,21 @@ export default function SonosMediaPlayerCard({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-          <div className="h-16 bg-gray-200 rounded mb-4"></div>
-          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-        </div>
+      <div className="rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-full flex flex-col overflow-hidden shadow-lg border border-slate-700/50 animate-pulse">
+        <div className="h-6 bg-slate-700 rounded-xl w-1/2 mb-4"></div>
+        <div className="h-16 bg-slate-700 rounded-2xl mb-4"></div>
+        <div className="h-8 bg-slate-700 rounded-xl w-3/4"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 rounded-xl p-6 shadow-sm border border-red-100">
-        <div className="text-red-600">
-          <Music className="w-8 h-8 mx-auto mb-2" />
-          <p className="text-center font-medium mb-2">Sonos Error</p>
-          <p className="text-sm text-center">{error}</p>
+      <div className="rounded-2xl p-4 bg-gradient-to-br from-red-900 via-red-800 to-red-900 h-full flex flex-col overflow-hidden shadow-lg border border-red-700/50">
+        <div className="text-red-300 text-center flex-1 flex flex-col justify-center">
+          <Music className="w-12 h-12 mx-auto mb-3 text-red-400" />
+          <p className="font-semibold mb-2">Sonos Error</p>
+          <p className="text-sm text-red-200">{error}</p>
         </div>
       </div>
     );
@@ -259,10 +256,10 @@ export default function SonosMediaPlayerCard({
 
   if (!selectedGroupLeader || mediaPlayers.length === 0) {
     return (
-      <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="text-gray-500 text-center">
-          <Music className="w-8 h-8 mx-auto mb-2" />
-          <p className="font-medium mb-2">No Sonos Devices</p>
+      <div className="rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-full flex flex-col overflow-hidden shadow-lg border border-slate-700/50">
+        <div className="text-slate-400 text-center flex-1 flex flex-col justify-center">
+          <Music className="w-12 h-12 mx-auto mb-3" />
+          <p className="font-semibold mb-2 text-slate-300">No Sonos Devices</p>
           <p className="text-sm">No Sonos media players found</p>
         </div>
       </div>
@@ -274,14 +271,19 @@ export default function SonosMediaPlayerCard({
   const progress = getPlaybackProgress();
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-full flex flex-col overflow-hidden shadow-lg border border-slate-700/50">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Sonos</h3>
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span className="text-xs text-gray-500">
-            {isConnected ? 'Connected' : 'Disconnected'}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] flex items-center justify-center">
+            <Music className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-semibold text-white">Sonos</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#1DB954] shadow-lg shadow-green-500/50' : 'bg-red-500'}`}></div>
+          <span className="text-xs text-slate-400">
+            {isConnected ? 'Live' : 'Offline'}
           </span>
         </div>
       </div>
@@ -295,55 +297,86 @@ export default function SonosMediaPlayerCard({
               const leader = mediaPlayers.find(d => d.id === e.target.value);
               if (leader) handleGroupLeaderChange(leader);
             }}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+            className="w-full bg-slate-700/50 backdrop-blur-sm border border-slate-600 rounded-xl px-3 py-2 text-xs text-white focus:ring-2 focus:ring-[#1DB954] focus:border-[#1DB954] appearance-none transition-all"
           >
             {mediaPlayers.map((device) => (
-              <option key={device.id} value={device.id}>
+              <option key={device.id} value={device.id} className="bg-slate-800 text-white">
                 {device.name} {device.groupMembers?.length > 0 ? '(Leader)' : ''}
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         </div>
       </div>
 
       {/* Now Playing */}
       <div className="flex items-center space-x-4 mb-4">
         {currentTrack.mediaArtwork ? (
-          <img
-            src={currentTrack.mediaArtwork}
-            alt="Album art"
-            className="w-16 h-16 rounded-lg object-cover shadow-sm"
-          />
+          <div className="relative group">
+            {/* Main album art with multiple effects */}
+            <div className="relative">
+              <img
+                src={currentTrack.mediaArtwork}
+                alt="Album art"
+                className="w-16 h-16 rounded-2xl object-cover shadow-2xl relative z-10"
+              />
+              {/* Vinyl record effect behind */}
+              <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-br from-slate-800 to-black shadow-xl transform -rotate-12 opacity-40 -z-10"></div>
+              {/* Glowing background based on album colors */}
+              <div 
+                className="absolute inset-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1DB954]/20 to-transparent blur-sm -z-20 group-hover:from-[#1DB954]/40 transition-all duration-500"
+              ></div>
+              {/* Playing indicator overlay */}
+              {isPlaying && (
+                <div className="absolute inset-0 rounded-2xl bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="w-3 h-3 rounded-full bg-white/80 animate-pulse"></div>
+                </div>
+              )}
+              {/* Reflection effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
+            </div>
+          </div>
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
-            <Music className="w-6 h-6 text-gray-400" />
+          <div className="relative group">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-2xl relative z-10 border border-slate-600/30">
+                <Music className="w-6 h-6 text-slate-400" />
+              </div>
+              {/* Vinyl record effect */}
+              <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 shadow-xl transform -rotate-12 opacity-40 -z-10"></div>
+              {/* Subtle glow */}
+              <div className="absolute inset-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-600/20 to-transparent blur-sm -z-20"></div>
+              {/* Reflection */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
+            </div>
           </div>
         )}
         
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-gray-900 truncate">
+          <h4 className="font-semibold text-white truncate text-sm leading-tight">
             {currentTrack.mediaTitle || 'No media playing'}
           </h4>
-          <p className="text-sm text-gray-600 truncate">
+          <p className="text-xs text-slate-300 truncate mt-1">
             {currentTrack.mediaArtist || 'Unknown Artist'}
           </p>
-          <p className="text-xs text-gray-500 truncate">
-            {currentTrack.mediaAlbum || ''}
-          </p>
+          {currentTrack.mediaAlbum && (
+            <p className="text-xs text-slate-400 truncate">
+              {currentTrack.mediaAlbum}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Progress Bar */}
       {currentTrack.mediaDuration && (
         <div className="mb-4">
-          <div className="w-full bg-gray-200 rounded-full h-1">
+          <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
             <div
-              className="bg-blue-500 h-1 rounded-full transition-all duration-1000"
+              className="bg-gradient-to-r from-[#1DB954] to-[#1ed760] h-1.5 rounded-full transition-all duration-1000 shadow-sm"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-slate-400 mt-2 font-mono">
             <span>{formatDuration(currentTrack.mediaPosition)}</span>
             <span>{formatDuration(currentTrack.mediaDuration)}</span>
           </div>
@@ -351,17 +384,17 @@ export default function SonosMediaPlayerCard({
       )}
 
       {/* Playback Controls */}
-      <div className="flex items-center justify-center space-x-4 mb-6">
+      <div className="flex items-center justify-center space-x-4 mb-4">
         <button
           onClick={handlePrevious}
-          className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          className="p-3 rounded-full bg-slate-700/50 backdrop-blur-sm border border-slate-600/50 hover:bg-slate-600/50 hover:scale-105 transition-all duration-200 group"
         >
-          <SkipBack className="w-5 h-5 text-gray-700" />
+          <SkipBack className="w-5 h-5 text-slate-300 group-hover:text-white" />
         </button>
         
         <button
           onClick={handlePlayPause}
-          className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          className="p-4 rounded-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] hover:from-[#1ed760] hover:to-[#1DB954] text-white transition-all duration-200 hover:scale-110 shadow-lg shadow-green-500/25"
         >
           {isPlaying ? (
             <Pause className="w-6 h-6" />
@@ -372,22 +405,22 @@ export default function SonosMediaPlayerCard({
         
         <button
           onClick={handleNext}
-          className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          className="p-3 rounded-full bg-slate-700/50 backdrop-blur-sm border border-slate-600/50 hover:bg-slate-600/50 hover:scale-105 transition-all duration-200 group"
         >
-          <SkipForward className="w-5 h-5 text-gray-700" />
+          <SkipForward className="w-5 h-5 text-slate-300 group-hover:text-white" />
         </button>
       </div>
 
       {/* Group Management */}
-      <div className="border-t border-gray-200 pt-4">
-        <div className="flex items-center justify-between mb-4">
-          <h5 className="font-medium text-gray-900 flex items-center">
-            <Users className="w-4 h-4 mr-2" />
-            Group Management
+      <div className="border-t border-slate-700/50 pt-3 flex-1">
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="text-sm font-medium text-white flex items-center">
+            <Users className="w-4 h-4 mr-2 text-slate-300" />
+            Groups
           </h5>
           <button
             onClick={() => setShowGroupManager(!showGroupManager)}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-xs text-[#1DB954] hover:text-[#1ed760] font-medium transition-colors"
           >
             {showGroupManager ? 'Hide' : 'Show'}
           </button>

@@ -42,7 +42,7 @@ const getDomainColor = (domain) => {
   }
 };
 
-export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], onDevicesChange }) {
+export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], onDevicesChange, availableDevices: providedDevices }) {
   const [availableDevices, setAvailableDevices] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set(selectedDevices.map(d => d.id)));
   const [loading, setLoading] = useState(true);
@@ -52,6 +52,14 @@ export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], on
 
   useEffect(() => {
     if (!isOpen) return;
+
+    if (providedDevices && providedDevices.length > 0) {
+      // Use provided devices
+      setAvailableDevices(providedDevices);
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
     const fetchDevices = async () => {
       try {
@@ -77,7 +85,7 @@ export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], on
     };
 
     fetchDevices();
-  }, [isOpen]);
+  }, [isOpen, providedDevices]);
 
   const handleDeviceToggle = (deviceId) => {
     const newSelectedIds = new Set(selectedIds);
@@ -201,7 +209,6 @@ export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], on
                                 {device.name}
                               </div>
                               <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-500 truncate">{device.id}</span>
                                 {device.state && (
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                     device.state === 'on' || device.state === 'open' 
@@ -253,7 +260,7 @@ export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], on
                   disabled={selectedIds.size === 0}
                   className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                 >
-                  Add Selected ({selectedIds.size})
+                  Update ({selectedIds.size})
                 </button>
               </div>
             </div>

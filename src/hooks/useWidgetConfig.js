@@ -137,6 +137,14 @@ export function useWidgetConfig(interfaceType = 'pi') {
     saveLayout(newLayout);
   }, [layout, saveLayout]);
 
+  const updateWidgetDevices = useCallback((widgetId, selectedDevices) => {
+    updateWidget(widgetId, { selectedDevices });
+  }, [updateWidget]);
+
+  const updateWidgetScenes = useCallback((widgetId, selectedScenes) => {
+    updateWidget(widgetId, { selectedScenes });
+  }, [updateWidget]);
+
   const resetLayout = useCallback(() => {
     const defaultLayout = DEFAULT_LAYOUTS[interfaceType];
     saveLayout(defaultLayout);
@@ -173,6 +181,8 @@ export function useWidgetConfig(interfaceType = 'pi') {
     addWidget,
     removeWidget,
     updateWidget,
+    updateWidgetDevices,
+    updateWidgetScenes,
     resetLayout,
     getAvailableWidgetTypes,
     validateWidget,

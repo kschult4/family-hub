@@ -358,7 +358,7 @@ export class HomeAssistantClient {
   }
 
   /**
-   * Initialize WebSocket connection for real-time updates
+   * Initialize connection - REST API only for now
    */
   async connect() {
     if (this.useMockData || !this.baseUrl || !this.token) {
@@ -366,61 +366,95 @@ export class HomeAssistantClient {
       return;
     }
 
+    // Test REST API connection first
     try {
-      this.ws = createWebSocketConnection(this.baseUrl, this.token);
-      
-      // Set up global state change handler
-      const unsubscribe = this.ws.subscribe((entityId, newState) => {
-        if (!newState) return;
-        
-        // Update entity cache
-        this.entityCache.set(entityId, normalizeEntity(newState));
-        
-        // Notify subscribers
-        const entitySubscribers = this.subscribers.get(entityId);
-        if (entitySubscribers) {
-          const normalizedEntity = normalizeEntity(newState);
-          entitySubscribers.forEach(callback => {
-            try {
-              callback(normalizedEntity);
-            } catch (error) {
-              console.error('Error in entity subscriber callback:', error);
-            }
-          });
-        }
-        
-        // Notify wildcard subscribers (listening to all entities)
-        const wildcardSubscribers = this.subscribers.get('*');
-        if (wildcardSubscribers) {
-          const normalizedEntity = normalizeEntity(newState);
-          wildcardSubscribers.forEach(callback => {
-            try {
-              callback(normalizedEntity);
-            } catch (error) {
-              console.error('Error in wildcard subscriber callback:', error);
-            }
-          });
+      console.log('🔌 Testing Home Assistant REST API connection...');
+      const testResponse = await fetch(`${this.baseUrl}/api/`, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
         }
       });
-
-      await this.ws.connect();
+      
+      if (!testResponse.ok) {
+        throw new Error(`HTTP ${testResponse.status}: ${testResponse.statusText}`);
+      }
+      
+      const testData = await testResponse.json();
+      console.log('✅ Home Assistant REST API connected:', testData.message);
+      
+      // Use REST API only for now (skip WebSocket)
+      this.ws = null;
       this.isConnected = true;
       
-      return unsubscribe;
+      // Start polling for any existing subscribers
+      this.startPolling();
+      
+      return () => {}; // Return empty unsubscribe function
+      
     } catch (error) {
-      console.error('Failed to connect to Home Assistant WebSocket:', error);
+      console.error('❌ Failed to connect to Home Assistant REST API:', error);
+      this.isConnected = false;
       throw error;
     }
   }
 
   /**
-   * Disconnect WebSocket
+   * Start polling for entity updates when WebSocket is unavailable
+   */
+  startPolling() {
+    // Only start polling if we have subscribers and no WebSocket
+    if (this.ws || this.subscribers.size === 0) return;
+    
+    this.pollingInterval = setInterval(async () => {
+      try {
+        // Get fresh states for all subscribed entities
+        const subscribedEntityIds = Array.from(this.subscribers.keys()).filter(id => id !== '*');
+        
+        if (subscribedEntityIds.length > 0) {
+          const allStates = await this.getStates();
+          
+          // Notify subscribers of any changes
+          subscribedEntityIds.forEach(entityId => {
+            const entity = allStates.find(e => e.id === entityId);
+            const entitySubscribers = this.subscribers.get(entityId);
+            
+            if (entity && entitySubscribers) {
+              entitySubscribers.forEach(callback => {
+                try {
+                  callback(entity);
+                } catch (error) {
+                  console.error('Error in polling subscriber callback:', error);
+                }
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error during polling:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+  }
+
+  /**
+   * Stop polling
+   */
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  /**
+   * Disconnect WebSocket and stop polling
    */
   disconnect() {
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
+    this.stopPolling();
     this.isConnected = false;
     this.subscribers.clear();
   }
@@ -438,6 +472,11 @@ export class HomeAssistantClient {
     
     this.subscribers.get(entityId).add(callback);
     
+    // Start polling if no WebSocket and this is the first subscriber
+    if (!this.ws && this.isConnected) {
+      this.startPolling();
+    }
+    
     // Return unsubscribe function
     return () => {
       const entitySubscribers = this.subscribers.get(entityId);
@@ -446,6 +485,11 @@ export class HomeAssistantClient {
         if (entitySubscribers.size === 0) {
           this.subscribers.delete(entityId);
         }
+      }
+      
+      // Stop polling if no more subscribers
+      if (this.subscribers.size === 0) {
+        this.stopPolling();
       }
     };
   }
@@ -470,7 +514,14 @@ export class HomeAssistantClient {
     if (this.useMockData) {
       // Return mock data if in mock mode
       const { mockStates } = await import('../config/mockHomeAssistantData');
-      return mockStates.map(normalizeEntity);
+      const normalizedStates = mockStates.map(normalizeEntity);
+      
+      // Update cache with mock data
+      normalizedStates.forEach(entity => {
+        this.entityCache.set(entity.id, entity);
+      });
+      
+      return normalizedStates;
     }
 
     const rawStates = await haApi.getStates(this.baseUrl, this.token);

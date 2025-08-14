@@ -1,32 +1,14 @@
 import { useState, useEffect } from 'react';
 import { haClient } from '../../services/homeAssistantClient';
 
-export function ScenesSelectorModal({ isOpen, onClose, selectedScenes = [], onScenesChange }) {
-  const [availableScenes, setAvailableScenes] = useState([]);
+export function ScenesSelectorModal({ isOpen, onClose, selectedScenes = [], onScenesChange, availableScenes = [] }) {
   const [selectedIds, setSelectedIds] = useState(new Set(selectedScenes.map(s => s.id)));
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading] = useState(false);
+  const [error] = useState(null);
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchScenes = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const scenes = await haClient.getEntitiesByType('scene');
-        setAvailableScenes(scenes);
-      } catch (err) {
-        setError(err.message);
-        console.error('Error fetching scenes:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchScenes();
-  }, [isOpen]);
+    setSelectedIds(new Set(selectedScenes.map(s => s.id)));
+  }, [selectedScenes]);
 
   const handleSceneToggle = (sceneId) => {
     const newSelectedIds = new Set(selectedIds);
@@ -93,7 +75,6 @@ export function ScenesSelectorModal({ isOpen, onClose, selectedScenes = [], onSc
                           )}
                           <span className="font-medium text-gray-900">{scene.name}</span>
                         </div>
-                        <span className="text-sm text-gray-500">{scene.id}</span>
                       </div>
                     </label>
                   ))}
@@ -113,7 +94,7 @@ export function ScenesSelectorModal({ isOpen, onClose, selectedScenes = [], onSc
                 disabled={selectedIds.size === 0}
                 className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                Add Selected ({selectedIds.size})
+                Update ({selectedIds.size})
               </button>
             </div>
           </>

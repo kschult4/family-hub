@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useHomeAssistant } from '../hooks/useHomeAssistant';
 import LightCard from '../components/home/LightCard';
 import SwitchCard from '../components/home/SwitchCard';
 import LightConfigModal from '../components/home/LightConfigModal';
+import { DevicesSelectorModal } from '../components/home/DevicesSelectorModal';
+import { ScenesSelectorModal } from '../components/home/ScenesSelectorModal';
 import SceneCard from '../components/home/SceneCard';
 import SpotifyWidget from '../components/home/SpotifyWidget';
 import SonosMediaPlayerCard from '../components/home/SonosMediaPlayerCard';
@@ -12,11 +14,107 @@ import SectionHeader from '../components/SectionHeader';
 import { Edit3 } from 'lucide-react';
 
 export default function FreshHomeDashboard() {
+  console.log('🏠 FreshHomeDashboard component is rendering');
   const { devices, scenes, loading, error, toggleDevice, updateDevice, activateScene, callService, isConnected } = useHomeAssistant();
+  console.log('🏠 Loading:', loading, 'Error:', error, 'Devices:', devices?.length, 'Scenes:', scenes?.length);
   const [selectedLight, setSelectedLight] = useState(null);
   const [showLightConfig, setShowLightConfig] = useState(false);
-  const [showSceneModal, setShowSceneModal] = useState(false);
-  const [showDeviceModal, setShowDeviceModal] = useState(false);
+  const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [showScenesModal, setShowScenesModal] = useState(false);
+  
+  // Get all available devices first
+  const allLights = devices?.filter(d => d.entity_id.startsWith('light.')) || [];
+  const allSwitches = devices?.filter(d => d.entity_id.startsWith('switch.')) || [];
+  const allScenes = scenes || [];
+  
+  // State for managing which items are selected for display
+  const [selectedScenes, setSelectedScenes] = useState(() => {
+    const saved = localStorage.getItem('selectedScenes');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  const [selectedDevices, setSelectedDevices] = useState(() => {
+    const saved = localStorage.getItem('selectedDevices');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Save selections to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('selectedScenes', JSON.stringify([...selectedScenes]));
+  }, [selectedScenes]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedDevices', JSON.stringify([...selectedDevices]));
+  }, [selectedDevices]);
+
+  // Initialize selections when data first loads
+  useEffect(() => {
+    console.log('🔧 Initialization check:', { hasInitialized, loading, allScenes: allScenes.length, allLights: allLights.length, allSwitches: allSwitches.length });
+    if (!hasInitialized && !loading && (allScenes.length > 0 || allLights.length > 0 || allSwitches.length > 0)) {
+      // Check if we have saved selections
+      const savedScenes = localStorage.getItem('selectedScenes');
+      const savedDevices = localStorage.getItem('selectedDevices');
+      console.log('🔧 Saved data:', { savedScenes, savedDevices });
+      console.log('🔧 Saved data types:', { savedScenesType: typeof savedScenes, savedDevicesType: typeof savedDevices });
+      console.log('🔧 Should select scenes?', !savedScenes && allScenes.length > 0, { savedScenes, scenesCount: allScenes.length });
+      console.log('🔧 Should select devices?', !savedDevices && (allLights.length > 0 || allSwitches.length > 0), { savedDevices, lightsCount: allLights.length, switchesCount: allSwitches.length });
+      
+      // Only auto-select if no saved selections exist
+      if (!savedScenes && allScenes.length > 0) {
+        console.log('🔧 No saved scenes, selecting all scenes:', allScenes.map(s => s.entity_id));
+        setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
+      }
+      
+      if (!savedDevices && (allLights.length > 0 || allSwitches.length > 0)) {
+        const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
+        console.log('🔧 No saved devices, selecting all devices:', deviceIds);
+        setSelectedDevices(new Set(deviceIds));
+      }
+      
+      setHasInitialized(true);
+      console.log('🔧 Initialization completed');
+    }
+  }, [allScenes, allLights, allSwitches, loading, hasInitialized]);
+
+  // Auto-add new devices/scenes when they become available (after initialization)
+  // DISABLED: This was causing devices to be re-added after user unchecked them
+  // useEffect(() => {
+  //   if (hasInitialized && allScenes.length > 0) {
+  //     const currentIds = new Set([...selectedScenes]);
+  //     const newScenes = allScenes.filter(scene => !currentIds.has(scene.entity_id));
+  //     if (newScenes.length > 0) {
+  //       setSelectedScenes(prev => new Set([...prev, ...newScenes.map(s => s.entity_id)]));
+  //     }
+  //   }
+  // }, [allScenes, selectedScenes, hasInitialized]);
+
+  // useEffect(() => {
+  //   if (hasInitialized && (allLights.length > 0 || allSwitches.length > 0)) {
+  //     const currentIds = new Set([...selectedDevices]);
+  //     const newDevices = [...allLights, ...allSwitches].filter(device => !currentIds.has(device.entity_id));
+  //     if (newDevices.length > 0) {
+  //       setSelectedDevices(prev => new Set([...prev, ...newDevices.map(d => d.entity_id)]));
+  //     }
+  //   }
+  // }, [allLights, allSwitches, selectedDevices, hasInitialized]);
+
+  // Modal handlers
+  const handleDevicesChange = (newSelectedDevices) => {
+    console.log('🔧 handleDevicesChange called with:', newSelectedDevices);
+    const deviceIds = newSelectedDevices.map(d => d.entity_id || d.id);
+    console.log('🔧 Device IDs to select:', deviceIds);
+    setSelectedDevices(new Set(deviceIds));
+    setShowDevicesModal(false);
+  };
+
+  const handleScenesChange = (newSelectedScenes) => {
+    console.log('🎬 handleScenesChange called with:', newSelectedScenes);
+    const sceneIds = newSelectedScenes.map(s => s.entity_id || s.id);
+    console.log('🎬 Scene IDs to select:', sceneIds);
+    setSelectedScenes(new Set(sceneIds));
+    setShowScenesModal(false);
+  };
 
   if (loading) {
     return (
@@ -43,9 +141,10 @@ export default function FreshHomeDashboard() {
     );
   }
 
-  const lights = devices?.filter(d => d.entity_id.startsWith('light.')) || [];
-  const switches = devices?.filter(d => d.entity_id.startsWith('switch.')) || [];
-  const scenes_list = scenes || [];
+  // Filter to only show selected items
+  const lights = allLights.filter(light => selectedDevices.has(light.entity_id));
+  const switches = allSwitches.filter(switchDevice => selectedDevices.has(switchDevice.entity_id));
+  const scenes_list = allScenes.filter(scene => selectedScenes.has(scene.entity_id));
 
   // Debug logging
   console.log('🔍 FreshHomeDashboard - Available devices:', devices?.map(d => ({
@@ -54,6 +153,19 @@ export default function FreshHomeDashboard() {
     friendly_name: d.attributes?.friendly_name
   })));
   console.log('🔍 FreshHomeDashboard - Available scenes:', scenes?.map(s => s.entity_id));
+  console.log('🔍 FreshHomeDashboard - Selected scenes:', [...selectedScenes]);
+  console.log('🔍 FreshHomeDashboard - Selected devices:', [...selectedDevices]);
+  console.log('🔍 FreshHomeDashboard - Visible scenes:', scenes_list.length, 'Total scenes:', allScenes.length);
+  console.log('🔍 FreshHomeDashboard - Visible devices:', lights.length + switches.length, 'Total devices:', allLights.length + allSwitches.length);
+  
+  // DEBUG: Check if entity IDs match
+  console.log('🔍 DEBUG - Available scene IDs:', allScenes.map(s => s.entity_id));
+  console.log('🔍 DEBUG - Available light IDs:', allLights.map(d => d.entity_id)); 
+  console.log('🔍 DEBUG - Available switch IDs:', allSwitches.map(d => d.entity_id));
+  console.log('🔍 DEBUG - Selected scene IDs:', [...selectedScenes]);
+  console.log('🔍 DEBUG - Selected device IDs:', [...selectedDevices]);
+  console.log('🔍 DEBUG - Selected scene IDs that exist:', [...selectedScenes].filter(id => allScenes.some(s => s.entity_id === id)));
+  console.log('🔍 DEBUG - Selected device IDs that exist:', [...selectedDevices].filter(id => [...allLights, ...allSwitches].some(d => d.entity_id === id)));
 
   // Special devices - be more flexible with entity matching
   const mediaPlayers = devices?.filter(d => d.entity_id.startsWith('media_player.')) || [];
@@ -104,7 +216,7 @@ export default function FreshHomeDashboard() {
   };
 
   return (
-    <div className="p-2 sm:p-4">
+    <div className="p-2 sm:p-4 overflow-y-auto scrollbar-hide">
       {!isConnected && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-yellow-800 text-sm">
@@ -121,7 +233,7 @@ export default function FreshHomeDashboard() {
             <div className="flex items-center gap-1 mb-3">
               <SectionHeader title="Scenes" className="mb-0" />
               <button 
-                onClick={() => setShowSceneModal(true)}
+                onClick={() => setShowScenesModal(true)}
                 className="p-1 text-gray-800 hover:text-gray-600 transition-colors ml-5"
               >
                 <Edit3 className="w-5 h-5" />
@@ -147,7 +259,7 @@ export default function FreshHomeDashboard() {
             <div className="flex items-center gap-1 mb-3">
               <SectionHeader title="Devices" className="mb-0" />
               <button 
-                onClick={() => setShowDeviceModal(true)}
+                onClick={() => setShowDevicesModal(true)}
                 className="p-1 text-gray-800 hover:text-gray-600 transition-colors ml-5"
               >
                 <Edit3 className="w-5 h-5" />
@@ -288,109 +400,32 @@ export default function FreshHomeDashboard() {
         onUpdateLight={handleUpdateLight}
       />
 
-      {/* Scene Selection Modal */}
-      {showSceneModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="font-semibold text-lg text-gray-900">Add Scene</h2>
-              <button
-                onClick={() => setShowSceneModal(false)}
-                className="p-2 text-gray-400 rounded-lg transition-colors"
-              >
-                <span className="sr-only">Close</span>
-                ✕
-              </button>
-            </div>
 
-            {/* Content */}
-            <div className="p-6">
-              <p className="text-gray-600 mb-4">Select scenes to display on your dashboard:</p>
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {/* Example available scenes - replace with actual data */}
-                {['Morning Routine', 'Movie Night', 'Bedtime', 'Party Mode', 'Work Focus'].map((sceneName) => (
-                  <label key={sceneName} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-gray-700">{sceneName}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+      <DevicesSelectorModal
+        isOpen={showDevicesModal}
+        onClose={() => setShowDevicesModal(false)}
+        selectedDevices={[...allLights, ...allSwitches].filter(d => selectedDevices.has(d.entity_id)).map(d => ({ 
+          ...d, 
+          id: d.entity_id,
+          type: d.entity_id.split('.')[0],
+          name: d.attributes?.friendly_name || d.entity_id.replace(/^[^.]+\./, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        }))}
+        onDevicesChange={handleDevicesChange}
+        availableDevices={[...allLights, ...allSwitches].map(d => ({ 
+          ...d, 
+          id: d.entity_id,
+          type: d.entity_id.split('.')[0],
+          name: d.attributes?.friendly_name || d.entity_id.replace(/^[^.]+\./, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        }))}
+      />
 
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => setShowSceneModal(false)}
-                className="px-4 py-2 text-gray-600 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowSceneModal(false)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium shadow-sm transition-colors"
-              >
-                Add Selected
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Device Selection Modal */}
-      {showDeviceModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="font-semibold text-lg text-gray-900">Add Device</h2>
-              <button
-                onClick={() => setShowDeviceModal(false)}
-                className="p-2 text-gray-400 rounded-lg transition-colors"
-              >
-                <span className="sr-only">Close</span>
-                ✕
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6">
-              <p className="text-gray-600 mb-4">Select devices to display on your dashboard:</p>
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {/* Example available devices - replace with actual data */}
-                {['Kitchen Light', 'Living Room Lamp', 'Porch Light', 'Garage Door', 'Coffee Maker', 'Smart Plug'].map((deviceName) => (
-                  <label key={deviceName} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-gray-700">{deviceName}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => setShowDeviceModal(false)}
-                className="px-4 py-2 text-gray-600 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowDeviceModal(false)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium shadow-sm transition-colors"
-              >
-                Add Selected
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ScenesSelectorModal
+        isOpen={showScenesModal}
+        onClose={() => setShowScenesModal(false)}
+        selectedScenes={allScenes.filter(s => selectedScenes.has(s.entity_id)).map(s => ({ ...s, id: s.entity_id }))}
+        onScenesChange={handleScenesChange}
+        availableScenes={allScenes.map(s => ({ ...s, id: s.entity_id, name: s.attributes?.friendly_name || s.entity_id }))}
+      />
     </div>
   );
 }

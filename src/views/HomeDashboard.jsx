@@ -4,10 +4,14 @@ import { useWidgetConfig } from '../hooks/useWidgetConfig';
 
 import WidgetGrid from '../components/home/WidgetGrid';
 import WidgetToolbar from '../components/home/WidgetToolbar';
+import WidgetWrapper from '../components/home/WidgetWrapper';
 import DeviceCard from '../components/home/DeviceCard';
 import SceneCard from '../components/home/SceneCard';
 import DeviceModal from '../components/home/DeviceModal';
+import { DevicesSelectorModal } from '../components/home/DevicesSelectorModal';
+import { ScenesSelectorModal } from '../components/home/ScenesSelectorModal';
 import SpotifyWidget from '../components/home/SpotifyWidget';
+import SonosMediaPlayerCard from '../components/home/SonosMediaPlayerCard';
 import RingAlarmWidget from '../components/home/RingAlarmWidget';
 import RingCameraWidget from '../components/home/RingCameraWidget';
 import ThermostatWidget from '../components/home/ThermostatWidget';
@@ -53,7 +57,16 @@ function ErrorComponent({ error, onRetry }) {
 }
 
 export default function HomeDashboard() {
-  console.log('HomeDashboard rendering...');
+  console.log('🏠 HomeDashboard rendering...');
+  
+  // Temporary simple render to test
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold">Home Dashboard (Test)</h1>
+      <p>This is the HomeDashboard component rendering correctly!</p>
+    </div>
+  );
+  
   const interfaceType = detectInterface();
   
   const { 
@@ -69,12 +82,19 @@ export default function HomeDashboard() {
     isConnected
   } = useHomeAssistant();
   
-  const { layout, saveLayout, resetLayout, addWidget, removeWidget } = useWidgetConfig(interfaceType);
+  const { layout, saveLayout, resetLayout, addWidget, removeWidget, updateWidgetDevices, updateWidgetScenes } = useWidgetConfig(interfaceType);
   
   console.log('HomeDashboard state:', { devices: devices.length, scenes: scenes.length, loading, error, layout: layout.length });
+  console.log('🔍 Available devices:', devices.map(d => ({ 
+    entity_id: d.entity_id, 
+    state: d.state, 
+    friendly_name: d.attributes?.friendly_name 
+  })));
   
   const [modalDevice, setModalDevice] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [devicesSelectorModal, setDevicesSelectorModal] = useState({ isOpen: false, widget: null });
+  const [scenesSelectorModal, setScenesSelectorModal] = useState({ isOpen: false, widget: null });
 
   const handleDeviceToggle = useCallback(async (entityId) => {
     try {
@@ -127,7 +147,7 @@ export default function HomeDashboard() {
     const thermostats = devices.filter(device => device.entity_id.startsWith('climate.'));
     
     return {
-      spotify: mediaPlayers.find(d => d.attributes?.friendly_name?.toLowerCase().includes('spotify')),
+      sonosDevices: mediaPlayers.filter(d => d.attributes?.device_class === 'speaker'),
       ringAlarm: alarmPanels.find(d => d.attributes?.friendly_name?.toLowerCase().includes('ring')),
       ringCameras: cameras.filter(d => d.attributes?.friendly_name?.toLowerCase().includes('ring')),
       thermostats: thermostats
@@ -139,8 +159,15 @@ export default function HomeDashboard() {
     
     switch (type) {
       case 'lights': {
-        const lights = getDevicesByType('light');
-        return lights.slice(0, 6).map(light => (
+        const allLights = getDevicesByType('light');
+        const selectedLights = widgetConfig.selectedDevices || allLights.slice(0, 6);
+        const lightsToShow = selectedLights.length > 0 
+          ? selectedLights.map(selectedLight => 
+              allLights.find(light => light.entity_id === selectedLight.entity_id || light.entity_id === selectedLight.id) || selectedLight
+            ).filter(Boolean)
+          : allLights.slice(0, 6);
+          
+        return lightsToShow.map(light => (
           <DeviceCard
             key={`${id}-${light.entity_id}`}
             device={light}
@@ -151,8 +178,15 @@ export default function HomeDashboard() {
       }
       
       case 'switches': {
-        const switches = getDevicesByType('switch');
-        return switches.slice(0, 6).map(switchDevice => (
+        const allSwitches = getDevicesByType('switch');
+        const selectedSwitches = widgetConfig.selectedDevices || allSwitches.slice(0, 6);
+        const switchesToShow = selectedSwitches.length > 0 
+          ? selectedSwitches.map(selectedSwitch => 
+              allSwitches.find(switchDevice => switchDevice.entity_id === selectedSwitch.entity_id || switchDevice.entity_id === selectedSwitch.id) || selectedSwitch
+            ).filter(Boolean)
+          : allSwitches.slice(0, 6);
+          
+        return switchesToShow.map(switchDevice => (
           <DeviceCard
             key={`${id}-${switchDevice.entity_id}`}
             device={switchDevice}
@@ -163,7 +197,14 @@ export default function HomeDashboard() {
       }
       
       case 'scenes': {
-        return scenes.slice(0, 6).map(scene => (
+        const selectedScenes = widgetConfig.selectedScenes || scenes.slice(0, 6);
+        const scenesToShow = selectedScenes.length > 0 
+          ? selectedScenes.map(selectedScene => 
+              scenes.find(scene => scene.entity_id === selectedScene.entity_id || scene.entity_id === selectedScene.id) || selectedScene
+            ).filter(Boolean)
+          : scenes.slice(0, 6);
+          
+        return scenesToShow.map(scene => (
           <SceneCard
             key={`${id}-${scene.entity_id}`}
             scene={scene}
@@ -174,34 +215,11 @@ export default function HomeDashboard() {
       
       case 'media': {
         const specialDevices = getSpecialDevices();
-        if (specialDevices.spotify) {
-          const spotifyData = {
-            isPlaying: specialDevices.spotify.state === 'playing',
-            currentTrack: specialDevices.spotify.attributes?.media_title || null,
-            artist: specialDevices.spotify.attributes?.media_artist || null,
-            album: {
-              name: specialDevices.spotify.attributes?.media_album_name || null,
-              imageUrl: specialDevices.spotify.attributes?.entity_picture || null
-            },
-            isConnected: specialDevices.spotify.state !== 'unavailable',
-            isLiked: false,
-            duration: (specialDevices.spotify.attributes?.media_duration || 0) * 1000,
-            position: (specialDevices.spotify.attributes?.media_position || 0) * 1000,
-            volume: Math.round((specialDevices.spotify.attributes?.volume_level || 0) * 100)
-          };
-          
+        if (specialDevices.sonosDevices && specialDevices.sonosDevices.length > 0) {
           return (
-            <SpotifyWidget
-              key={`${id}-spotify`}
-              spotifyData={spotifyData}
-              onPlay={() => callService('media_player', 'media_play', { entity_id: specialDevices.spotify.entity_id })}
-              onPause={() => callService('media_player', 'media_pause', { entity_id: specialDevices.spotify.entity_id })}
-              onNext={() => callService('media_player', 'media_next_track', { entity_id: specialDevices.spotify.entity_id })}
-              onPrevious={() => callService('media_player', 'media_previous_track', { entity_id: specialDevices.spotify.entity_id })}
-              onVolumeChange={(vol) => callService('media_player', 'volume_set', { 
-                entity_id: specialDevices.spotify.entity_id, 
-                volume_level: vol / 100 
-              })}
+            <SonosMediaPlayerCard
+              key={`${id}-sonos`}
+              onError={(error) => console.error('Sonos error:', error)}
             />
           );
         }
@@ -322,10 +340,20 @@ export default function HomeDashboard() {
       widget.components.map((component, index) => ({
         id: `${widget.id}-${index}`,
         type: widget.type,
-        component
+        config: widget.config,
+        component: (
+          <WidgetWrapper
+            widget={{ id: `${widget.id}-${index}`, type: widget.type }}
+            isEditMode={isEditMode}
+            onEditWidget={handleEditWidget}
+            onRemoveWidget={handleRemoveWidget}
+          >
+            {component}
+          </WidgetWrapper>
+        )
       }))
     );
-  }, [widgets]);
+  }, [widgets, isEditMode, handleEditWidget, handleRemoveWidget]);
 
   const handleDragEnd = useCallback((result) => {
     if (!result.destination || result.destination.index === result.source.index) {
@@ -376,6 +404,36 @@ export default function HomeDashboard() {
       console.log('Widget long press:', widget.id);
     }
   }, [isEditMode]);
+
+  const handleEditWidget = useCallback((widget) => {
+    const widgetConfig = layout.find(w => w.id === widget.id.split('-')[0]);
+    if (!widgetConfig) return;
+
+    if (widgetConfig.type === 'scenes') {
+      setScenesSelectorModal({ isOpen: true, widget: widgetConfig });
+    } else if (['lights', 'switches'].includes(widgetConfig.type)) {
+      setDevicesSelectorModal({ isOpen: true, widget: widgetConfig });
+    }
+  }, [layout]);
+
+  const handleRemoveWidget = useCallback((widget) => {
+    const widgetId = widget.id.split('-')[0];
+    removeWidget(widgetId);
+  }, [removeWidget]);
+
+  const handleDevicesChange = useCallback((selectedDevices) => {
+    if (devicesSelectorModal.widget) {
+      updateWidgetDevices(devicesSelectorModal.widget.id, selectedDevices);
+    }
+    setDevicesSelectorModal({ isOpen: false, widget: null });
+  }, [devicesSelectorModal.widget, updateWidgetDevices]);
+
+  const handleScenesChange = useCallback((selectedScenes) => {
+    if (scenesSelectorModal.widget) {
+      updateWidgetScenes(scenesSelectorModal.widget.id, selectedScenes);
+    }
+    setScenesSelectorModal({ isOpen: false, widget: null });
+  }, [scenesSelectorModal.widget, updateWidgetScenes]);
 
   if (loading) {
     return <LoadingComponent />;
@@ -430,6 +488,20 @@ export default function HomeDashboard() {
         onToggle={handleDeviceToggle}
         onBrightnessChange={(entityId, brightness) => handleDeviceUpdate(entityId, { brightness })}
         onColorChange={(entityId, color) => handleDeviceUpdate(entityId, { rgb_color: color })}
+      />
+
+      <DevicesSelectorModal
+        isOpen={devicesSelectorModal.isOpen}
+        onClose={() => setDevicesSelectorModal({ isOpen: false, widget: null })}
+        selectedDevices={devicesSelectorModal.widget?.selectedDevices || []}
+        onDevicesChange={handleDevicesChange}
+      />
+
+      <ScenesSelectorModal
+        isOpen={scenesSelectorModal.isOpen}
+        onClose={() => setScenesSelectorModal({ isOpen: false, widget: null })}
+        selectedScenes={scenesSelectorModal.widget?.selectedScenes || []}
+        onScenesChange={handleScenesChange}
       />
     </div>
   );

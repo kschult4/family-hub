@@ -149,10 +149,10 @@ export const mockDevices = [
       media_album: "A Night at the Opera",
       volume_level: 0.6,
       is_volume_muted: false,
-      supported_features: 189
+      supported_features: 149463
     },
-    last_changed: "2024-01-15T14:45:00.000000+00:00",
-    last_updated: "2024-01-15T14:45:30.000000+00:00"
+    last_changed: "2024-01-15T14:30:00.000000+00:00",
+    last_updated: "2024-01-15T14:30:00.000000+00:00"
   },
   {
     entity_id: "alarm_control_panel.ring_alarm",
@@ -206,6 +206,22 @@ export const mockDevices = [
     },
     last_changed: "2024-01-15T13:20:00.000000+00:00",
     last_updated: "2024-01-15T13:20:00.000000+00:00"
+  },
+  {
+    entity_id: "climate.main_thermostat",
+    state: "heat",
+    attributes: {
+      friendly_name: "Main Thermostat",
+      current_temperature: 72,
+      temperature: 74,
+      hvac_modes: ["off", "heat", "cool", "auto"],
+      hvac_mode: "heat",
+      preset_mode: "home",
+      preset_modes: ["home", "away", "sleep"],
+      supported_features: 17
+    },
+    last_changed: "2024-01-15T14:00:00.000000+00:00",
+    last_updated: "2024-01-15T14:00:00.000000+00:00"
   }
 ];
 

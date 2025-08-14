@@ -11,7 +11,8 @@ import { useHomeAssistant } from "./hooks/useHomeAssistant";
 import { useMotionDetection } from "./hooks/useMotionDetection";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState("ALERTS");
+  const [currentTab, setCurrentTab] = useState("HOME");
+  console.log('🔥 App currentTab state:', currentTab);
   
   // Home Assistant integration for camera motion detection
   const { devices } = useHomeAssistant();

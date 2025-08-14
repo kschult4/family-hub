@@ -170,25 +170,6 @@ export default function SceneCard({
         />
       )}
 
-      <style jsx>{`
-        @keyframes rippleFillNew {
-          0% {
-            clip-path: circle(0px at 88% 85%);
-          }
-          100% {
-            clip-path: circle(150% at 88% 85%);
-          }
-        }
-
-        @keyframes fadeOutNew {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
-          }
-        }
-      `}</style>
 
       {/* Content wrapper to ensure it stays above animation */}
       <div className="relative z-10">
