@@ -59,20 +59,6 @@ function ErrorComponent({ error, onRetry }) {
 export default function HomeDashboard() {
   console.log('🏠 ✅ CORRECT HomeDashboard rendering - this should show widgets!');
   
-  // EMERGENCY: Override everything to fix coming soon message
-  return (
-    <div className="p-4 bg-green-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-green-800 mb-4">
-        ✅ SUCCESS: Home Dashboard Fixed!
-      </h1>
-      <p className="text-lg mb-4">Time: {new Date().toLocaleString()}</p>
-      <p className="text-base mb-4">If you see this, the fix worked!</p>
-      <div className="bg-blue-50 p-4 rounded">
-        <p>The "Coming soon" message has been replaced with this working dashboard.</p>
-      </div>
-    </div>
-  );
-  
   const interfaceType = detectInterface();
   
   const { 
