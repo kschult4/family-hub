@@ -26,6 +26,7 @@ export default function RingCameraWidget({
     entity: haMotionSensor,
     callService: haMotionService
   } = useHomeAssistantEntity(motionSensorId, !!motionSensorId);
+  
   const [showLiveModal, setShowLiveModal] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showMotionModal, setShowMotionModal] = useState(false);
@@ -52,7 +53,9 @@ export default function RingCameraWidget({
   
   // Monitor motion sensor state
   useEffect(() => {
-    if (haMotionSensor?.state === 'on' && !motionDetected) {
+    const haMotionActive = haMotionSensor?.state === 'on';
+    
+    if (haMotionActive && !motionDetected) {
       setMotionDetected(true);
       setShowMotionModal(true);
       
@@ -204,17 +207,22 @@ export default function RingCameraWidget({
       <MotionCameraModal
         isVisible={showMotionModal}
         onClose={handleMotionModalClose}
-        camerasWithMotion={motionDetected || haMotionSensor?.state === 'on' ? [{
-          id: cameraEntityId || 'camera',
-          name,
-          snapshot: lastSnapshot,
-          motionTime: new Date()
-        }] : []}
+        camerasWithMotion={
+          (motionDetected || haMotionSensor?.state === 'on') 
+            ? [{
+                id: cameraEntityId || 'camera',
+                name,
+                snapshot: lastSnapshot,
+                motionTime: new Date(),
+                source: 'homeassistant'
+              }]
+            : []
+        }
         autoCloseDelay={60000}
       />
       
       <div className={`bg-white rounded-lg border-2 transition-colors min-h-[160px] overflow-hidden ${
-        motionDetected || haMotionSensor?.state === 'on' 
+        motionDetected || haMotionSensor?.state === 'on'
           ? 'border-red-300 shadow-lg shadow-red-100' 
           : 'border-gray-200 hover:border-gray-300'
       }`}>

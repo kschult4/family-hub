@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import AlertsDashboard from "../views/AlertsDashboard";
-import FreshHomeDashboard from "../views/FreshHomeDashboard";
+import HomeDashboard from "../views/HomeDashboard";
 
 function FamilyDashboard() {
   console.log('👨‍👩‍👧‍👦 FamilyDashboard is rendering (this should NOT happen for HOME tab)');
@@ -9,7 +9,7 @@ function FamilyDashboard() {
 
 const views = {
   ALERTS: AlertsDashboard,
-  HOME: FreshHomeDashboard,
+  HOME: HomeDashboard,
   FAMILY: FamilyDashboard,
 };
 

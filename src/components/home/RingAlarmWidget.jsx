@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shield, ShieldAlert, ShieldCheck, ShieldX, Clock, Home, Users, Siren, Lock, Unlock, KeyRound, X } from 'lucide-react';
 import { useHomeAssistantEntity } from '../../hooks/useHomeAssistantEntity';
+import { useRingAlarmMqtt } from '../../hooks/useRingAlarmMqtt';
 import AlarmSoundingModal from './AlarmSoundingModal';
 
 export default function RingAlarmWidget({ 
@@ -19,6 +20,17 @@ export default function RingAlarmWidget({
     callService: haCallService,
     isConnected: haConnected
   } = useHomeAssistantEntity(alarmPanelId, !!alarmPanelId);
+  
+  // Use Ring MQTT integration for additional alarm data
+  const {
+    alarmStatus: mqttAlarmStatus,
+    isConnected: mqttConnected,
+    lastAlarmEvent,
+    sensorStatuses,
+    hasActiveMotion,
+    getAlarmSummary
+  } = useRingAlarmMqtt();
+  
   const [isChanging, setIsChanging] = useState(false);
   const [localStatus, setLocalStatus] = useState(null);
   const [iconAnimating, setIconAnimating] = useState(false);
@@ -329,17 +341,32 @@ export default function RingAlarmWidget({
       `}</style>
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <Siren className="w-8 h-8" />
-        {/* Temporary Test Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowTestModal(true);
-          }}
-          className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-        >
-          Test Modal
-        </button>
+        <div className="flex items-center gap-2">
+          <Siren className="w-8 h-8" />
+          {/* MQTT Connection Indicator */}
+          {mqttConnected && (
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Ring MQTT Connected" />
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Active Motion Indicator */}
+          {hasActiveMotion() && (
+            <div className="px-2 py-1 text-xs bg-orange-500 text-white rounded flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              Motion
+            </div>
+          )}
+          {/* Temporary Test Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTestModal(true);
+            }}
+            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+          >
+            Test Modal
+          </button>
+        </div>
       </div>
 
       {/* Status Label - Center of Card */}

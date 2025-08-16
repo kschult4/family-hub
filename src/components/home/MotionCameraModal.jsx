@@ -115,7 +115,12 @@ export default function MotionCameraModal({
             >
               {/* Camera Label */}
               <div className="absolute top-3 left-3 z-10 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
-                {camera.attributes?.friendly_name || `Camera ${index + 1}`}
+                {camera.name || camera.attributes?.friendly_name || `Camera ${index + 1}`}
+                {camera.source && (
+                  <span className="ml-2 text-xs bg-white/20 px-1 rounded">
+                    {camera.source === 'mqtt' ? 'MQTT' : 'HA'}
+                  </span>
+                )}
               </div>
 
               {/* Motion Detection Badge */}
@@ -135,24 +140,30 @@ export default function MotionCameraModal({
                     controls={false}
                     playsInline
                   />
-                ) : camera.lastSnapshot ? (
+                ) : camera.snapshot || camera.lastSnapshot ? (
                   <img 
-                    src={camera.lastSnapshot} 
-                    alt={`${camera.attributes?.friendly_name} snapshot`}
+                    src={camera.snapshot || camera.lastSnapshot} 
+                    alt={`${camera.name || camera.attributes?.friendly_name} snapshot`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="text-center text-gray-400">
                     <Camera className="w-16 h-16 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No feed available</p>
+                    {camera.source === 'mqtt' && (
+                      <p className="text-xs mt-1">Ring MQTT Alert</p>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Motion Time Indicator */}
-              {camera.lastMotionTime && (
+              {(camera.lastMotionTime || camera.motionTime) && (
                 <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded text-xs">
-                  Motion: {new Date(camera.lastMotionTime).toLocaleTimeString()}
+                  Motion: {new Date(camera.lastMotionTime || camera.motionTime).toLocaleTimeString()}
+                  {camera.location && (
+                    <span className="ml-2 text-gray-300">• {camera.location}</span>
+                  )}
                 </div>
               )}
             </div>
