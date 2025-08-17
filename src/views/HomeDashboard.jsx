@@ -1,20 +1,17 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useHomeAssistant } from '../hooks/useHomeAssistant';
-import { useWidgetConfig } from '../hooks/useWidgetConfig';
-
-import WidgetGrid from '../components/home/WidgetGrid';
-import WidgetToolbar from '../components/home/WidgetToolbar';
-import WidgetWrapper from '../components/home/WidgetWrapper';
-import DeviceCard from '../components/home/DeviceCard';
-import SceneCard from '../components/home/SceneCard';
-import DeviceModal from '../components/home/DeviceModal';
+import LightCard from '../components/home/LightCard';
+import SwitchCard from '../components/home/SwitchCard';
+import LightConfigModal from '../components/home/LightConfigModal';
 import { DevicesSelectorModal } from '../components/home/DevicesSelectorModal';
 import { ScenesSelectorModal } from '../components/home/ScenesSelectorModal';
+import SceneCard from '../components/home/SceneCard';
 import SpotifyWidget from '../components/home/SpotifyWidget';
 import SonosMediaPlayerCard from '../components/home/SonosMediaPlayerCard';
 import RingAlarmWidget from '../components/home/RingAlarmWidget';
-import RingCameraWidget from '../components/home/RingCameraWidget';
 import ThermostatWidget from '../components/home/ThermostatWidget';
+import SectionHeader from '../components/SectionHeader';
+import { Edit3 } from 'lucide-react';
 
 function detectInterface() {
   if (typeof window === 'undefined') return 'pi';
@@ -57,375 +54,86 @@ function ErrorComponent({ error, onRetry }) {
 }
 
 export default function HomeDashboard() {
-  console.log('🏠 ✅ CORRECT HomeDashboard rendering - this should show widgets!');
+  console.log('🏠 HomeDashboard component is rendering');
+  const { devices, scenes, loading, error, toggleDevice, updateDevice, activateScene, callService, isConnected } = useHomeAssistant();
+  console.log('🏠 Loading:', loading, 'Error:', error, 'Devices:', devices?.length, 'Scenes:', scenes?.length);
+  console.log('🏠 HomeDashboard full state:', { devices, scenes, loading, error, isConnected });
+  const [selectedLight, setSelectedLight] = useState(null);
+  const [showLightConfig, setShowLightConfig] = useState(false);
+  const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [showScenesModal, setShowScenesModal] = useState(false);
   
-  const interfaceType = detectInterface();
+  // Get all available devices first
+  const allLights = devices?.filter(d => d.entity_id.startsWith('light.')) || [];
+  const allSwitches = devices?.filter(d => d.entity_id.startsWith('switch.')) || [];
+  const allScenes = scenes || [];
   
-  const { 
-    devices, 
-    scenes, 
-    loading, 
-    error, 
-    toggleDevice, 
-    updateDevice, 
-    activateScene,
-    callService,
-    refreshStates,
-    isConnected
-  } = useHomeAssistant();
+  // State for managing which items are selected for display
+  const [selectedScenes, setSelectedScenes] = useState(() => {
+    const saved = localStorage.getItem('selectedScenes');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  const [selectedDevices, setSelectedDevices] = useState(() => {
+    const saved = localStorage.getItem('selectedDevices');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
   
-  const { layout, saveLayout, resetLayout, addWidget, removeWidget, updateWidgetDevices, updateWidgetScenes } = useWidgetConfig(interfaceType);
-  
-  console.log('HomeDashboard state:', { devices: devices.length, scenes: scenes.length, loading, error, layout: layout.length });
-  console.log('🔍 Available devices:', devices.map(d => ({ 
-    entity_id: d.entity_id, 
-    state: d.state, 
-    friendly_name: d.attributes?.friendly_name 
-  })));
-  
-  const [modalDevice, setModalDevice] = useState(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [devicesSelectorModal, setDevicesSelectorModal] = useState({ isOpen: false, widget: null });
-  const [scenesSelectorModal, setScenesSelectorModal] = useState({ isOpen: false, widget: null });
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  const handleDeviceToggle = useCallback(async (entityId) => {
-    try {
-      await toggleDevice(entityId);
-    } catch (err) {
-      console.error('Failed to toggle device:', err);
-    }
-  }, [toggleDevice]);
+  // Save selections to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('selectedScenes', JSON.stringify([...selectedScenes]));
+  }, [selectedScenes]);
 
-  const handleDeviceUpdate = useCallback(async (entityId, attributes) => {
-    try {
-      await updateDevice(entityId, attributes);
+  useEffect(() => {
+    localStorage.setItem('selectedDevices', JSON.stringify([...selectedDevices]));
+  }, [selectedDevices]);
+
+  // Initialize selections when data first loads
+  useEffect(() => {
+    console.log('🔧 Initialization check:', { hasInitialized, loading, allScenes: allScenes.length, allLights: allLights.length, allSwitches: allSwitches.length });
+    if (!hasInitialized && !loading && (allScenes.length > 0 || allLights.length > 0 || allSwitches.length > 0)) {
+      // Check if we have saved selections
+      const savedScenes = localStorage.getItem('selectedScenes');
+      const savedDevices = localStorage.getItem('selectedDevices');
+      console.log('🔧 Saved data:', { savedScenes, savedDevices });
       
-      if (modalDevice?.entity_id === entityId) {
-        const updatedDevice = devices.find(d => d.entity_id === entityId);
-        if (updatedDevice) {
-          setModalDevice(updatedDevice);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to update device:', err);
-    }
-  }, [updateDevice, devices, modalDevice]);
-
-  const handleSceneActivate = useCallback(async (entityId) => {
-    try {
-      await activateScene(entityId);
-    } catch (err) {
-      console.error('Failed to activate scene:', err);
-    }
-  }, [activateScene]);
-
-  const handleLongPress = useCallback((entityId) => {
-    if (isEditMode) return;
-    
-    const device = devices.find(d => d.entity_id === entityId);
-    if (device && device.entity_id?.includes('light')) {
-      setModalDevice(device);
-    }
-  }, [devices, isEditMode]);
-
-  const getDevicesByType = useCallback((domain) => {
-    return devices.filter(device => device.entity_id.startsWith(`${domain}.`));
-  }, [devices]);
-
-  const getSpecialDevices = useMemo(() => {
-    const mediaPlayers = devices.filter(device => device.entity_id.startsWith('media_player.'));
-    const alarmPanels = devices.filter(device => device.entity_id.startsWith('alarm_control_panel.'));
-    const cameras = devices.filter(device => device.entity_id.startsWith('camera.'));
-    const thermostats = devices.filter(device => device.entity_id.startsWith('climate.'));
-    
-    return {
-      sonosDevices: mediaPlayers.filter(d => d.attributes?.device_class === 'speaker'),
-      ringAlarm: alarmPanels.find(d => d.attributes?.friendly_name?.toLowerCase().includes('ring')),
-      ringCameras: cameras.filter(d => d.attributes?.friendly_name?.toLowerCase().includes('ring')),
-      thermostats: thermostats
-    };
-  }, [devices]);
-
-  const createWidgetComponent = useCallback((widgetConfig) => {
-    const { type, id } = widgetConfig;
-    
-    switch (type) {
-      case 'lights': {
-        const allLights = getDevicesByType('light');
-        const selectedLights = widgetConfig.selectedDevices || allLights.slice(0, 6);
-        const lightsToShow = selectedLights.length > 0 
-          ? selectedLights.map(selectedLight => 
-              allLights.find(light => light.entity_id === selectedLight.entity_id || light.entity_id === selectedLight.id) || selectedLight
-            ).filter(Boolean)
-          : allLights.slice(0, 6);
-          
-        return lightsToShow.map(light => (
-          <DeviceCard
-            key={`${id}-${light.entity_id}`}
-            device={light}
-            onToggle={handleDeviceToggle}
-            onLongPress={handleLongPress}
-          />
-        ));
+      // Only auto-select if no saved selections exist OR if saved selections are empty
+      const parsedScenes = savedScenes ? JSON.parse(savedScenes) : [];
+      const parsedDevices = savedDevices ? JSON.parse(savedDevices) : [];
+      
+      if ((!savedScenes || parsedScenes.length === 0) && allScenes.length > 0) {
+        console.log('🔧 No saved scenes or empty array, selecting all scenes:', allScenes.map(s => s.entity_id));
+        setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
       }
       
-      case 'switches': {
-        const allSwitches = getDevicesByType('switch');
-        const selectedSwitches = widgetConfig.selectedDevices || allSwitches.slice(0, 6);
-        const switchesToShow = selectedSwitches.length > 0 
-          ? selectedSwitches.map(selectedSwitch => 
-              allSwitches.find(switchDevice => switchDevice.entity_id === selectedSwitch.entity_id || switchDevice.entity_id === selectedSwitch.id) || selectedSwitch
-            ).filter(Boolean)
-          : allSwitches.slice(0, 6);
-          
-        return switchesToShow.map(switchDevice => (
-          <DeviceCard
-            key={`${id}-${switchDevice.entity_id}`}
-            device={switchDevice}
-            onToggle={handleDeviceToggle}
-            onLongPress={handleLongPress}
-          />
-        ));
+      if ((!savedDevices || parsedDevices.length === 0) && (allLights.length > 0 || allSwitches.length > 0)) {
+        const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
+        console.log('🔧 No saved devices or empty array, selecting all devices:', deviceIds);
+        setSelectedDevices(new Set(deviceIds));
       }
       
-      case 'scenes': {
-        const selectedScenes = widgetConfig.selectedScenes || scenes.slice(0, 6);
-        const scenesToShow = selectedScenes.length > 0 
-          ? selectedScenes.map(selectedScene => 
-              scenes.find(scene => scene.entity_id === selectedScene.entity_id || scene.entity_id === selectedScene.id) || selectedScene
-            ).filter(Boolean)
-          : scenes.slice(0, 6);
-          
-        return scenesToShow.map(scene => (
-          <SceneCard
-            key={`${id}-${scene.entity_id}`}
-            scene={scene}
-            onActivate={handleSceneActivate}
-          />
-        ));
-      }
-      
-      case 'media': {
-        const specialDevices = getSpecialDevices();
-        if (specialDevices.sonosDevices && specialDevices.sonosDevices.length > 0) {
-          return (
-            <SonosMediaPlayerCard
-              key={`${id}-sonos`}
-              onError={(error) => console.error('Sonos error:', error)}
-            />
-          );
-        }
-        return <div key={`${id}-no-media`} className="p-4 text-center text-gray-500">No media player found</div>;
-      }
-      
-      case 'security': {
-        const specialDevices = getSpecialDevices();
-        const widgets = [];
-        
-        if (specialDevices.ringAlarm) {
-          const alarmData = {
-            status: specialDevices.ringAlarm.state || 'disarmed',
-            isConnected: specialDevices.ringAlarm.state !== 'unavailable',
-            lastChanged: specialDevices.ringAlarm.last_changed || null,
-            batteryStatus: specialDevices.ringAlarm.attributes?.battery_status || {},
-            sensorStatuses: specialDevices.ringAlarm.attributes?.sensor_statuses || []
-          };
-          
-          widgets.push(
-            <RingAlarmWidget
-              key={`${id}-alarm`}
-              alarmData={alarmData}
-              onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: specialDevices.ringAlarm.entity_id })}
-              onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: specialDevices.ringAlarm.entity_id })}
-              onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: specialDevices.ringAlarm.entity_id })}
-            />
-          );
-        }
-        
-        specialDevices.ringCameras.forEach(camera => {
-          const cameraData = {
-            name: camera.attributes?.friendly_name || camera.entity_id,
-            isOnline: camera.state !== 'unavailable',
-            isRecording: camera.state === 'recording',
-            lastSnapshot: camera.attributes?.entity_picture || null,
-            lastMotion: camera.attributes?.last_motion || null,
-            batteryLevel: camera.attributes?.battery_level || null,
-            liveStreamUrl: camera.attributes?.stream_source || null
-          };
-          
-          widgets.push(
-            <RingCameraWidget
-              key={`${id}-${camera.entity_id}`}
-              cameraData={cameraData}
-              onViewLive={() => console.log('View live camera:', camera.entity_id)}
-              onToggleRecording={() => callService('camera', 'record', { entity_id: camera.entity_id })}
-              onRefreshFeed={() => refreshStates()}
-            />
-          );
-        });
-        
-        return widgets.length > 0 ? widgets : 
-          <div key={`${id}-no-security`} className="p-4 text-center text-gray-500">No security devices found</div>;
-      }
-      
-      case 'climate': {
-        const specialDevices = getSpecialDevices();
-        return specialDevices.thermostats.map(thermostat => {
-          const thermostatData = {
-            currentTemp: thermostat.attributes?.current_temperature || 70,
-            targetTemp: thermostat.attributes?.temperature || 70,
-            mode: thermostat.state || 'off',
-            location: thermostat.attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
-            isOnline: thermostat.state !== 'unavailable',
-            humidity: thermostat.attributes?.current_humidity || null,
-            isHeating: thermostat.attributes?.hvac_action === 'heating',
-            isCooling: thermostat.attributes?.hvac_action === 'cooling',
-            fanRunning: thermostat.attributes?.fan_state === 'on',
-            schedule: thermostat.attributes?.preset_mode === 'schedule'
-          };
-          
-          return (
-            <ThermostatWidget
-              key={`${id}-${thermostat.entity_id}`}
-              thermostatData={thermostatData}
-              onSetTemperature={(temp) => callService('climate', 'set_temperature', { 
-                entity_id: thermostat.entity_id, 
-                temperature: temp 
-              })}
-              onSetMode={(mode) => callService('climate', 'set_hvac_mode', { 
-                entity_id: thermostat.entity_id, 
-                hvac_mode: mode 
-              })}
-            />
-          );
-        });
-      }
-      
-      default:
-        return <div key={`${id}-unknown`} className="p-4 text-center text-gray-500">Unknown widget type</div>;
+      setHasInitialized(true);
+      console.log('🔧 Initialization completed');
     }
-  }, [
-    getDevicesByType, 
-    scenes, 
-    getSpecialDevices, 
-    handleDeviceToggle, 
-    handleLongPress, 
-    handleSceneActivate, 
-    callService,
-    refreshStates
-  ]);
+  }, [allScenes, allLights, allSwitches, loading, hasInitialized]);
 
-  const widgets = useMemo(() => {
-    return layout.map(widgetConfig => {
-      const components = createWidgetComponent(widgetConfig);
-      return {
-        id: widgetConfig.id,
-        type: widgetConfig.type,
-        config: widgetConfig,
-        components: Array.isArray(components) ? components : [components]
-      };
-    }).filter(widget => widget.components && widget.components.length > 0);
-  }, [layout, createWidgetComponent]);
+  // Modal handlers
+  const handleDevicesChange = (newSelectedDevices) => {
+    console.log('🔧 handleDevicesChange called with:', newSelectedDevices);
+    const deviceIds = newSelectedDevices.map(d => d.entity_id || d.id);
+    console.log('🔧 Device IDs to select:', deviceIds);
+    setSelectedDevices(new Set(deviceIds));
+    setShowDevicesModal(false);
+  };
 
-  const flatWidgets = useMemo(() => {
-    return widgets.flatMap(widget => 
-      widget.components.map((component, index) => ({
-        id: `${widget.id}-${index}`,
-        type: widget.type,
-        config: widget.config,
-        component: (
-          <WidgetWrapper
-            widget={{ id: `${widget.id}-${index}`, type: widget.type }}
-            isEditMode={isEditMode}
-            onEditWidget={handleEditWidget}
-            onRemoveWidget={handleRemoveWidget}
-          >
-            {component}
-          </WidgetWrapper>
-        )
-      }))
-    );
-  }, [widgets, isEditMode, handleEditWidget, handleRemoveWidget]);
-
-  const handleDragEnd = useCallback((result) => {
-    if (!result.destination || result.destination.index === result.source.index) {
-      return;
-    }
-
-    const newWidgets = Array.from(flatWidgets);
-    const [reorderedItem] = newWidgets.splice(result.source.index, 1);
-    newWidgets.splice(result.destination.index, 0, reorderedItem);
-    
-    console.log('Widget reordered:', result);
-  }, [flatWidgets]);
-
-  const handleAddWidget = useCallback((widgetType) => {
-    // Map toolbar widget types to layout widget types
-    const widgetTypeMap = {
-      'light': 'lights',
-      'switch': 'switches', 
-      'scene': 'scenes',
-      'spotify': 'media',
-      'ring-alarm': 'security',
-      'ring-camera': 'security',
-      'thermostat': 'climate'
-    };
-    
-    const mappedType = widgetTypeMap[widgetType] || widgetType;
-    addWidget(mappedType);
-  }, [addWidget]);
-
-  const handleSaveLayout = useCallback(() => {
-    saveLayout(layout);
-  }, [saveLayout, layout]);
-
-  const handleResetLayout = useCallback(() => {
-    resetLayout();
-  }, [resetLayout]);
-
-  const handleWidgetPress = useCallback((widget) => {
-    if (!isEditMode) {
-      console.log('Widget pressed:', widget.id);
-    }
-  }, [isEditMode]);
-
-  const handleWidgetLongPress = useCallback((widget) => {
-    if (isEditMode) {
-      console.log('Remove widget:', widget.id);
-    } else {
-      console.log('Widget long press:', widget.id);
-    }
-  }, [isEditMode]);
-
-  const handleEditWidget = useCallback((widget) => {
-    const widgetConfig = layout.find(w => w.id === widget.id.split('-')[0]);
-    if (!widgetConfig) return;
-
-    if (widgetConfig.type === 'scenes') {
-      setScenesSelectorModal({ isOpen: true, widget: widgetConfig });
-    } else if (['lights', 'switches'].includes(widgetConfig.type)) {
-      setDevicesSelectorModal({ isOpen: true, widget: widgetConfig });
-    }
-  }, [layout]);
-
-  const handleRemoveWidget = useCallback((widget) => {
-    const widgetId = widget.id.split('-')[0];
-    removeWidget(widgetId);
-  }, [removeWidget]);
-
-  const handleDevicesChange = useCallback((selectedDevices) => {
-    if (devicesSelectorModal.widget) {
-      updateWidgetDevices(devicesSelectorModal.widget.id, selectedDevices);
-    }
-    setDevicesSelectorModal({ isOpen: false, widget: null });
-  }, [devicesSelectorModal.widget, updateWidgetDevices]);
-
-  const handleScenesChange = useCallback((selectedScenes) => {
-    if (scenesSelectorModal.widget) {
-      updateWidgetScenes(scenesSelectorModal.widget.id, selectedScenes);
-    }
-    setScenesSelectorModal({ isOpen: false, widget: null });
-  }, [scenesSelectorModal.widget, updateWidgetScenes]);
+  const handleScenesChange = (newSelectedScenes) => {
+    console.log('🎬 handleScenesChange called with:', newSelectedScenes);
+    const sceneIds = newSelectedScenes.map(s => s.entity_id || s.id);
+    console.log('🎬 Scene IDs to select:', sceneIds);
+    setSelectedScenes(new Set(sceneIds));
+    setShowScenesModal(false);
+  };
 
   if (loading) {
     return <LoadingComponent />;
@@ -435,10 +143,64 @@ export default function HomeDashboard() {
     return <ErrorComponent error={error} onRetry={refreshStates} />;
   }
 
-  const isMobile = interfaceType === 'pwa';
+  // Filter to only show selected items
+  const lights = allLights.filter(light => selectedDevices.has(light.entity_id));
+  const switches = allSwitches.filter(switchDevice => selectedDevices.has(switchDevice.entity_id));
+  const scenes_list = allScenes.filter(scene => selectedScenes.has(scene.entity_id));
+
+  // DEBUG: Check filtering
+  console.log('🔍 FILTERING DEBUG:', {
+    allLights: allLights.length,
+    allSwitches: allSwitches.length, 
+    allScenes: allScenes.length,
+    selectedDevices: [...selectedDevices],
+    selectedScenes: [...selectedScenes],
+    filteredLights: lights.length,
+    filteredSwitches: switches.length,
+    filteredScenes: scenes_list.length
+  });
+
+  // Special devices - be more flexible with entity matching
+  const mediaPlayers = devices?.filter(d => d.entity_id.startsWith('media_player.')) || [];
+  const sonosDevices = mediaPlayers.filter(d => 
+    d.attributes?.device_class === 'speaker' || 
+    d.entity_id.toLowerCase().includes('sonos') ||
+    d.attributes?.friendly_name?.toLowerCase().includes('sonos')
+  );
+  const spotifyDevice = mediaPlayers.find(d => 
+    d.entity_id.includes('spotify') || 
+    d.attributes?.friendly_name?.toLowerCase().includes('spotify')
+  );
+  
+  const alarmPanels = devices?.filter(d => d.entity_id.startsWith('alarm_control_panel.')) || [];
+  const ringAlarm = alarmPanels.find(d => 
+    d.entity_id.includes('ring') || 
+    d.attributes?.friendly_name?.toLowerCase().includes('ring')
+  );
+  
+  const thermostats = devices?.filter(d => d.entity_id.startsWith('climate.')) || [];
+
+  const handleLightLongPress = (entityId) => {
+    const light = devices?.find(d => d.entity_id === entityId);
+    if (light) {
+      setSelectedLight(light);
+      setShowLightConfig(true);
+    }
+  };
+
+  const handleUpdateLight = (entityId, updates) => {
+    if (updateDevice) {
+      updateDevice(entityId, updates);
+    }
+  };
+
+  const handleCloseLightConfig = () => {
+    setShowLightConfig(false);
+    setSelectedLight(null);
+  };
 
   return (
-    <div className={`p-2 sm:p-4 ${isMobile ? 'pb-6' : ''}`}>
+    <div className="p-2 sm:p-4 overflow-y-auto scrollbar-hide">
       {!isConnected && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-yellow-800 text-sm">
@@ -446,56 +208,208 @@ export default function HomeDashboard() {
           </p>
         </div>
       )}
-      
-      <WidgetToolbar
-        onAddWidget={handleAddWidget}
-        onSaveLayout={handleSaveLayout}
-        onResetLayout={handleResetLayout}
-        onEditMode={setIsEditMode}
-        isEditMode={isEditMode}
-      />
-      
+
       <div className="max-w-screen-xl mx-auto">
-        {flatWidgets.length === 0 ? (
-          <div className="flex items-center justify-center h-64 text-center">
-            <div>
-              <p className="text-xl text-gray-600 mb-2">No widgets configured</p>
-              <p className="text-gray-500">Click "Add Widget" to get started with your home dashboard!</p>
+
+        {/* Scenes Section - Top Priority */}
+        {scenes_list.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-1 mb-3">
+              <SectionHeader title="Scenes" className="mb-0" />
+              <button 
+                onClick={() => setShowScenesModal(true)}
+                className="p-1 text-gray-800 hover:text-gray-600 transition-colors ml-5"
+              >
+                <Edit3 className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid gap-3 sm:gap-4 grid-cols-2">
+              {scenes_list.map(scene => (
+                <SceneCard
+                  key={scene.entity_id}
+                  sceneId={scene.entity_id}
+                  scene={scene}
+                  onActivate={activateScene}
+                />
+              ))}
             </div>
           </div>
-        ) : (
-          <WidgetGrid
-            widgets={flatWidgets}
-            onDragEnd={handleDragEnd}
-            onWidgetPress={handleWidgetPress}
-            onWidgetLongPress={handleWidgetLongPress}
-          />
+        )}
+
+
+        {/* Unified Device Grid - All devices and widgets on same grid */}
+        {(lights.length > 0 || switches.length > 0) && (
+          <div className="mb-6">
+            <div className="flex items-center gap-1 mb-3">
+              <SectionHeader title="Devices" className="mb-0" />
+              <button 
+                onClick={() => setShowDevicesModal(true)}
+                className="p-1 text-gray-800 hover:text-gray-600 transition-colors ml-5"
+              >
+                <Edit3 className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 auto-rows-[120px]">
+              {/* Regular Device Cards - COLUMNS 1-2 ONLY */}
+              <div className="col-span-2 grid grid-cols-2 gap-4 auto-rows-[120px]">
+                {/* Light Cards */}
+                {lights.map(light => (
+                  <LightCard
+                    key={light.entity_id}
+                    lightId={light.entity_id}
+                    device={light}
+                    onToggle={toggleDevice}
+                    onLongPress={handleLightLongPress}
+                  />
+                ))}
+                
+                {/* Switch Cards */}
+                {switches.map(switchDevice => (
+                  <SwitchCard
+                    key={switchDevice.entity_id}
+                    switchId={switchDevice.entity_id}
+                    device={switchDevice}
+                    onToggle={toggleDevice}
+                  />
+                ))}
+              </div>
+              
+              {/* Special Widgets - COLUMNS 3-4 ONLY */}
+              <div className="col-span-2 sm:col-start-3 sm:col-end-5 grid grid-cols-2 gap-4 auto-rows-[120px]">
+                {/* Ring Alarm - Half width (1 column) - TOP */}
+                {ringAlarm && (
+                  <div className="col-span-1 row-span-2">
+                    <RingAlarmWidget
+                      alarmPanelId={ringAlarm.entity_id}
+                      alarmData={{
+                        status: ringAlarm.state || 'disarmed',
+                        isConnected: ringAlarm.state !== 'unavailable',
+                        lastChanged: ringAlarm.last_changed || null,
+                        batteryStatus: ringAlarm.attributes?.battery_status || {},
+                        sensorStatuses: ringAlarm.attributes?.sensor_statuses || []
+                      }}
+                      onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm.entity_id })}
+                      onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm.entity_id })}
+                      onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm.entity_id })}
+                    />
+                  </div>
+                )}
+                
+                {/* Thermostat - Half width (1 column) - TOP */}
+                {thermostats.length > 0 && (
+                  <div className="col-span-1 row-span-2">
+                    <ThermostatWidget
+                      thermostatData={{
+                        currentTemp: thermostats[0].attributes?.current_temperature || 70,
+                        targetTemp: thermostats[0].attributes?.temperature || 70,
+                        mode: thermostats[0].state || 'off',
+                        location: thermostats[0].attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
+                        isOnline: thermostats[0].state !== 'unavailable',
+                        humidity: thermostats[0].attributes?.current_humidity || null,
+                        isHeating: thermostats[0].attributes?.hvac_action === 'heating',
+                        isCooling: thermostats[0].attributes?.hvac_action === 'cooling',
+                        fanRunning: thermostats[0].attributes?.fan_state === 'on',
+                        schedule: thermostats[0].attributes?.preset_mode === 'schedule'
+                      }}
+                      onSetTemperature={(temp) => callService('climate', 'set_temperature', { 
+                        entity_id: thermostats[0].entity_id, 
+                        temperature: temp 
+                      })}
+                      onSetMode={(mode) => callService('climate', 'set_hvac_mode', { 
+                        entity_id: thermostats[0].entity_id, 
+                        hvac_mode: mode 
+                      })}
+                    />
+                  </div>
+                )}
+                
+                {/* Media Players - Sonos or Spotify - Spans full width, multiple rows - BOTTOM */}
+                {(sonosDevices.length > 0 || spotifyDevice) && (
+                  <div className="col-span-2 row-span-3">
+                    {sonosDevices.length > 0 ? (
+                      <SonosMediaPlayerCard
+                        key="sonos-widget"
+                        onError={(error) => console.error('Sonos error:', error)}
+                      />
+                    ) : spotifyDevice && (
+                      <SpotifyWidget
+                        spotifyData={{
+                          isPlaying: spotifyDevice.state === 'playing',
+                          currentTrack: spotifyDevice.attributes?.media_title || null,
+                          artist: spotifyDevice.attributes?.media_artist || null,
+                          album: {
+                            name: spotifyDevice.attributes?.media_album || null,
+                            imageUrl: null
+                          },
+                          isConnected: spotifyDevice.state !== 'unavailable',
+                          isLiked: false,
+                          duration: 355000, // Mock duration
+                          position: 125000, // Mock position
+                          volume: Math.round((spotifyDevice.attributes?.volume_level || 0.6) * 100)
+                        }}
+                        onPlay={() => callService && callService('media_player', 'media_play', { entity_id: spotifyDevice.entity_id })}
+                        onPause={() => callService && callService('media_player', 'media_pause', { entity_id: spotifyDevice.entity_id })}
+                        onNext={() => callService && callService('media_player', 'media_next_track', { entity_id: spotifyDevice.entity_id })}
+                        onPrevious={() => callService && callService('media_player', 'media_previous_track', { entity_id: spotifyDevice.entity_id })}
+                        onVolumeChange={(vol) => callService && callService('media_player', 'volume_set', { 
+                          entity_id: spotifyDevice.entity_id, 
+                          volume_level: vol / 100 
+                        })}
+                        onToggleLike={() => console.log('Toggle like')}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+
+        {devices?.length === 0 && (
+          <div className="flex items-center justify-center h-64 text-center">
+            <div>
+              <p className="text-xl text-gray-600 mb-2">No devices configured</p>
+              <p className="text-gray-500">Connect to Home Assistant to see your devices</p>
+            </div>
+          </div>
         )}
       </div>
 
-      <DeviceModal
-        device={modalDevice}
-        isOpen={!!modalDevice}
-        onClose={() => setModalDevice(null)}
-        onToggle={handleDeviceToggle}
-        onBrightnessChange={(entityId, brightness) => handleDeviceUpdate(entityId, { brightness })}
-        onColorChange={(entityId, color) => handleDeviceUpdate(entityId, { rgb_color: color })}
+      {/* Light Configuration Modal */}
+      <LightConfigModal
+        device={selectedLight}
+        isVisible={showLightConfig}
+        onClose={handleCloseLightConfig}
+        onUpdateLight={handleUpdateLight}
       />
 
+
       <DevicesSelectorModal
-        isOpen={devicesSelectorModal.isOpen}
-        onClose={() => setDevicesSelectorModal({ isOpen: false, widget: null })}
-        selectedDevices={devicesSelectorModal.widget?.selectedDevices || []}
+        isOpen={showDevicesModal}
+        onClose={() => setShowDevicesModal(false)}
+        selectedDevices={[...allLights, ...allSwitches].filter(d => selectedDevices.has(d.entity_id)).map(d => ({ 
+          ...d, 
+          id: d.entity_id,
+          type: d.entity_id.split('.')[0],
+          name: d.attributes?.friendly_name || d.entity_id.replace(/^[^.]+\./, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        }))}
         onDevicesChange={handleDevicesChange}
+        availableDevices={[...allLights, ...allSwitches].map(d => ({ 
+          ...d, 
+          id: d.entity_id,
+          type: d.entity_id.split('.')[0],
+          name: d.attributes?.friendly_name || d.entity_id.replace(/^[^.]+\./, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        }))}
       />
 
       <ScenesSelectorModal
-        isOpen={scenesSelectorModal.isOpen}
-        onClose={() => setScenesSelectorModal({ isOpen: false, widget: null })}
-        selectedScenes={scenesSelectorModal.widget?.selectedScenes || []}
+        isOpen={showScenesModal}
+        onClose={() => setShowScenesModal(false)}
+        selectedScenes={allScenes.filter(s => selectedScenes.has(s.entity_id)).map(s => ({ ...s, id: s.entity_id }))}
         onScenesChange={handleScenesChange}
+        availableScenes={allScenes.map(s => ({ ...s, id: s.entity_id, name: s.attributes?.friendly_name || s.entity_id }))}
       />
-
     </div>
   );
 }

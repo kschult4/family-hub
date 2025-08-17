@@ -6,6 +6,7 @@ import AppBackground from "./components/AppBackground";
 import ShoppingList from "./components/ShoppingList";
 import MotionCameraModal from "./components/home/MotionCameraModal";
 import MotionTestButton from "./components/home/MotionTestButton";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useHomeAssistant } from "./hooks/useHomeAssistant";
 import { useMotionDetection } from "./hooks/useMotionDetection";
@@ -75,44 +76,46 @@ export default function App() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <AppBackground>
-      <div className="flex flex-col min-h-screen px-2 sm:px-4 md:px-8 text-text font-sans">
-        {!isMobile && <Header />}
+    <ErrorBoundary>
+      <AppBackground>
+        <div className="flex flex-col min-h-screen px-2 sm:px-4 md:px-8 text-text font-sans">
+          {!isMobile && <Header />}
 
-        <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[120px] pt-4' : 'pb-[160px]'}`}>
-          <DashboardView 
-            currentTab={currentTab} 
-            groceryItems={groceryItems} 
-            setGroceryItems={setGroceryItems}
-            addGroceryItem={addGroceryItem}
-            updateGroceryItem={updateGroceryItem}
-            removeGroceryItem={removeGroceryItem}
-            tasks={tasks} 
-            setTasks={setTasks}
-            addTask={addTask}
-            updateTask={updateTask}
-            removeTask={removeTask}
-            meals={meals} 
-            setMeals={setMeals} 
-          />
+          <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[120px] pt-4' : 'pb-[160px]'}`}>
+            <DashboardView 
+              currentTab={currentTab} 
+              groceryItems={groceryItems} 
+              setGroceryItems={setGroceryItems}
+              addGroceryItem={addGroceryItem}
+              updateGroceryItem={updateGroceryItem}
+              removeGroceryItem={removeGroceryItem}
+              tasks={tasks} 
+              setTasks={setTasks}
+              addTask={addTask}
+              updateTask={updateTask}
+              removeTask={removeTask}
+              meals={meals} 
+              setMeals={setMeals} 
+            />
+          </div>
+
+          <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} onSaveTask={handleSaveTask} onSaveMeals={handleSaveMeals} groceryItems={groceryItems} meals={meals} />
         </div>
 
-        <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} onSaveTask={handleSaveTask} onSaveMeals={handleSaveMeals} groceryItems={groceryItems} meals={meals} />
-      </div>
+        {/* Motion Detection Modal - appears across all dashboard views */}
+        <MotionCameraModal
+          camerasWithMotion={camerasWithMotion}
+          onClose={clearAllMotion}
+          isVisible={hasActiveMotion}
+          autoCloseDelay={60000}
+        />
 
-      {/* Motion Detection Modal - appears across all dashboard views */}
-      <MotionCameraModal
-        camerasWithMotion={camerasWithMotion}
-        onClose={clearAllMotion}
-        isVisible={hasActiveMotion}
-        autoCloseDelay={60000}
-      />
-
-      {/* Test Button for Motion Detection (Development) */}
-      <MotionTestButton
-        cameras={cameras}
-        onTriggerMotion={triggerMotion}
-      />
-    </AppBackground>
+        {/* Test Button for Motion Detection (Development) */}
+        <MotionTestButton
+          cameras={cameras}
+          onTriggerMotion={triggerMotion}
+        />
+      </AppBackground>
+    </ErrorBoundary>
   );
 }

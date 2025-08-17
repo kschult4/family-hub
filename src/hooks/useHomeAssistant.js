@@ -62,19 +62,37 @@ export function useHomeAssistant(config = {}) {
         return;
       }
 
+      // Validate connection parameters
+      if (!baseUrl || !token) {
+        throw new Error('Missing Home Assistant URL or token. Check your .env file.');
+      }
+
+      console.log('🔌 Attempting to connect to Home Assistant...');
       const states = await haApi.getStates(baseUrl, token);
+      
+      if (!Array.isArray(states)) {
+        throw new Error('Invalid response from Home Assistant API');
+      }
+      
       const allDevices = filterDevices(states);
       const allScenes = filterScenes(states);
+      
+      console.log('✅ Successfully loaded', states.length, 'entities from Home Assistant');
+      console.log('📱 Found', allDevices.length, 'devices and', allScenes.length, 'scenes');
       
       setDevices(allDevices);
       setScenes(allScenes);
       setIsConnected(true);
       setLoading(false);
     } catch (err) {
-      console.error('Error loading Home Assistant states:', err);
+      console.error('❌ Error loading Home Assistant states:', err);
       setError(err);
       setIsConnected(false);
       setLoading(false);
+      
+      // Fallback to empty arrays to prevent UI crashes
+      setDevices([]);
+      setScenes([]);
     }
   }, [baseUrl, token, useMockData, filterDevices, filterScenes]);
 
