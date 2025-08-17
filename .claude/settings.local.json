@@ -20,7 +20,11 @@
       "Bash(ssh:*)",
       "Bash(ping:*)",
       "Bash(git rev-parse:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git rm:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
