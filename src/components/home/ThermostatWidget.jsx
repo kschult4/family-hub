@@ -5,7 +5,8 @@ export default function ThermostatWidget({
   thermostatData = {}, 
   onSetTemperature,
   onSetMode,
-  onToggleLocation 
+  onToggleLocation,
+  isActive = true 
 }) {
   const [targetTemp, setTargetTemp] = useState(thermostatData.targetTemp || 70);
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -24,7 +25,7 @@ export default function ThermostatWidget({
   } = thermostatData;
 
   const adjustTemperature = async (adjustment) => {
-    if (isAdjusting) return;
+    if (isAdjusting || !isActive) return;
     
     const newTemp = Math.max(50, Math.min(90, targetTemp + adjustment));
     setTargetTemp(newTemp);
@@ -40,6 +41,7 @@ export default function ThermostatWidget({
   };
 
   const toggleLocation = () => {
+    if (!isActive) return;
     const newLocation = location === 'upstairs' ? 'downstairs' : 'upstairs';
     onToggleLocation?.(newLocation);
   };
@@ -49,19 +51,29 @@ export default function ThermostatWidget({
   };
 
   const handleModeChange = (newMode) => {
+    if (!isActive) return;
     onSetMode?.(location, newMode);
   };
 
   return (
-    <div className="rounded-lg p-3 border-2 border-[#b75634] bg-orange-50 h-full flex flex-col overflow-hidden">
+    <div className={`rounded-lg p-3 border-2 h-full flex flex-col overflow-hidden transition-all ${
+      isActive 
+        ? 'border-[#b75634] bg-orange-50' 
+        : 'border-gray-300 bg-gray-100 opacity-60'
+    }`}>
       {/* Header with location toggle */}
       <div className="flex items-center justify-between mb-2">
-        <Thermometer className="w-8 h-8" />
+        <Thermometer className={`w-8 h-8 ${isActive ? '' : 'text-gray-400'}`} />
         
         {/* Location Toggle Button */}
         <button
           onClick={toggleLocation}
-          className="px-3 py-1 bg-white/70 border border-gray-300 rounded-lg text-xs font-medium transition-colors hover:bg-white flex items-center gap-1"
+          disabled={!isActive}
+          className={`px-3 py-1 border rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+            isActive 
+              ? 'bg-white/70 border-gray-300 hover:bg-white' 
+              : 'bg-gray-200 border-gray-400 text-gray-500 cursor-not-allowed'
+          }`}
         >
           {getLocationIcon(location)}
           {location.charAt(0).toUpperCase() + location.slice(1)}
@@ -73,23 +85,35 @@ export default function ThermostatWidget({
         <div className="flex items-center justify-between flex-1 px-2 -mt-5">
           <button
             onClick={() => adjustTemperature(-1)}
-            className="p-3 text-blue-600 transition-colors hover:text-blue-700 active:scale-95"
-            disabled={isAdjusting || mode === 'off'}
+            className={`p-3 transition-colors active:scale-95 ${
+              isActive 
+                ? 'text-blue-600 hover:text-blue-700' 
+                : 'text-gray-400 cursor-not-allowed'
+            }`}
+            disabled={isAdjusting || mode === 'off' || !isActive}
           >
             <ChevronDown className="w-8 h-8" />
           </button>
           
           <div className="text-center">
             <div className="flex items-baseline justify-center gap-2">
-              <span className="text-6xl font-bold text-[#b75634]">{Math.round(targetTemp)}</span>
-              <span className="text-2xl text-[#b75634]">°F</span>
+              <span className={`text-6xl font-bold ${
+                isActive ? 'text-[#b75634]' : 'text-gray-400'
+              }`}>{Math.round(targetTemp)}</span>
+              <span className={`text-2xl ${
+                isActive ? 'text-[#b75634]' : 'text-gray-400'
+              }`}>°F</span>
             </div>
           </div>
           
           <button
             onClick={() => adjustTemperature(1)}
-            className="p-3 text-red-600 transition-colors hover:text-red-700 active:scale-95"
-            disabled={isAdjusting || mode === 'off'}
+            className={`p-3 transition-colors active:scale-95 ${
+              isActive 
+                ? 'text-red-600 hover:text-red-700' 
+                : 'text-gray-400 cursor-not-allowed'
+            }`}
+            disabled={isAdjusting || mode === 'off' || !isActive}
           >
             <ChevronUp className="w-8 h-8" />
           </button>
@@ -101,15 +125,18 @@ export default function ThermostatWidget({
             <button
               key={modeOption}
               onClick={() => handleModeChange(modeOption)}
+              disabled={!isActive}
               className={`py-1.5 px-1 rounded-sm text-xs font-medium transition-all flex items-center justify-center ${
-                mode === modeOption
-                  ? 'bg-white shadow-sm font-bold border border-gray-300'
-                  : 'bg-white/50 border border-transparent'
+                isActive 
+                  ? (mode === modeOption
+                      ? 'bg-white shadow-sm font-bold border border-gray-300'
+                      : 'bg-white/50 border border-transparent hover:bg-white/70')
+                  : 'bg-gray-200 border border-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
               {modeOption === 'off' ? 'Off' : 
-               modeOption === 'heat' ? <Flame className="w-3 h-3" /> : 
-               modeOption === 'cool' ? <Snowflake className="w-3 h-3" /> : 
+               modeOption === 'heat' ? <Flame className={`w-3 h-3 ${!isActive ? 'text-gray-400' : ''}`} /> : 
+               modeOption === 'cool' ? <Snowflake className={`w-3 h-3 ${!isActive ? 'text-gray-400' : ''}`} /> : 
                'Auto'}
             </button>
           ))}

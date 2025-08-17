@@ -49,7 +49,7 @@ export default function RingAlarmWidget({
     isConnected = haAlarm ? haConnected : false,
     lastChanged = null,
     batteryStatus = {},
-    sensorStatuses = [],
+    sensorStatuses: haSensorStatuses = [],
     codeArmRequired = false,
     codeFormat = null
   } = currentEntity;
@@ -349,13 +349,6 @@ export default function RingAlarmWidget({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* Active Motion Indicator */}
-          {hasActiveMotion() && (
-            <div className="px-2 py-1 text-xs bg-orange-500 text-white rounded flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              Motion
-            </div>
-          )}
           {/* Temporary Test Button */}
           <button
             onClick={(e) => {

@@ -83,10 +83,19 @@ export function useRingAlarmMqtt() {
     // Handle alarm arm/disarm events if Ring supports them via MQTT
     if (data.topic?.includes('/alarm/status')) {
       console.log('🛡️ Ring alarm status change:', data.state);
-      setAlarmStatus(data.state.toLowerCase());
+      
+      // Map MQTT states to widget states (Away/Home → Armed, Disarmed → Disarmed)
+      let mappedStatus = data.state.toLowerCase();
+      if (mappedStatus === 'away' || mappedStatus === 'home') {
+        mappedStatus = 'armed_home'; // Treat both Away and Home as "Armed"
+        console.log(`🔄 Mapped MQTT "${data.state}" → "armed_home" for widget display`);
+      }
+      
+      setAlarmStatus(mappedStatus);
       setLastAlarmEvent({
         type: 'status_change',
-        status: data.state.toLowerCase(),
+        status: mappedStatus,
+        originalMqttStatus: data.state.toLowerCase(),
         timestamp: timestamp,
         topic: data.topic
       });

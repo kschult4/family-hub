@@ -98,18 +98,19 @@ export default function HomeDashboard() {
       const savedDevices = localStorage.getItem('selectedDevices');
       console.log('🔧 Saved data:', { savedScenes, savedDevices });
       
-      // Only auto-select if no saved selections exist OR if saved selections are empty
+      // Parse saved selections
       const parsedScenes = savedScenes ? JSON.parse(savedScenes) : [];
       const parsedDevices = savedDevices ? JSON.parse(savedDevices) : [];
       
-      if ((!savedScenes || parsedScenes.length === 0) && allScenes.length > 0) {
-        console.log('🔧 No saved scenes or empty array, selecting all scenes:', allScenes.map(s => s.entity_id));
+      // Force auto-select all for better UX - always show content when switching to mock data
+      if (allScenes.length > 0) {
+        console.log('🔧 Auto-selecting all scenes:', allScenes.map(s => s.entity_id));
         setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
       }
       
-      if ((!savedDevices || parsedDevices.length === 0) && (allLights.length > 0 || allSwitches.length > 0)) {
+      if (allLights.length > 0 || allSwitches.length > 0) {
         const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
-        console.log('🔧 No saved devices or empty array, selecting all devices:', deviceIds);
+        console.log('🔧 Auto-selecting all devices:', deviceIds);
         setSelectedDevices(new Set(deviceIds));
       }
       
@@ -180,6 +181,17 @@ export default function HomeDashboard() {
   
   const thermostats = devices?.filter(d => d.entity_id.startsWith('climate.')) || [];
 
+  // DEBUG: Check Ring alarm detection
+  console.log('🔍 RING ALARM DEBUG:', {
+    totalDevices: devices?.length,
+    alarmPanels: alarmPanels.length,
+    alarmPanelEntities: alarmPanels.map(d => ({ entity_id: d.entity_id, friendly_name: d.attributes?.friendly_name })),
+    ringAlarmFound: !!ringAlarm,
+    ringAlarmEntity: ringAlarm?.entity_id || 'Not found',
+    sonosDevices: sonosDevices.length,
+    thermostats: thermostats.length
+  });
+
   const handleLightLongPress = (entityId) => {
     const light = devices?.find(d => d.entity_id === entityId);
     if (light) {
@@ -238,7 +250,7 @@ export default function HomeDashboard() {
 
 
         {/* Unified Device Grid - All devices and widgets on same grid */}
-        {(lights.length > 0 || switches.length > 0) && (
+        {(lights.length > 0 || switches.length > 0 || ringAlarm || thermostats.length > 0 || sonosDevices.length > 0 || spotifyDevice) && (
           <div className="mb-6">
             <div className="flex items-center gap-1 mb-3">
               <SectionHeader title="Devices" className="mb-0" />
@@ -276,7 +288,7 @@ export default function HomeDashboard() {
               
               {/* Special Widgets - COLUMNS 3-4 ONLY */}
               <div className="col-span-2 sm:col-start-3 sm:col-end-5 grid grid-cols-2 gap-4 auto-rows-[120px]">
-                {/* Ring Alarm - Half width (1 column) - TOP */}
+                {/* Ring Alarm - Half width (1 column) - TOP LEFT */}
                 {ringAlarm && (
                   <div className="col-span-1 row-span-2">
                     <RingAlarmWidget
@@ -295,10 +307,11 @@ export default function HomeDashboard() {
                   </div>
                 )}
                 
-                {/* Thermostat - Half width (1 column) - TOP */}
+                {/* Thermostat - Half width (1 column) - TOP RIGHT */}
                 {thermostats.length > 0 && (
                   <div className="col-span-1 row-span-2">
                     <ThermostatWidget
+                      isActive={false}
                       thermostatData={{
                         currentTemp: thermostats[0].attributes?.current_temperature || 70,
                         targetTemp: thermostats[0].attributes?.temperature || 70,
@@ -323,7 +336,7 @@ export default function HomeDashboard() {
                   </div>
                 )}
                 
-                {/* Media Players - Sonos or Spotify - Spans full width, multiple rows - BOTTOM */}
+                {/* Media Players - Sonos or Spotify - Full width (2 columns) - BOTTOM */}
                 {(sonosDevices.length > 0 || spotifyDevice) && (
                   <div className="col-span-2 row-span-3">
                     {sonosDevices.length > 0 ? (
