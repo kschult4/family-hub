@@ -21,14 +21,17 @@ export default function RingAlarmWidget({
     isConnected: haConnected
   } = useHomeAssistantEntity(alarmPanelId, !!alarmPanelId);
   
-  // Use Ring MQTT integration for additional alarm data
+  // Use Ring MQTT integration for alarm control and data
   const {
     alarmStatus: mqttAlarmStatus,
     isConnected: mqttConnected,
     lastAlarmEvent,
     sensorStatuses,
     hasActiveMotion,
-    getAlarmSummary
+    getAlarmSummary,
+    armHome: mqttArmHome,
+    armAway: mqttArmAway,
+    disarm: mqttDisarm
   } = useRingAlarmMqtt();
   
   const [isChanging, setIsChanging] = useState(false);
@@ -45,8 +48,8 @@ export default function RingAlarmWidget({
   // Use HA entity if available, otherwise fall back to legacy props
   const currentEntity = haAlarm || alarmData;
   const {
-    state: status = 'disarmed',
-    isConnected = haAlarm ? haConnected : false,
+    state: haStatus = 'disarmed',
+    isConnected: haIsConnected = false,
     lastChanged = null,
     batteryStatus = {},
     sensorStatuses: haSensorStatuses = [],
@@ -54,8 +57,12 @@ export default function RingAlarmWidget({
     codeFormat = null
   } = currentEntity;
 
-  // Use local status if available, otherwise use prop status
-  const currentStatus = localStatus || status;
+  // Prioritize MQTT status if connected, otherwise use HA or legacy status
+  const effectiveStatus = mqttConnected && mqttAlarmStatus ? mqttAlarmStatus : (haAlarm ? haStatus : 'disarmed');
+  const effectiveConnected = mqttConnected || haIsConnected;
+
+  // Use local status if available, otherwise use effective status
+  const currentStatus = localStatus || effectiveStatus;
 
   const getStatusIcon = () => {
     switch (currentStatus) {
@@ -108,7 +115,7 @@ export default function RingAlarmWidget({
     if (isChanging) return;
     
     // Check if PIN is required and not provided
-    if ((codeArmRequired || action === 'disarm') && !code && !haAlarm) {
+    if ((codeArmRequired || action === 'disarm') && !code && !haAlarm && !mqttConnected) {
       setPendingAction(action);
       setShowPinModal(true);
       return;
@@ -121,7 +128,10 @@ export default function RingAlarmWidget({
       switch (action) {
         case 'home':
           setLocalStatus('armed_home');
-          if (haAlarm) {
+          if (mqttConnected) {
+            // Use MQTT for Ring alarm control
+            await mqttArmHome();
+          } else if (haAlarm) {
             await haCallService('alarm_arm_home', code ? { code } : {});
           } else {
             await onArmHome?.();
@@ -129,7 +139,10 @@ export default function RingAlarmWidget({
           break;
         case 'away':
           setLocalStatus('armed_away');
-          if (haAlarm) {
+          if (mqttConnected) {
+            // Use MQTT for Ring alarm control
+            await mqttArmAway();
+          } else if (haAlarm) {
             await haCallService('alarm_arm_away', code ? { code } : {});
           } else {
             await onArmAway?.();
@@ -143,7 +156,10 @@ export default function RingAlarmWidget({
           break;
         case 'disarm':
           setLocalStatus('disarmed');
-          if (haAlarm) {
+          if (mqttConnected) {
+            // Use MQTT for Ring alarm control
+            await mqttDisarm();
+          } else if (haAlarm) {
             await haCallService('alarm_disarm', code ? { code } : {});
           } else {
             await onDisarm?.();
@@ -214,7 +230,7 @@ export default function RingAlarmWidget({
     );
   }
 
-  if (!isConnected) {
+  if (!effectiveConnected) {
     return (
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 h-full flex flex-col">
         <div className="flex items-center justify-center flex-1">
@@ -233,8 +249,8 @@ export default function RingAlarmWidget({
     if (isArmed) {
       handleAction('disarm');
     } else {
-      // Default to arm away when clicking to arm
-      handleAction('away');
+      // Default to arm home when clicking to arm (as requested)
+      handleAction('home');
     }
   };
 

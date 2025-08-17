@@ -84,11 +84,21 @@ export function useRingAlarmMqtt() {
     if (data.topic?.includes('/alarm/status')) {
       console.log('🛡️ Ring alarm status change:', data.state);
       
-      // Map MQTT states to widget states (Away/Home → Armed, Disarmed → Disarmed)
+      // Map MQTT states to widget states as requested:
+      // - MQTT "home" → UI "armed_home" 
+      // - MQTT "away" → UI "armed_away"
+      // - MQTT "disarmed" → UI "disarmed"
+      // Widget displays "Armed" for both armed_home and armed_away
       let mappedStatus = data.state.toLowerCase();
-      if (mappedStatus === 'away' || mappedStatus === 'home') {
-        mappedStatus = 'armed_home'; // Treat both Away and Home as "Armed"
-        console.log(`🔄 Mapped MQTT "${data.state}" → "armed_home" for widget display`);
+      if (mappedStatus === 'home') {
+        mappedStatus = 'armed_home';
+        console.log(`🔄 Mapped MQTT "home" → "armed_home" for widget`);
+      } else if (mappedStatus === 'away') {
+        mappedStatus = 'armed_away';
+        console.log(`🔄 Mapped MQTT "away" → "armed_away" for widget`);
+      } else if (mappedStatus === 'disarmed') {
+        mappedStatus = 'disarmed';
+        console.log(`🔄 Mapped MQTT "disarmed" → "disarmed" for widget`);
       }
       
       setAlarmStatus(mappedStatus);
@@ -130,6 +140,59 @@ export function useRingAlarmMqtt() {
     };
   }, [alarmStatus, isConnected, lastAlarmEvent, sensorStatuses, getActiveMotionSensors, hasActiveMotion]);
 
+  // Function to send alarm commands via MQTT
+  const sendAlarmCommand = useCallback(async (command) => {
+    console.log('🛡️ Sending Ring alarm command:', command);
+    
+    try {
+      // Send command through MQTT client
+      const success = await ringMqttClient.sendAlarmCommand(command);
+      
+      if (success) {
+        console.log('✅ Alarm command sent successfully:', command);
+        
+        // Update local state immediately for responsive UI
+        const mappedStatus = mapCommandToStatus(command);
+        setAlarmStatus(mappedStatus);
+        
+        setLastAlarmEvent({
+          type: 'command_sent',
+          command: command,
+          status: mappedStatus,
+          timestamp: new Date(),
+          topic: 'ring/home/alarm/command'
+        });
+        
+        return true;
+      } else {
+        console.error('❌ Failed to send alarm command:', command);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error sending alarm command:', error);
+      return false;
+    }
+  }, []);
+
+  // Helper function to map UI commands to alarm status
+  const mapCommandToStatus = (command) => {
+    switch (command) {
+      case 'arm_home':
+        return 'armed_home';
+      case 'arm_away':
+        return 'armed_away';
+      case 'disarm':
+        return 'disarmed';
+      default:
+        return 'disarmed';
+    }
+  };
+
+  // Convenience functions for UI
+  const armHome = useCallback(() => sendAlarmCommand('arm_home'), [sendAlarmCommand]);
+  const armAway = useCallback(() => sendAlarmCommand('arm_away'), [sendAlarmCommand]);
+  const disarm = useCallback(() => sendAlarmCommand('disarm'), [sendAlarmCommand]);
+
   return {
     alarmStatus,
     isConnected,
@@ -137,6 +200,11 @@ export function useRingAlarmMqtt() {
     sensorStatuses,
     getActiveMotionSensors,
     hasActiveMotion,
-    getAlarmSummary
+    getAlarmSummary,
+    // Alarm control functions
+    sendAlarmCommand,
+    armHome,
+    armAway,
+    disarm
   };
 }

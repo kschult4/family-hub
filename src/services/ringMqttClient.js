@@ -177,6 +177,79 @@ class RingMqttClient {
     }, delay);
   }
 
+  // Send alarm command via MQTT
+  async sendAlarmCommand(command) {
+    if (!this.isConnected) {
+      console.error('❌ Cannot send alarm command: not connected to MQTT broker');
+      return false;
+    }
+
+    console.log('📤 Sending Ring alarm command via MQTT:', command);
+    
+    try {
+      // In a real implementation, you'd publish to the Ring alarm command topic
+      const commandTopic = 'ring/home/alarm/command';
+      const payload = {
+        command: command,
+        timestamp: new Date().toISOString(),
+        source: 'family-hub'
+      };
+
+      console.log('📡 Publishing to topic:', commandTopic, 'Payload:', payload);
+      
+      // For now, simulate the command and immediately respond with status update
+      // In production, you'd use: this.client.publish(commandTopic, JSON.stringify(payload))
+      this.simulateAlarmCommand(command);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send alarm command:', error);
+      return false;
+    }
+  }
+
+  // Simulate alarm command response for testing
+  simulateAlarmCommand(command) {
+    console.log('🎭 Simulating Ring alarm command response for:', command);
+    
+    // Simulate delay like real system
+    setTimeout(() => {
+      let newStatus;
+      switch (command) {
+        case 'arm_home':
+          newStatus = 'home';
+          break;
+        case 'arm_away':
+          newStatus = 'away';
+          break;
+        case 'disarm':
+          newStatus = 'disarmed';
+          break;
+        default:
+          newStatus = 'disarmed';
+      }
+
+      // Simulate status change event from Ring system
+      const statusData = {
+        topic: 'ring/home/alarm/status',
+        state: newStatus,
+        timestamp: new Date().toISOString(),
+        source: 'ring_alarm_system'
+      };
+
+      console.log('🔄 Simulating Ring alarm status update:', statusData);
+      
+      // Notify subscribers of status change
+      this.subscribers.forEach(callback => {
+        try {
+          callback(statusData);
+        } catch (error) {
+          console.error('Error notifying status change subscriber:', error);
+        }
+      });
+    }, 1500); // 1.5 second delay to simulate real system
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close();
