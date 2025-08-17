@@ -1,6 +1,8 @@
+import mqtt from 'mqtt';
+
 class RingMqttClient {
   constructor() {
-    this.ws = null;
+    this.client = null;
     this.subscribers = new Set();
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
@@ -9,16 +11,51 @@ class RingMqttClient {
     this.lastMotionEvents = new Map();
     
     // Get MQTT broker URL from environment or use default
-    this.brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://192.168.1.100:1883';
+    this.brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://192.168.1.224:1884';
+    
+    // MQTT client options
+    this.options = {
+      reconnectPeriod: 5000,
+      connectTimeout: 30000,
+      keepalive: 60,
+      clientId: 'family-hub-' + Math.random().toString(16).substr(2, 8)
+    };
   }
 
   connect() {
     try {
       console.log('🔌 Connecting to Ring MQTT broker:', this.brokerUrl);
+      console.log('🔧 MQTT options:', this.options);
       
-      // Use WebSocket MQTT client (we'll need to add mqtt dependency)
-      // For now, simulate connection to avoid adding new dependencies
-      this.simulateConnection();
+      // Create MQTT client connection
+      this.client = mqtt.connect(this.brokerUrl, this.options);
+      
+      // Set up event handlers
+      this.client.on('connect', () => {
+        console.log('✅ Connected to Ring MQTT broker');
+        this.isConnected = true;
+        this.reconnectAttempts = 0;
+        this.subscribeToRingTopics();
+      });
+      
+      this.client.on('message', (topic, message) => {
+        this.handleMqttMessage(topic, message);
+      });
+      
+      this.client.on('error', (error) => {
+        console.error('❌ MQTT connection error:', error);
+        this.isConnected = false;
+        this.scheduleReconnect();
+      });
+      
+      this.client.on('close', () => {
+        console.log('🔌 MQTT connection closed');
+        this.isConnected = false;
+      });
+      
+      this.client.on('reconnect', () => {
+        console.log('🔄 MQTT reconnecting...');
+      });
       
     } catch (error) {
       console.error('❌ Failed to connect to Ring MQTT broker:', error);
@@ -26,37 +63,73 @@ class RingMqttClient {
     }
   }
 
-  // Simulate MQTT connection for demo purposes
-  // In production, you'd use a proper WebSocket MQTT client like mqtt.js
-  simulateConnection() {
-    console.log('✅ Connected to Ring MQTT broker (simulated)');
-    console.log('📊 Subscribers count:', this.subscribers.size);
-    this.isConnected = true;
-    this.reconnectAttempts = 0;
-    
-    // Subscribe to Ring motion topics
-    this.subscribeToRingTopics();
-    
-    // Simulate periodic motion events for testing
-    this.simulateMotionEvents();
-  }
-
   subscribeToRingTopics() {
+    if (!this.client || !this.isConnected) {
+      console.warn('⚠️ Cannot subscribe: MQTT client not connected');
+      return;
+    }
+    
     // Subscribe to Ring alarm and security topics
     const alarmTopics = [
       'ring/+/alarm/+/status',
-      'ring/+/camera/+/motion/state',
+      'ring/+/camera/+/motion/state', 
       'ring/+/alarm/+/motion/state',
-      'ring/+/alarm/+/sensor/+/state'
+      'ring/+/alarm/+/sensor/+/state',
+      'ring/alarm/status',  // Simplified topic structure
+      'ring/alarm/command', // Command topic
+      'ring/+/motion/state' // Motion sensors
     ];
     
     console.log('📡 Subscribing to Ring alarm topics:', alarmTopics);
     
-    // In a real implementation, you'd subscribe using the MQTT client
-    // this.client.subscribe(alarmTopics);
+    alarmTopics.forEach(topic => {
+      this.client.subscribe(topic, { qos: 1 }, (err) => {
+        if (err) {
+          console.error(`❌ Failed to subscribe to ${topic}:`, err);
+        } else {
+          console.log(`✅ Subscribed to ${topic}`);
+        }
+      });
+    });
   }
 
-  // Simulate Ring alarm events for testing
+  // Handle real MQTT messages
+  handleMqttMessage(topic, message) {
+    try {
+      console.log('📨 MQTT message received:', { topic, message: message.toString() });
+      
+      let messageData;
+      try {
+        messageData = JSON.parse(message.toString());
+      } catch (e) {
+        // Handle non-JSON messages (simple string values)
+        messageData = { 
+          topic, 
+          state: message.toString(),
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      // Add topic to message data if not present
+      if (!messageData.topic) {
+        messageData.topic = topic;
+      }
+      
+      // Notify all subscribers
+      this.subscribers.forEach(callback => {
+        try {
+          callback(messageData);
+        } catch (error) {
+          console.error('Error notifying MQTT subscriber:', error);
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Error handling MQTT message:', error);
+    }
+  }
+
+  // Simulate Ring alarm events for testing (keep for fallback)
   simulateMotionEvents() {
     console.log('🎭 Starting Ring alarm event simulation...');
     
@@ -179,7 +252,7 @@ class RingMqttClient {
 
   // Send alarm command via MQTT
   async sendAlarmCommand(command) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       console.error('❌ Cannot send alarm command: not connected to MQTT broker');
       return false;
     }
@@ -187,8 +260,8 @@ class RingMqttClient {
     console.log('📤 Sending Ring alarm command via MQTT:', command);
     
     try {
-      // In a real implementation, you'd publish to the Ring alarm command topic
-      const commandTopic = 'ring/home/alarm/command';
+      // Publish to Ring alarm command topic
+      const commandTopic = 'ring/alarm/command';
       const payload = {
         command: command,
         timestamp: new Date().toISOString(),
@@ -197,11 +270,19 @@ class RingMqttClient {
 
       console.log('📡 Publishing to topic:', commandTopic, 'Payload:', payload);
       
-      // For now, simulate the command and immediately respond with status update
-      // In production, you'd use: this.client.publish(commandTopic, JSON.stringify(payload))
-      this.simulateAlarmCommand(command);
+      // Publish the command to MQTT
+      return new Promise((resolve, reject) => {
+        this.client.publish(commandTopic, JSON.stringify(payload), { qos: 1 }, (err) => {
+          if (err) {
+            console.error('❌ Failed to publish alarm command:', err);
+            reject(err);
+          } else {
+            console.log('✅ Alarm command published successfully');
+            resolve(true);
+          }
+        });
+      });
       
-      return true;
     } catch (error) {
       console.error('❌ Failed to send alarm command:', error);
       return false;
@@ -251,12 +332,13 @@ class RingMqttClient {
   }
 
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.client) {
+      this.client.end(false, () => {
+        console.log('🔌 Disconnected from Ring MQTT broker');
+      });
+      this.client = null;
     }
     this.isConnected = false;
-    console.log('🔌 Disconnected from Ring MQTT broker');
   }
 }
 
