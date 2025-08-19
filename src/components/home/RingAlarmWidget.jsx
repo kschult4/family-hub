@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Shield, ShieldAlert, ShieldCheck, ShieldX, Clock, Home, Users, Siren, Lock, Unlock, KeyRound, X } from 'lucide-react';
 import { useHomeAssistantEntity } from '../../hooks/useHomeAssistantEntity';
-import { useRingAlarmMqtt } from '../../hooks/useRingAlarmMqtt';
+import { useRingHomeAssistant } from '../../hooks/useRingHomeAssistant';
 import AlarmSoundingModal from './AlarmSoundingModal';
 
 export default function RingAlarmWidget({ 
@@ -21,18 +21,19 @@ export default function RingAlarmWidget({
     isConnected: haConnected
   } = useHomeAssistantEntity(alarmPanelId, !!alarmPanelId);
   
-  // Use Ring MQTT integration for alarm control and data
+  // Use Ring Home Assistant integration for alarm control and data
   const {
-    alarmStatus: mqttAlarmStatus,
-    isConnected: mqttConnected,
-    lastAlarmEvent,
-    sensorStatuses,
+    alarmStatus: ringAlarmStatus,
+    isConnected: ringConnected,
+    lastMotionEvent,
+    motionSensors,
     hasActiveMotion,
     getAlarmSummary,
-    armHome: mqttArmHome,
-    armAway: mqttArmAway,
-    disarm: mqttDisarm
-  } = useRingAlarmMqtt();
+    armHome: ringArmHome,
+    armAway: ringArmAway,
+    disarm: ringDisarm,
+    ringEntities
+  } = useRingHomeAssistant();
   
   const [isChanging, setIsChanging] = useState(false);
   const [localStatus, setLocalStatus] = useState(null);
@@ -57,12 +58,28 @@ export default function RingAlarmWidget({
     codeFormat = null
   } = currentEntity;
 
-  // Prioritize MQTT status if connected, otherwise use HA or legacy status
-  const effectiveStatus = mqttConnected && mqttAlarmStatus ? mqttAlarmStatus : (haAlarm ? haStatus : 'disarmed');
-  const effectiveConnected = mqttConnected || haIsConnected;
+  // Debug logging for Ring alarm status
+  console.log('🔧 Ring Alarm Widget Status:', {
+    ringConnected,
+    ringAlarmStatus,
+    haAlarm: !!haAlarm,
+    haStatus,
+    localStatus,
+    alarmPanelId
+  });
+
+  // Prioritize Ring HA integration, then HA alarm panel, then legacy status
+  const effectiveStatus = ringConnected && ringAlarmStatus ? ringAlarmStatus : (haAlarm ? haStatus : 'disarmed');
+  const effectiveConnected = ringConnected || haIsConnected;
 
   // Use local status if available, otherwise use effective status
   const currentStatus = localStatus || effectiveStatus;
+  
+  console.log('🔧 Ring Alarm Computed Status:', {
+    effectiveStatus,
+    effectiveConnected,
+    currentStatus
+  });
 
   const getStatusIcon = () => {
     switch (currentStatus) {
@@ -114,8 +131,18 @@ export default function RingAlarmWidget({
   const handleAction = async (action, code = null) => {
     if (isChanging) return;
     
+    console.log('🔧 Ring Alarm Action:', { 
+      action, 
+      ringConnected, 
+      haAlarm: !!haAlarm, 
+      code,
+      ringArmHome: typeof ringArmHome,
+      ringArmAway: typeof ringArmAway,
+      ringDisarm: typeof ringDisarm
+    });
+    
     // Check if PIN is required and not provided
-    if ((codeArmRequired || action === 'disarm') && !code && !haAlarm && !mqttConnected) {
+    if ((codeArmRequired || action === 'disarm') && !code && !haAlarm && !ringConnected) {
       setPendingAction(action);
       setShowPinModal(true);
       return;
@@ -123,25 +150,34 @@ export default function RingAlarmWidget({
     
     setIsChanging(true);
     setIconAnimating(true);
+    
+    console.log(`🚀 Starting ${action} action...`);
+    
     try {
       // Update local state immediately for visual feedback
       switch (action) {
         case 'home':
+          console.log('🏠 Processing arm_home action');
           setLocalStatus('armed_home');
-          if (mqttConnected) {
-            // Use MQTT for Ring alarm control
-            await mqttArmHome();
+          if (ringConnected) {
+            console.log('🔧 Using Ring integration for arm_home');
+            const result = await ringArmHome();
+            console.log('🔧 Ring arm_home result:', result);
           } else if (haAlarm) {
+            console.log('🔧 Using HA alarm panel for arm_home');
             await haCallService('alarm_arm_home', code ? { code } : {});
           } else {
+            console.log('🔧 Using legacy callback for arm_home');
             await onArmHome?.();
           }
           break;
         case 'away':
+          console.log('🌍 Processing arm_away action');
           setLocalStatus('armed_away');
-          if (mqttConnected) {
-            // Use MQTT for Ring alarm control
-            await mqttArmAway();
+          if (ringConnected) {
+            console.log('🔧 Using Ring integration for arm_away');
+            const result = await ringArmAway();
+            console.log('🔧 Ring arm_away result:', result);
           } else if (haAlarm) {
             await haCallService('alarm_arm_away', code ? { code } : {});
           } else {
@@ -149,31 +185,38 @@ export default function RingAlarmWidget({
           }
           break;
         case 'night':
+          console.log('🌙 Processing arm_night action');
           setLocalStatus('armed_night');
           if (haAlarm) {
             await haCallService('alarm_arm_night', code ? { code } : {});
           }
           break;
         case 'disarm':
+          console.log('🔓 Processing disarm action');
           setLocalStatus('disarmed');
-          if (mqttConnected) {
-            // Use MQTT for Ring alarm control
-            await mqttDisarm();
+          if (ringConnected) {
+            console.log('🔧 Using Ring integration for disarm');
+            const result = await ringDisarm();
+            console.log('🔧 Ring disarm result:', result);
           } else if (haAlarm) {
+            console.log('🔧 Using HA alarm panel for disarm');
             await haCallService('alarm_disarm', code ? { code } : {});
           } else {
+            console.log('🔧 Using legacy callback for disarm');
             await onDisarm?.();
           }
           break;
       }
+      console.log(`✅ ${action} action completed successfully`);
     } catch (error) {
-      console.error('Failed to change alarm status:', error);
+      console.error(`❌ Failed to change alarm status for ${action}:`, error);
       // Reset local status on error
       setLocalStatus(null);
     } finally {
       setTimeout(() => {
         setIsChanging(false);
         setIconAnimating(false);
+        console.log(`🔄 ${action} action cleanup completed`);
       }, 2000);
     }
   };
@@ -330,7 +373,7 @@ export default function RingAlarmWidget({
       className={`rounded-lg p-4 border h-full flex flex-col cursor-pointer transition-all duration-200 active:scale-95 ${getCardStyles()}`}
       onClick={handleCardClick}
     >
-      <style jsx>{`
+      <style>{`
         @keyframes lockOpen {
           0% { transform: rotate(0deg) scale(1); }
           25% { transform: rotate(-10deg) scale(1.1); }
@@ -359,9 +402,9 @@ export default function RingAlarmWidget({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Siren className="w-8 h-8" />
-          {/* MQTT Connection Indicator */}
-          {mqttConnected && (
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Ring MQTT Connected" />
+          {/* Ring HA Connection Indicator */}
+          {ringConnected && (
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Ring Home Assistant Connected" />
           )}
         </div>
         <div className="flex items-center gap-2">

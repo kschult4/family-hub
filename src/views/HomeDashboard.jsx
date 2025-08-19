@@ -55,7 +55,7 @@ function ErrorComponent({ error, onRetry }) {
 
 export default function HomeDashboard() {
   console.log('🏠 HomeDashboard component is rendering');
-  const { devices, scenes, loading, error, toggleDevice, updateDevice, activateScene, callService, isConnected } = useHomeAssistant();
+  const { devices, scenes, loading, error, toggleDevice, updateDevice, activateScene, callService, isConnected, refreshStates } = useHomeAssistant();
   console.log('🏠 Loading:', loading, 'Error:', error, 'Devices:', devices?.length, 'Scenes:', scenes?.length);
   console.log('🏠 HomeDashboard full state:', { devices, scenes, loading, error, isConnected });
   const [selectedLight, setSelectedLight] = useState(null);
@@ -150,6 +150,7 @@ export default function HomeDashboard() {
   const scenes_list = allScenes.filter(scene => selectedScenes.has(scene.entity_id));
 
   // DEBUG: Check filtering
+  /*
   console.log('🔍 FILTERING DEBUG:', {
     allLights: allLights.length,
     allSwitches: allSwitches.length, 
@@ -160,6 +161,7 @@ export default function HomeDashboard() {
     filteredSwitches: switches.length,
     filteredScenes: scenes_list.length
   });
+  */
 
   // Special devices - be more flexible with entity matching
   const mediaPlayers = devices?.filter(d => d.entity_id.startsWith('media_player.')) || [];
@@ -174,14 +176,26 @@ export default function HomeDashboard() {
   );
   
   const alarmPanels = devices?.filter(d => d.entity_id.startsWith('alarm_control_panel.')) || [];
+  console.log('🚨 All alarm panels found:', alarmPanels.map(d => ({ 
+    entity_id: d.entity_id, 
+    friendly_name: d.attributes?.friendly_name,
+    state: d.state 
+  })));
+  
   const ringAlarm = alarmPanels.find(d => 
     d.entity_id.includes('ring') || 
     d.attributes?.friendly_name?.toLowerCase().includes('ring')
   );
+  console.log('🚨 Ring alarm panel found:', ringAlarm ? { 
+    entity_id: ringAlarm.entity_id, 
+    friendly_name: ringAlarm.attributes?.friendly_name,
+    state: ringAlarm.state 
+  } : 'NONE');
   
   const thermostats = devices?.filter(d => d.entity_id.startsWith('climate.')) || [];
 
-  // DEBUG: Check Ring alarm detection
+  // DEBUG: Check Ring alarm detection - TEMPORARILY DISABLED
+  /*
   console.log('🔍 RING ALARM DEBUG:', {
     totalDevices: devices?.length,
     alarmPanels: alarmPanels.length,
@@ -191,6 +205,7 @@ export default function HomeDashboard() {
     sonosDevices: sonosDevices.length,
     thermostats: thermostats.length
   });
+  */
 
   const handleLightLongPress = (entityId) => {
     const light = devices?.find(d => d.entity_id === entityId);
@@ -289,52 +304,59 @@ export default function HomeDashboard() {
               {/* Special Widgets - COLUMNS 3-4 ONLY */}
               <div className="col-span-2 sm:col-start-3 sm:col-end-5 grid grid-cols-2 gap-4 auto-rows-[120px]">
                 {/* Ring Alarm - Half width (1 column) - TOP LEFT */}
-                {ringAlarm && (
-                  <div className="col-span-1 row-span-2">
-                    <RingAlarmWidget
-                      alarmPanelId={ringAlarm.entity_id}
-                      alarmData={{
-                        status: ringAlarm.state || 'disarmed',
-                        isConnected: ringAlarm.state !== 'unavailable',
-                        lastChanged: ringAlarm.last_changed || null,
-                        batteryStatus: ringAlarm.attributes?.battery_status || {},
-                        sensorStatuses: ringAlarm.attributes?.sensor_statuses || []
-                      }}
-                      onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm.entity_id })}
-                      onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm.entity_id })}
-                      onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm.entity_id })}
+                <div className="col-span-1 row-span-2">
+                  <RingAlarmWidget
+                    alarmPanelId={ringAlarm?.entity_id}
+                    alarmData={ringAlarm ? {
+                      status: ringAlarm.state || 'disarmed',
+                      isConnected: ringAlarm.state !== 'unavailable',
+                      lastChanged: ringAlarm.last_changed || null,
+                      batteryStatus: ringAlarm.attributes?.battery_status || {},
+                      sensorStatuses: ringAlarm.attributes?.sensor_statuses || []
+                    } : {}}
+                      onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm?.entity_id })}
+                      onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm?.entity_id })}
+                      onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm?.entity_id })}
                     />
                   </div>
-                )}
                 
                 {/* Thermostat - Half width (1 column) - TOP RIGHT */}
-                {thermostats.length > 0 && (
-                  <div className="col-span-1 row-span-2">
-                    <ThermostatWidget
-                      isActive={false}
-                      thermostatData={{
-                        currentTemp: thermostats[0].attributes?.current_temperature || 70,
-                        targetTemp: thermostats[0].attributes?.temperature || 70,
-                        mode: thermostats[0].state || 'off',
-                        location: thermostats[0].attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
-                        isOnline: thermostats[0].state !== 'unavailable',
-                        humidity: thermostats[0].attributes?.current_humidity || null,
-                        isHeating: thermostats[0].attributes?.hvac_action === 'heating',
-                        isCooling: thermostats[0].attributes?.hvac_action === 'cooling',
-                        fanRunning: thermostats[0].attributes?.fan_state === 'on',
-                        schedule: thermostats[0].attributes?.preset_mode === 'schedule'
-                      }}
+                <div className="col-span-1 row-span-2">
+                  <ThermostatWidget
+                    isActive={thermostats.length > 0}
+                    thermostatData={thermostats.length > 0 ? {
+                      currentTemp: thermostats[0].attributes?.current_temperature || 70,
+                      targetTemp: thermostats[0].attributes?.temperature || 70,
+                      mode: thermostats[0].state || 'off',
+                      location: thermostats[0].attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
+                      isOnline: thermostats[0].state !== 'unavailable',
+                      humidity: thermostats[0].attributes?.current_humidity || null,
+                      isHeating: thermostats[0].attributes?.hvac_action === 'heating',
+                      isCooling: thermostats[0].attributes?.hvac_action === 'cooling',
+                      fanRunning: thermostats[0].attributes?.fan_state === 'on',
+                      schedule: thermostats[0].attributes?.preset_mode === 'schedule'
+                    } : {
+                      currentTemp: 70,
+                      targetTemp: 70,
+                      mode: 'off',
+                      location: 'home',
+                      isOnline: false,
+                      humidity: null,
+                      isHeating: false,
+                      isCooling: false,
+                      fanRunning: false,
+                      schedule: false
+                    }}
                       onSetTemperature={(temp) => callService('climate', 'set_temperature', { 
                         entity_id: thermostats[0].entity_id, 
                         temperature: temp 
                       })}
-                      onSetMode={(mode) => callService('climate', 'set_hvac_mode', { 
+                      onSetMode={(mode) => thermostats.length > 0 && callService('climate', 'set_hvac_mode', { 
                         entity_id: thermostats[0].entity_id, 
                         hvac_mode: mode 
                       })}
                     />
                   </div>
-                )}
                 
                 {/* Media Players - Sonos or Spotify - Full width (2 columns) - BOTTOM */}
                 {(sonosDevices.length > 0 || spotifyDevice) && (

@@ -293,51 +293,59 @@ export default function FreshHomeDashboard() {
               {/* Special Widgets - COLUMNS 3-4 ONLY */}
               <div className="col-span-2 sm:col-start-3 sm:col-end-5 grid grid-cols-2 gap-4 auto-rows-[120px]">
                 {/* Ring Alarm - Half width (1 column) - TOP */}
-                {ringAlarm && (
-                  <div className="col-span-1 row-span-2">
-                    <RingAlarmWidget
-                      alarmPanelId={ringAlarm.entity_id}
-                      alarmData={{
-                        status: ringAlarm.state || 'disarmed',
-                        isConnected: ringAlarm.state !== 'unavailable',
-                        lastChanged: ringAlarm.last_changed || null,
-                        batteryStatus: ringAlarm.attributes?.battery_status || {},
-                        sensorStatuses: ringAlarm.attributes?.sensor_statuses || []
-                      }}
-                      onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm.entity_id })}
-                      onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm.entity_id })}
-                      onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm.entity_id })}
-                    />
-                  </div>
-                )}
+                <div className="col-span-1 row-span-2">
+                  <RingAlarmWidget
+                    alarmPanelId={ringAlarm?.entity_id}
+                    alarmData={ringAlarm ? {
+                      status: ringAlarm.state || 'disarmed',
+                      isConnected: ringAlarm.state !== 'unavailable',
+                      lastChanged: ringAlarm.last_changed || null,
+                      batteryStatus: ringAlarm.attributes?.battery_status || {},
+                      sensorStatuses: ringAlarm.attributes?.sensor_statuses || []
+                    } : {}}
+                    onArmHome={() => callService('alarm_control_panel', 'alarm_arm_home', { entity_id: ringAlarm?.entity_id })}
+                    onArmAway={() => callService('alarm_control_panel', 'alarm_arm_away', { entity_id: ringAlarm?.entity_id })}
+                    onDisarm={() => callService('alarm_control_panel', 'alarm_disarm', { entity_id: ringAlarm?.entity_id })}
+                  />
+                </div>
                 
                 {/* Thermostat - Half width (1 column) - TOP */}
-                {thermostats.length > 0 && (
-                  <div className="col-span-1 row-span-2">
-                    <ThermostatWidget
-                      thermostatData={{
-                        currentTemp: thermostats[0].attributes?.current_temperature || 70,
-                        targetTemp: thermostats[0].attributes?.temperature || 70,
-                        mode: thermostats[0].state || 'off',
-                        location: thermostats[0].attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
-                        isOnline: thermostats[0].state !== 'unavailable',
-                        humidity: thermostats[0].attributes?.current_humidity || null,
-                        isHeating: thermostats[0].attributes?.hvac_action === 'heating',
+                <div className="col-span-1 row-span-2">
+                  <ThermostatWidget
+                    isActive={thermostats.length > 0}
+                    thermostatData={thermostats.length > 0 ? {
+                      currentTemp: thermostats[0].attributes?.current_temperature || 70,
+                      targetTemp: thermostats[0].attributes?.temperature || 70,
+                      mode: thermostats[0].state || 'off',
+                      location: thermostats[0].attributes?.friendly_name?.toLowerCase().includes('upstairs') ? 'upstairs' : 'downstairs',
+                      isOnline: thermostats[0].state !== 'unavailable',
+                      humidity: thermostats[0].attributes?.current_humidity || null,
+                      isHeating: thermostats[0].attributes?.hvac_action === 'heating',
                         isCooling: thermostats[0].attributes?.hvac_action === 'cooling',
                         fanRunning: thermostats[0].attributes?.fan_state === 'on',
                         schedule: thermostats[0].attributes?.preset_mode === 'schedule'
+                      } : {
+                        currentTemp: 70,
+                        targetTemp: 70,
+                        mode: 'off',
+                        location: 'home',
+                        isOnline: false,
+                        humidity: null,
+                        isHeating: false,
+                        isCooling: false,
+                        fanRunning: false,
+                        schedule: false
                       }}
-                      onSetTemperature={(temp) => callService('climate', 'set_temperature', { 
+                      onSetTemperature={(temp) => thermostats.length > 0 && callService('climate', 'set_temperature', { 
                         entity_id: thermostats[0].entity_id, 
                         temperature: temp 
                       })}
-                      onSetMode={(mode) => callService('climate', 'set_hvac_mode', { 
+                      onSetMode={(mode) => thermostats.length > 0 && callService('climate', 'set_hvac_mode', { 
                         entity_id: thermostats[0].entity_id, 
                         hvac_mode: mode 
                       })}
                     />
                   </div>
-                )}
                 
                 {/* Media Players - Sonos or Spotify - Spans full width, multiple rows - BOTTOM */}
                 {(sonosDevices.length > 0 || spotifyDevice) && (

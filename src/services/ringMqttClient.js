@@ -20,6 +20,14 @@ class RingMqttClient {
       keepalive: 60,
       clientId: 'family-hub-' + Math.random().toString(16).substr(2, 8)
     };
+    
+    // Add authentication if provided
+    const mqttUsername = import.meta.env.VITE_MQTT_USERNAME;
+    const mqttPassword = import.meta.env.VITE_MQTT_PASSWORD;
+    if (mqttUsername && mqttPassword) {
+      this.options.username = mqttUsername;
+      this.options.password = mqttPassword;
+    }
   }
 
   connect() {
@@ -45,22 +53,42 @@ class RingMqttClient {
       this.client.on('error', (error) => {
         console.error('❌ MQTT connection error:', error);
         this.isConnected = false;
-        this.scheduleReconnect();
+        this.enableFallbackMode();
       });
       
       this.client.on('close', () => {
         console.log('🔌 MQTT connection closed');
         this.isConnected = false;
+        this.enableFallbackMode();
       });
       
       this.client.on('reconnect', () => {
         console.log('🔄 MQTT reconnecting...');
       });
       
+      // Start fallback simulation after 10 seconds if no connection
+      setTimeout(() => {
+        if (!this.isConnected) {
+          console.log('⚠️ MQTT connection timeout - enabling fallback simulation mode');
+          this.enableFallbackMode();
+        }
+      }, 10000);
+      
     } catch (error) {
       console.error('❌ Failed to connect to Ring MQTT broker:', error);
-      this.scheduleReconnect();
+      this.enableFallbackMode();
     }
+  }
+
+  enableFallbackMode() {
+    if (this.fallbackEnabled) return;
+    
+    console.log('🎭 MQTT fallback disabled - using Ring Home Assistant integration instead');
+    this.fallbackEnabled = true;
+    this.isConnected = false; // Don't interfere with Ring HA integration
+    
+    // Don't start simulation - use Ring HA integration instead
+    // this.simulateMotionEvents();
   }
 
   subscribeToRingTopics() {
@@ -345,7 +373,7 @@ class RingMqttClient {
 // Create singleton instance
 export const ringMqttClient = new RingMqttClient();
 
-// Auto-connect when the service is imported
-ringMqttClient.connect();
+// Auto-connect disabled for now due to WebSocket connection issues
+// ringMqttClient.connect();
 
 export default ringMqttClient;

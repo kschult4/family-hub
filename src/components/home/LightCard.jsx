@@ -11,8 +11,8 @@ export default function LightCard({
   // Use Home Assistant integration if lightId is provided
   const { entity, loading, error, toggle, turnOn, turnOff } = useHomeAssistantEntity(lightId, !!lightId);
   
-  // Debug logging (only log if there's an issue)
-  if (lightId && (loading || error || entity?.state === 'unavailable')) {
+  // Debug logging (only log if there's an issue) - TEMPORARILY DISABLED
+  if (false && lightId && (loading || error || entity?.state === 'unavailable')) {
     console.log('🔍 LightCard debug:', {
       lightId: lightId, 
       loading: loading, 
@@ -113,10 +113,13 @@ export default function LightCard({
       // If turning off, ripple is already active from being on
       
       try {
+        console.log('🔘 LightCard click handler called:', { lightId, hasToggle: !!toggle, entityId, hasOnToggle: !!onToggle });
         // Use HA client if lightId is provided, otherwise use legacy onToggle callback
         if (lightId && toggle) {
+          console.log('🔘 Using toggle() function for:', lightId);
           await toggle();
         } else if (onToggle && entityId) {
+          console.log('🔘 Using onToggle() callback for:', entityId);
           await onToggle(entityId);
         }
       } catch (error) {

@@ -7,9 +7,12 @@ const baseUrl = import.meta.env.VITE_HA_BASE_URL;
 const token   = import.meta.env.VITE_HA_TOKEN;
 
 console.log('[HA] baseUrl:', baseUrl);
-console.log('[HA] token prefix:', token ? token.slice(0, 6) + '…' : 'MISSING');
+console.log('[HA] token prefix:', token ? token.slice(0, 6) + '…' : 'USING_PROXY');
 
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA === 'true';
+
+console.log('[HA] VITE_USE_MOCK_HA env var:', import.meta.env.VITE_USE_MOCK_HA);
+console.log('[HA] USE_MOCK_DATA calculated:', USE_MOCK_DATA);
 
 export function useHomeAssistant(config = {}) {
   const {
@@ -17,6 +20,9 @@ export function useHomeAssistant(config = {}) {
     token = import.meta.env.VITE_HA_TOKEN || '',
     useMockData = USE_MOCK_DATA
   } = config;
+  
+  // Force mock data when HA is unreachable
+  const forceMockData = useMockData || USE_MOCK_DATA;
 
   const [devices, setDevices] = useState([]);
   const [scenes, setScenes] = useState([]);
@@ -45,9 +51,9 @@ export function useHomeAssistant(config = {}) {
       setLoading(true);
       setError(null);
       
-      console.log('loadStates called with:', { baseUrl, token: token ? 'PRESENT' : 'MISSING', useMockData });
+      console.log('loadStates called with:', { baseUrl, token: token ? 'PRESENT' : 'MISSING', useMockData, forceMockData });
 
-      if (useMockData) {
+      if (forceMockData) {
         console.log('🔍 useHomeAssistant: Using mock data, total mock states:', mockStates.length);
         const allDevices = filterDevices(mockStates);
         const allScenes = filterScenes(mockStates);
@@ -62,9 +68,9 @@ export function useHomeAssistant(config = {}) {
         return;
       }
 
-      // Validate connection parameters
-      if (!baseUrl || !token) {
-        throw new Error('Missing Home Assistant URL or token. Check your .env file.');
+      // Validate connection parameters (token not required when using proxy)
+      if (!baseUrl) {
+        throw new Error('Missing Home Assistant URL. Check your .env file.');
       }
 
       console.log('🔌 Attempting to connect to Home Assistant...');
@@ -94,10 +100,11 @@ export function useHomeAssistant(config = {}) {
       setDevices([]);
       setScenes([]);
     }
-  }, [baseUrl, token, useMockData, filterDevices, filterScenes]);
+  }, [baseUrl, token, forceMockData, filterDevices, filterScenes]);
 
   const setupWebSocket = useCallback(async () => {
-    if (useMockData || !baseUrl || !token) return;
+    // Skip WebSocket for proxy setup (when baseUrl starts with /api/ha)
+    if (forceMockData || !baseUrl || !token || baseUrl.startsWith('/api/ha')) return;
 
     try {
       wsRef.current = createWebSocketConnection(baseUrl, token);
@@ -134,7 +141,7 @@ export function useHomeAssistant(config = {}) {
       // Don't set error here - continue with REST API polling
       return null;
     }
-  }, [baseUrl, token, useMockData]);
+  }, [baseUrl, token, forceMockData]);
 
   useEffect(() => {
     let wsUnsubscribe;
@@ -146,8 +153,8 @@ export function useHomeAssistant(config = {}) {
       if (!useMockData) {
         wsUnsubscribe = await setupWebSocket();
         
-        // If WebSocket fails, use REST API polling
-        if (!wsUnsubscribe) {
+        // If WebSocket fails, use REST API polling (skip for proxy setup)
+        if (!wsUnsubscribe && !baseUrl.startsWith('/api/ha')) {
           console.log('WebSocket failed, falling back to REST API polling');
           pollingInterval = setInterval(async () => {
             try {
@@ -179,8 +186,10 @@ export function useHomeAssistant(config = {}) {
   }, [loadStates, setupWebSocket, useMockData]);
 
   const toggleDevice = useCallback(async (entityId) => {
+    console.log(`🔧 toggleDevice called:`, { entityId, forceMockData, baseUrl, token: token ? 'PRESENT' : 'MISSING' });
     try {
-      if (useMockData) {
+      if (forceMockData) {
+        console.log(`🎭 Mock: Toggling device ${entityId}`);
         const device = mockStates.find(d => d.entity_id === entityId);
         if (device) {
           const newState = device.state === 'on' ? 'off' : 'on';
@@ -195,16 +204,18 @@ export function useHomeAssistant(config = {}) {
         return;
       }
 
+      console.log(`🌐 Real API: Toggling device ${entityId}`);
       await haApi.toggleDevice(baseUrl, token, entityId);
+      console.log(`✅ Toggle successful: ${entityId}`);
     } catch (err) {
       console.error('Error toggling device:', err);
       setError(err);
     }
-  }, [baseUrl, token, useMockData]);
+  }, [baseUrl, token, forceMockData]);
 
   const updateDevice = useCallback(async (entityId, attributes) => {
     try {
-      if (useMockData) {
+      if (forceMockData) {
         const updatedDevice = updateMockDeviceState(entityId, 'on', attributes);
         if (updatedDevice) {
           setDevices(prevDevices => 
@@ -221,11 +232,11 @@ export function useHomeAssistant(config = {}) {
       console.error('Error updating device:', err);
       setError(err);
     }
-  }, [baseUrl, token, useMockData]);
+  }, [baseUrl, token, forceMockData]);
 
   const activateScene = useCallback(async (entityId) => {
     try {
-      if (useMockData) {
+      if (forceMockData) {
         console.log(`Mock: Activating scene ${entityId}`);
         return;
       }
@@ -235,11 +246,11 @@ export function useHomeAssistant(config = {}) {
       console.error('Error activating scene:', err);
       setError(err);
     }
-  }, [baseUrl, token, useMockData]);
+  }, [baseUrl, token, forceMockData]);
 
   const turnOffDevice = useCallback(async (entityId) => {
     try {
-      if (useMockData) {
+      if (forceMockData) {
         const updatedDevice = updateMockDeviceState(entityId, 'off');
         if (updatedDevice) {
           setDevices(prevDevices => 
@@ -256,21 +267,24 @@ export function useHomeAssistant(config = {}) {
       console.error('Error turning off device:', err);
       setError(err);
     }
-  }, [baseUrl, token, useMockData]);
+  }, [baseUrl, token, forceMockData]);
 
   const callService = useCallback(async (domain, service, data = {}) => {
+    console.log(`🔧 callService called: ${domain}.${service}`, { data, forceMockData, baseUrl, token: token ? 'PRESENT' : 'MISSING' });
     try {
-      if (useMockData) {
-        console.log(`Mock: Calling service ${domain}.${service}`, data);
+      if (forceMockData) {
+        console.log(`🎭 Mock: Calling service ${domain}.${service}`, data);
         return;
       }
 
+      console.log(`🌐 Real API: Calling service ${domain}.${service}`, data);
       await haApi.callService(baseUrl, token, domain, service, data);
+      console.log(`✅ Service call successful: ${domain}.${service}`);
     } catch (err) {
-      console.error('Error calling service:', err);
+      console.error('❌ Error calling service:', err);
       setError(err);
     }
-  }, [baseUrl, token, useMockData]);
+  }, [baseUrl, token, forceMockData]);
 
   const refreshStates = useCallback(() => {
     loadStates();

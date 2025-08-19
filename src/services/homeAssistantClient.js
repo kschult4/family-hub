@@ -403,8 +403,9 @@ export class HomeAssistantClient {
    * Start polling for entity updates when WebSocket is unavailable
    */
   startPolling() {
-    // Only start polling if we have subscribers and no WebSocket
-    if (this.ws || this.subscribers.size === 0) return;
+    // Polling disabled for proxy setup to prevent API failures
+    console.log('⚠️ Polling disabled for development proxy setup');
+    return;
     
     this.pollingInterval = setInterval(async () => {
       try {
@@ -645,7 +646,16 @@ export class HomeAssistantClient {
 
   // Toggle any device
   async toggleDevice(entityId) {
+    console.log(`🔧 homeAssistantClient.toggleDevice called for: ${entityId}`);
+    console.log(`🔧 Client config:`, { 
+      useMockData: this.useMockData, 
+      baseUrl: this.baseUrl,
+      hasToken: !!this.token,
+      isConnected: this.isConnected 
+    });
+    
     if (this.useMockData) {
+      console.log(`🎭 Using mock data for toggle: ${entityId}`);
       // Handle mock toggle
       const { updateMockDeviceState, mockStates } = await import('../config/mockHomeAssistantData');
       const device = mockStates.find(d => d.entity_id === entityId);
@@ -656,6 +666,7 @@ export class HomeAssistantClient {
       return;
     }
 
+    console.log(`🌐 Making real API call to toggle: ${entityId}`);
     return await haApi.toggleDevice(this.baseUrl, this.token, entityId);
   }
 

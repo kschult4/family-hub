@@ -15,6 +15,10 @@ function createAuthHeaders(token, includeContentType = true) {
 }
 
 function createApiUrl(baseUrl, endpoint) {
+  // If baseUrl already contains '/api' (like '/api/ha'), don't add it again
+  if (baseUrl.includes('/api')) {
+    return `${baseUrl}${endpoint}`;
+  }
   return `${baseUrl}/api${endpoint}`;
 }
 
@@ -59,17 +63,24 @@ const token = import.meta.env.VITE_HA_TOKEN;
 
 export const haApi = {
   async getStates(baseUrlParam = baseUrl, tokenParam = token) {
-    const url = createApiUrl(baseUrlParam, '/states');
+    // For proxy setup, baseUrl already includes the full path
+    const url = `${baseUrlParam}/states`;
+    
+    // Only add Authorization header if token is provided (for proxy setup)
+    const headers = {};
+    if (tokenParam) {
+      headers.Authorization = `Bearer ${tokenParam}`;
+    }
     
     return await makeApiRequest(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${tokenParam}` },
+      headers,
     });
   },
 
   async toggleDevice(baseUrl, token, entityId) {
-    const domain = entityId.split('.')[0];
-    const url = createApiUrl(baseUrl, `/services/${domain}/toggle`);
+    // Use homeassistant.toggle service which works for all domains
+    const url = createApiUrl(baseUrl, `/services/homeassistant/toggle`);
     const headers = createAuthHeaders(token);
     
     const body = JSON.stringify({

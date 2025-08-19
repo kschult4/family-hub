@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { haClient } from '../services/homeAssistantClient';
 import { getMockDeviceById } from '../config/mockHomeAssistantData';
 
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA === 'true';
 
 /**
  * Hook for subscribing to and controlling a single Home Assistant entity
@@ -99,11 +99,20 @@ export function useHomeAssistantEntity(entityId, autoConnect = true) {
   const toggle = useCallback(async () => {
     if (!entityId) return;
     
+    console.log(`🔧 useHomeAssistantEntity.toggle called for: ${entityId}`);
+    console.log(`🔧 haClient state:`, { 
+      isConnected: haClient.isConnected, 
+      useMockData: haClient.useMockData,
+      baseUrl: haClient.baseUrl 
+    });
+    
     try {
+      console.log(`🌐 Calling haClient.toggleDevice(${entityId})`);
       await haClient.toggleDevice(entityId);
+      console.log(`✅ Toggle successful for ${entityId}`);
     } catch (err) {
       setError(err);
-      console.error(`Error toggling ${entityId}:`, err);
+      console.error(`❌ Error toggling ${entityId}:`, err);
     }
   }, [entityId]);
 
