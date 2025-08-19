@@ -6,9 +6,12 @@ export function ScenesSelectorModal({ isOpen, onClose, selectedScenes = [], onSc
   const [loading] = useState(false);
   const [error] = useState(null);
 
+  // Only reset selected IDs when modal opens
   useEffect(() => {
-    setSelectedIds(new Set(selectedScenes.map(s => s.id)));
-  }, [selectedScenes]);
+    if (isOpen) {
+      setSelectedIds(new Set(selectedScenes.map(s => s.id)));
+    }
+  }, [isOpen]);
 
   const handleSceneToggle = (sceneId) => {
     const newSelectedIds = new Set(selectedIds);

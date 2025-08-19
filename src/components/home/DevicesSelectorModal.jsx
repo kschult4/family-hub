@@ -44,23 +44,34 @@ const getDomainColor = (domain) => {
 
 export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], onDevicesChange, availableDevices: providedDevices }) {
   const [availableDevices, setAvailableDevices] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set(selectedDevices.map(d => d.id)));
+  const [selectedIds, setSelectedIds] = useState(new Set(selectedDevices.map(d => d.id || d.entity_id)));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterDomain, setFilterDomain] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Reset selected IDs only when modal opens for the first time
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedIds(new Set(selectedDevices.map(d => d.id || d.entity_id)));
+    }
+  }, [isOpen]); // Only depend on isOpen
+
+  // Handle device loading separately
   useEffect(() => {
     if (!isOpen) return;
 
+    // Always use provided devices if available
     if (providedDevices && providedDevices.length > 0) {
-      // Use provided devices
+      console.log('🔧 DevicesSelectorModal: Using provided devices:', providedDevices);
       setAvailableDevices(providedDevices);
       setLoading(false);
       setError(null);
       return;
     }
 
+    // Only try to fetch if no devices provided
+    console.log('🔧 DevicesSelectorModal: No provided devices, attempting to fetch...');
     const fetchDevices = async () => {
       try {
         setLoading(true);
@@ -104,7 +115,7 @@ export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], on
   };
 
   const handleCancel = () => {
-    setSelectedIds(new Set(selectedDevices.map(d => d.id)));
+    setSelectedIds(new Set(selectedDevices.map(d => d.id || d.entity_id)));
     onClose();
   };
 
@@ -209,15 +220,15 @@ export function DevicesSelectorModal({ isOpen, onClose, selectedDevices = [], on
                                 {device.name}
                               </div>
                               <div className="flex items-center space-x-2">
-                                {device.state && (
+                                {(device.state || device.raw?.state) && (
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    device.state === 'on' || device.state === 'open' 
+                                    (device.state === 'on' || device.raw?.state === 'on' || device.state === 'open' || device.raw?.state === 'open')
                                       ? 'bg-green-100 text-green-800' 
-                                      : device.state === 'unavailable'
+                                      : (device.state === 'unavailable' || device.raw?.state === 'unavailable')
                                         ? 'bg-red-100 text-red-800'
                                         : 'bg-gray-100 text-gray-800'
                                   }`}>
-                                    {device.state}
+                                    {device.state || device.raw?.state}
                                   </span>
                                 )}
                               </div>

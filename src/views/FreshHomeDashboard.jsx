@@ -60,13 +60,21 @@ export default function FreshHomeDashboard() {
       console.log('🔧 Should select scenes?', !savedScenes && allScenes.length > 0, { savedScenes, scenesCount: allScenes.length });
       console.log('🔧 Should select devices?', !savedDevices && (allLights.length > 0 || allSwitches.length > 0), { savedDevices, lightsCount: allLights.length, switchesCount: allSwitches.length });
       
-      // Only auto-select if no saved selections exist
-      if (!savedScenes && allScenes.length > 0) {
+      // Use saved selections if available, otherwise auto-select all
+      if (savedScenes) {
+        const parsedScenes = JSON.parse(savedScenes);
+        console.log('🔧 Using saved scenes:', parsedScenes);
+        setSelectedScenes(new Set(parsedScenes));
+      } else if (allScenes.length > 0) {
         console.log('🔧 No saved scenes, selecting all scenes:', allScenes.map(s => s.entity_id));
         setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
       }
       
-      if (!savedDevices && (allLights.length > 0 || allSwitches.length > 0)) {
+      if (savedDevices) {
+        const parsedDevices = JSON.parse(savedDevices);
+        console.log('🔧 Using saved devices:', parsedDevices);
+        setSelectedDevices(new Set(parsedDevices));
+      } else if (allLights.length > 0 || allSwitches.length > 0) {
         const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
         console.log('🔧 No saved devices, selecting all devices:', deviceIds);
         setSelectedDevices(new Set(deviceIds));

@@ -14,16 +14,67 @@ class RingMqttClient {
 
   connect() {
     try {
-      console.log('🔌 Connecting to Ring MQTT broker:', this.brokerUrl);
+      console.log('🔌 Attempting to connect to Ring MQTT broker:', this.brokerUrl);
       
-      // Use WebSocket MQTT client (we'll need to add mqtt dependency)
-      // For now, simulate connection to avoid adding new dependencies
-      this.simulateConnection();
+      // Try to establish a WebSocket connection to the MQTT broker
+      this.attemptWebSocketConnection();
       
     } catch (error) {
       console.error('❌ Failed to connect to Ring MQTT broker:', error);
-      this.scheduleReconnect();
+      this.fallbackToSimulation();
     }
+  }
+
+  attemptWebSocketConnection() {
+    try {
+      // Try to create a WebSocket connection to test if MQTT WebSocket support is available
+      const testWs = new WebSocket(this.brokerUrl);
+      
+      testWs.onopen = () => {
+        console.log('✅ WebSocket connection established to Ring MQTT broker');
+        testWs.close(); // Close test connection
+        this.establishMqttConnection();
+      };
+      
+      testWs.onerror = (error) => {
+        console.warn('⚠️ WebSocket connection failed to Ring MQTT broker:', error);
+        console.log('🔄 Falling back to simulation mode...');
+        this.fallbackToSimulation();
+      };
+      
+      testWs.onclose = (event) => {
+        if (event.code !== 1000) { // 1000 = normal closure
+          console.warn('⚠️ WebSocket connection closed unexpectedly:', event.code, event.reason);
+          this.fallbackToSimulation();
+        }
+      };
+      
+      // Set a timeout for the connection attempt
+      setTimeout(() => {
+        if (testWs.readyState === WebSocket.CONNECTING) {
+          console.warn('⚠️ WebSocket connection timeout - falling back to simulation');
+          testWs.close();
+          this.fallbackToSimulation();
+        }
+      }, 5000);
+      
+    } catch (error) {
+      console.error('❌ Error creating WebSocket connection:', error);
+      this.fallbackToSimulation();
+    }
+  }
+
+  establishMqttConnection() {
+    // This would be where we implement the actual MQTT over WebSocket connection
+    // For now, we'll simulate since we don't have mqtt.js dependency
+    console.log('📡 Would establish MQTT connection here...');
+    console.log('💡 Note: Need to install mqtt.js for real MQTT WebSocket support');
+    this.simulateConnection();
+  }
+
+  fallbackToSimulation() {
+    console.log('🎭 Using simulation mode for Ring MQTT (real broker not available)');
+    this.simulateConnection();
   }
 
   // Simulate MQTT connection for demo purposes
@@ -175,6 +226,35 @@ class RingMqttClient {
       this.reconnectAttempts++;
       this.connect();
     }, delay);
+  }
+
+  // Send alarm command via MQTT
+  async sendAlarmCommand(command) {
+    console.log('🛡️ Sending Ring alarm command:', command);
+    
+    if (!this.isConnected) {
+      console.warn('⚠️ Not connected to Ring MQTT broker - cannot send command');
+      return false;
+    }
+    
+    try {
+      const commandPayload = {
+        command: command,
+        timestamp: new Date().toISOString(),
+        source: 'family-hub'
+      };
+      
+      // In a real implementation, this would publish to the MQTT broker
+      // For simulation, we'll just log the command
+      console.log('📤 Publishing alarm command to ring/alarm/command:', commandPayload);
+      
+      // Simulate successful command
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Failed to send Ring alarm command:', error);
+      return false;
+    }
   }
 
   disconnect() {

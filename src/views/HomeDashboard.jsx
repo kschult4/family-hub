@@ -102,15 +102,21 @@ export default function HomeDashboard() {
       const parsedScenes = savedScenes ? JSON.parse(savedScenes) : [];
       const parsedDevices = savedDevices ? JSON.parse(savedDevices) : [];
       
-      // Force auto-select all for better UX - always show content when switching to mock data
-      if (allScenes.length > 0) {
-        console.log('🔧 Auto-selecting all scenes:', allScenes.map(s => s.entity_id));
+      // Use saved selections if available, otherwise auto-select all
+      if (savedScenes && parsedScenes.length > 0) {
+        console.log('🔧 Using saved scenes:', parsedScenes);
+        setSelectedScenes(new Set(parsedScenes));
+      } else if (allScenes.length > 0) {
+        console.log('🔧 No saved scenes, auto-selecting all scenes:', allScenes.map(s => s.entity_id));
         setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
       }
       
-      if (allLights.length > 0 || allSwitches.length > 0) {
+      if (savedDevices && parsedDevices.length > 0) {
+        console.log('🔧 Using saved devices:', parsedDevices);
+        setSelectedDevices(new Set(parsedDevices));
+      } else if (allLights.length > 0 || allSwitches.length > 0) {
         const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
-        console.log('🔧 Auto-selecting all devices:', deviceIds);
+        console.log('🔧 No saved devices, auto-selecting all devices:', deviceIds);
         setSelectedDevices(new Set(deviceIds));
       }
       

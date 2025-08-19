@@ -5,7 +5,6 @@ import DashboardView from "./components/DashboardView";
 import AppBackground from "./components/AppBackground";
 import ShoppingList from "./components/ShoppingList";
 import MotionCameraModal from "./components/home/MotionCameraModal";
-import MotionTestButton from "./components/home/MotionTestButton";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useHomeAssistant } from "./hooks/useHomeAssistant";
@@ -110,11 +109,6 @@ export default function App() {
           autoCloseDelay={60000}
         />
 
-        {/* Test Button for Motion Detection (Development) */}
-        <MotionTestButton
-          cameras={cameras}
-          onTriggerMotion={triggerMotion}
-        />
       </AppBackground>
     </ErrorBoundary>
   );

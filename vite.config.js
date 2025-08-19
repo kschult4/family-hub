@@ -8,6 +8,18 @@ export default defineConfig({
     target: 'es2015', // Better compatibility with older browsers
     polyfillModulePreload: true,
   },
+  server: {
+    proxy: {
+      '/api/ha': {
+        target: 'http://192.168.1.224:8123',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ha/, ''),
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI1MTM3MWMzMzE5YzY0Y2NhODQxMzViNjQxODM5NDFiNCIsImlhdCI6MTc1NTEzNDkxNSwiZXhwIjoyMDcwNDk0OTE1fQ.VQiKNJ_uJTynpaufMvxATL-RkvBeVp1AXG0-n0EwvrI'
+        }
+      }
+    }
+  },
   plugins: [
     react(),
     VitePWA({

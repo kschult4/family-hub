@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Play, 
   Pause, 
@@ -68,25 +68,29 @@ export default function SonosMediaPlayerCard({
         await haClient.connect();
         setIsConnected(true);
         
-        // Subscribe to all media player updates
+        // Subscribe to all media player updates with throttling
+        let updateTimeout;
         const unsubscribe = haClient.subscribe('*', (entity) => {
           if (entity.type === 'media_player' && 
               (entity.name.toLowerCase().includes('sonos') || 
                entity.id.toLowerCase().includes('sonos'))) {
             
-            setMediaPlayers(prev => {
-              const updated = prev.map(device => 
-                device.id === entity.id ? entity : device
-              );
-              
-              // Update groups when devices change
-              const currentLeader = updated.find(d => d.id === selectedGroupLeader?.id);
-              if (currentLeader) {
-                updateGroupsAndAvailable(updated, currentLeader);
-              }
-              
-              return updated;
-            });
+            // Throttle updates to prevent flickering
+            clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(() => {
+              setMediaPlayers(prev => {
+                const existingDevice = prev.find(d => d.id === entity.id);
+                
+                // Only update if there's actually a change
+                if (!existingDevice || JSON.stringify(existingDevice) !== JSON.stringify(entity)) {
+                  return prev.map(device => 
+                    device.id === entity.id ? entity : device
+                  );
+                }
+                
+                return prev;
+              });
+            }, 200); // Increased throttle
           }
         });
         
@@ -105,9 +109,9 @@ export default function SonosMediaPlayerCard({
         if (unsubscribe) unsubscribe();
       });
     };
-  }, [onError, selectedGroupLeader?.id]);
+  }, [onError]);
 
-  const updateGroupsAndAvailable = (devices, leader) => {
+  const updateGroupsAndAvailable = useCallback((devices, leader) => {
     if (!leader) return;
     
     // Devices currently in the leader's group
@@ -123,7 +127,7 @@ export default function SonosMediaPlayerCard({
     
     setGroupedDevices(grouped);
     setAvailableDevices(available);
-  };
+  }, []);
 
   const handleGroupLeaderChange = (newLeader) => {
     setSelectedGroupLeader(newLeader);

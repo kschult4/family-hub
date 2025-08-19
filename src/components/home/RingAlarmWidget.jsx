@@ -116,42 +116,76 @@ export default function RingAlarmWidget({
     
     setIsChanging(true);
     setIconAnimating(true);
+    
     try {
       // Update local state immediately for visual feedback
-      switch (action) {
-        case 'home':
-          setLocalStatus('armed_home');
-          if (haAlarm) {
-            await haCallService('alarm_arm_home', code ? { code } : {});
-          } else {
-            await onArmHome?.();
-          }
-          break;
-        case 'away':
-          setLocalStatus('armed_away');
-          if (haAlarm) {
-            await haCallService('alarm_arm_away', code ? { code } : {});
-          } else {
-            await onArmAway?.();
-          }
-          break;
-        case 'night':
-          setLocalStatus('armed_night');
-          if (haAlarm) {
-            await haCallService('alarm_arm_night', code ? { code } : {});
-          }
-          break;
-        case 'disarm':
-          setLocalStatus('disarmed');
-          if (haAlarm) {
-            await haCallService('alarm_disarm', code ? { code } : {});
-          } else {
-            await onDisarm?.();
-          }
-          break;
+      const targetStatus = action === 'home' ? 'armed_home' : 
+                          action === 'away' ? 'armed_away' : 
+                          action === 'night' ? 'armed_night' : 'disarmed';
+      setLocalStatus(targetStatus);
+      
+      let success = false;
+      
+      // Try MQTT first if connected, then fall back to Home Assistant
+      if (mqttConnected) {
+        console.log('🔄 Attempting Ring alarm command via MQTT...');
+        const { ringMqttClient } = await import('../../services/ringMqttClient');
+        success = await ringMqttClient.sendAlarmCommand(`arm_${action === 'disarm' ? 'disarm' : action}`);
+        
+        if (success) {
+          console.log('✅ Ring alarm command sent via MQTT');
+        } else {
+          console.log('⚠️ MQTT command failed, trying Home Assistant fallback...');
+        }
       }
+      
+      // Fall back to Home Assistant if MQTT failed or not connected
+      if (!success && haAlarm) {
+        console.log('🔄 Using Home Assistant alarm service...');
+        switch (action) {
+          case 'home':
+            await haCallService('alarm_arm_home', code ? { code } : {});
+            success = true;
+            break;
+          case 'away':
+            await haCallService('alarm_arm_away', code ? { code } : {});
+            success = true;
+            break;
+          case 'night':
+            await haCallService('alarm_arm_night', code ? { code } : {});
+            success = true;
+            break;
+          case 'disarm':
+            await haCallService('alarm_disarm', code ? { code } : {});
+            success = true;
+            break;
+        }
+        
+        if (success) {
+          console.log('✅ Ring alarm command sent via Home Assistant');
+        }
+      }
+      
+      // Final fallback to legacy callback props
+      if (!success) {
+        console.log('🔄 Using legacy callback props...');
+        switch (action) {
+          case 'home':
+            await onArmHome?.();
+            break;
+          case 'away':
+            await onArmAway?.();
+            break;
+          case 'disarm':
+            await onDisarm?.();
+            break;
+        }
+        success = true;
+        console.log('✅ Ring alarm command sent via legacy callbacks');
+      }
+      
     } catch (error) {
-      console.error('Failed to change alarm status:', error);
+      console.error('❌ Failed to change alarm status:', error);
       // Reset local status on error
       setLocalStatus(null);
     } finally {
