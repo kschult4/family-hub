@@ -6,8 +6,6 @@ import { mockStates, updateMockDeviceState } from '../config/mockHomeAssistantDa
 const baseUrl = import.meta.env.VITE_HA_BASE_URL;
 const token   = import.meta.env.VITE_HA_TOKEN;
 
-console.log('[HA] baseUrl:', baseUrl);
-console.log('[HA] token prefix:', token ? token.slice(0, 6) + '…' : 'MISSING');
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
 
@@ -45,15 +43,11 @@ export function useHomeAssistant(config = {}) {
       setLoading(true);
       setError(null);
       
-      console.log('loadStates called with:', { baseUrl, token: token ? 'PRESENT' : 'MISSING', useMockData });
 
       if (useMockData) {
-        console.log('🔍 useHomeAssistant: Using mock data, total mock states:', mockStates.length);
         const allDevices = filterDevices(mockStates);
         const allScenes = filterScenes(mockStates);
         
-        console.log('🔍 Filtered devices:', allDevices.map(d => d.entity_id));
-        console.log('🔍 Filtered scenes:', allScenes.map(s => s.entity_id));
         
         setDevices(allDevices);
         setScenes(allScenes);
@@ -77,8 +71,6 @@ export function useHomeAssistant(config = {}) {
       const allDevices = filterDevices(states);
       const allScenes = filterScenes(states);
       
-      console.log('✅ Successfully loaded', states.length, 'entities from Home Assistant');
-      console.log('📱 Found', allDevices.length, 'devices and', allScenes.length, 'scenes');
       
       setDevices(allDevices);
       setScenes(allScenes);

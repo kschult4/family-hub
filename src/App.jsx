@@ -65,10 +65,7 @@ export default function App() {
 
   // Handler to save meals from modal
   const handleSaveMeals = (mealsData) => {
-    console.log('App: handleSaveMeals called with data:', mealsData);
-    console.log('App: current meals state before save:', meals);
     setMeals(mealsData);
-    console.log('App: setMeals called with:', mealsData);
   };
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;

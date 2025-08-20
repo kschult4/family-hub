@@ -3,7 +3,6 @@ import AlertsDashboard from "../views/AlertsDashboard";
 import HomeDashboard from "../views/HomeDashboard";
 
 function FamilyDashboard() {
-  console.log('👨‍👩‍👧‍👦 FamilyDashboard is rendering (this should NOT happen for HOME tab)');
   return <div className="text-center p-10 text-xl">❌ WRONG COMPONENT: Family Dashboard (this should not show for HOME tab)</div>;
 }
 
@@ -29,10 +28,8 @@ export default function DashboardView({
   setMeals 
 }) {
   const ViewComponent = views[currentTab];
-  console.log('📊 DashboardView - currentTab:', currentTab, 'ViewComponent:', ViewComponent?.name);
 
   if (!ViewComponent) {
-    console.error('❌ No component found for tab:', currentTab);
     return <div className="text-center p-10 text-xl">No component found for {currentTab}</div>;
   }
 

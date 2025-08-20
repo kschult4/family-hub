@@ -5,9 +5,6 @@ import { motion } from "framer-motion";
 import SectionHeader from "./SectionHeader";
 
 export default function WeeklyMeals({ meals = {} }) {
-  console.log('WeeklyMeals: component rendered with meals prop:', meals);
-  console.log('WeeklyMeals: meals prop type:', typeof meals);
-  console.log('WeeklyMeals: meals prop keys:', Object.keys(meals));
   
   // Default meal names for each day (Monday-Sunday)
   const defaultMealNames = [
@@ -26,8 +23,6 @@ export default function WeeklyMeals({ meals = {} }) {
   const mealNames = dayLabels.map((day, index) => 
     meals[day] || defaultMealNames[index]
   );
-  
-  console.log('WeeklyMeals: final mealNames:', mealNames);
 
   // All available background images
   const allBgImages = [
@@ -54,7 +49,6 @@ export default function WeeklyMeals({ meals = {} }) {
     const selectedPhoto = availablePhotos.length > 0 
       ? availablePhotos[Math.floor(Math.random() * availablePhotos.length)]
       : allBgImages[0]; // Fallback to first image if filtering fails
-    console.log('Initial small card photo selected:', selectedPhoto);
     return selectedPhoto;
   });
 
@@ -68,12 +62,10 @@ export default function WeeklyMeals({ meals = {} }) {
       
       if (availablePhotos.length > 0) {
         const newPhoto = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
-        console.log('Rotating small card to new photo:', newPhoto);
         setCurrentBgPhoto(newPhoto);
       } else {
         // Fallback: if no photos available, use a different photo from the array
         const fallbackPhoto = allBgImages.find(photo => photo !== currentBgPhoto) || allBgImages[0];
-        console.log('Using fallback photo for small card:', fallbackPhoto);
         setCurrentBgPhoto(fallbackPhoto);
       }
     };
