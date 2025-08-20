@@ -15,22 +15,29 @@ This workplan addresses critical issues found in the React + Vite smart home das
 
 ## Proposed Change Sets (Ordered by Risk/Impact)
 
-### PR #1: Console Log Cleanup (Low Risk, ~150 lines)
-**Timeline**: 1-2 hours  
-**Risk Level**: 🟢 Low
+### ✅ PR #1: Console Log Cleanup (COMPLETED)
+**Timeline**: ✅ 1 hour completed  
+**Risk Level**: 🟢 Low  
+**Results**: Bundle reduced 1.53 kB, console calls reduced 32%
+
+### PR #2: Test Infrastructure Fixes (Low Risk, ~100 lines)
+**Timeline**: 2-3 hours  
+**Risk Level**: 🟢 Low  
+**Priority**: High - Need green baseline before high-risk changes
 
 **Changes**:
-- Remove debug console.log statements from production paths
-- Replace remaining logging with environment-gated logger
-- Add VITE_DEBUG environment variable support
+- Fix WebSocket mocking in test environment  
+- Add missing environment variables for tests
+- Update test timeout configurations
+- Resolve 57/126 failing tests
 
 **Files**:
-- `src/hooks/useHomeAssistant.js` (12 console calls)
-- `src/components/home/SonosMediaPlayerCard.jsx` (20 console calls)
-- `src/hooks/useRingAlarmMqtt.js` (9 console calls)
-- `src/services/ringMqttClient.js` (25 console calls)
+- `src/__tests__/services/haWebSocket.test.js`
+- `src/__tests__/hooks/useHomeAssistant.test.js`
+- `vitest.config.js`
+- `.env.test` (create)
 
-### PR #2: Bundle Optimization - Mock Data Isolation (Medium Risk, ~200 lines)
+### PR #3: Bundle Optimization - Mock Data Isolation (Medium Risk, ~200 lines)
 **Timeline**: 2-3 hours  
 **Risk Level**: 🟡 Medium
 
@@ -45,9 +52,10 @@ This workplan addresses critical issues found in the React + Vite smart home das
 - `src/services/homeAssistantClient.js`
 - `vite.config.js`
 
-### PR #3: Sonos Real-time Optimization (High Risk, ~300 lines)
+### PR #4: Sonos Real-time Optimization (High Risk, ~300 lines)
 **Timeline**: 4-6 hours  
-**Risk Level**: 🟠 High
+**Risk Level**: 🟠 High  
+**Prerequisite**: Technical Approach Doc required before implementation
 
 **Changes**:
 - Replace wildcard subscription `'*'` with scoped `media_player.*` subscriptions
@@ -60,32 +68,34 @@ This workplan addresses critical issues found in the React + Vite smart home das
 - `src/hooks/useHomeAssistantEntity.js`
 - `src/services/homeAssistantClient.js`
 
-### PR #4: Mega-module Decomposition (Medium Risk, ~250 lines)
-**Timeline**: 3-4 hours  
-**Risk Level**: 🟡 Medium
+### PR #5: SonosMediaPlayerCard Incremental Refactor (Medium Risk, broken into sub-PRs)
+**Timeline**: 6-8 hours total across multiple PRs  
+**Risk Level**: 🟡 Medium  
+**Approach**: Small incremental changes for safe review
 
-**Changes**:
-- Split SonosMediaPlayerCard into smaller components
-- Extract reusable hooks from large components
-- Break down homeAssistantClient service
+#### PR #5a: Extract Sonos Hooks (~100 lines)
+- Extract `useSonosDevices` hook
+- Extract `useSonosGrouping` hook  
+- No UI changes, pure logic extraction
 
-**Files**:
-- `src/components/home/SonosMediaPlayerCard.jsx` → multiple files
-- `src/services/homeAssistantClient.js` → service + normalizers
+#### PR #5b: Split UI Components (~100 lines)
+- Extract `SonosPlayerControls` component
+- Extract `SonosVolumeControl` component
+- Extract `SonosGroupManager` component
 
-### PR #5: Test Infrastructure Fixes (Low Risk, ~100 lines)
-**Timeline**: 2-3 hours  
-**Risk Level**: 🟢 Low
-
-**Changes**:
-- Fix WebSocket mocking in test environment
-- Add missing environment variables for tests
-- Update test timeout configurations
+#### PR #5c: Extract Sonos Services (~100 lines)
+- Create `sonosService.js` for business logic
+- Move group management logic out of component
+- Add proper error boundaries
 
 **Files**:
-- `src/__tests__/services/haWebSocket.test.js`
-- `src/__tests__/hooks/useHomeAssistant.test.js`
-- `vitest.config.js`
+- `src/components/home/SonosMediaPlayerCard.jsx` → decomposed
+- `src/hooks/useSonosDevices.js` (new)
+- `src/hooks/useSonosGrouping.js` (new)
+- `src/components/home/SonosPlayerControls.jsx` (new)
+- `src/components/home/SonosVolumeControl.jsx` (new)
+- `src/components/home/SonosGroupManager.jsx` (new)
+- `src/services/sonosService.js` (new)
 
 ## Test Strategy
 
@@ -144,17 +154,39 @@ Each PR includes:
 - Verbose state change logging
 - Development-only diagnostics
 
-### Implementation
-- Environment-gated logger: `VITE_DEBUG=sonos,ha npm run dev`
-- Structured logging with levels (error, warn, info, debug)
-- Automatic PII redaction for tokens/credentials
+### Logger Library Recommendations
+
+**Recommended: Custom Minimal Logger** (preferred for bundle size)
+```javascript
+// src/utils/logger.js (~50 lines)
+const isDev = import.meta.env.DEV;
+const debugCategories = import.meta.env.VITE_DEBUG?.split(',') || [];
+
+export const logger = {
+  debug: (category, ...args) => isDev && debugCategories.includes(category) && console.debug(`[${category}]`, ...args),
+  info: (...args) => console.info(...args),
+  warn: (...args) => console.warn(...args),
+  error: (...args) => console.error(...args)
+};
+```
+
+**Alternative: debug library** (if more features needed)
+- Bundle impact: +2.5kB minified
+- Mature, widely used
+- Built-in namespace filtering
+
+**Implementation Plan**:
+1. Environment-gated logger: `VITE_DEBUG=sonos,ha npm run dev`
+2. Structured logging with levels (error, warn, info, debug)  
+3. Automatic PII redaction for tokens/credentials
+4. Production builds strip debug calls automatically
 
 ## Quick Wins (≤30 min each, Zero Risk)
 
-1. **Remove console.log from render paths** (5 occurrences identified)
+1. ✅ **Remove console.log from render paths** (COMPLETED - 32% reduction)
 2. **Fix Tailwind deprecated color warnings** (lightBlue → sky, etc.)
 3. **Remove unused import statements** (lint will catch these)
 4. **Add missing TypeScript strict checks** to tsconfig.json
 5. **Clean up empty/commented code blocks** in service files
 
-These can be applied immediately without approval for instant performance gains.
+Remaining quick wins can be applied immediately for additional performance gains.
