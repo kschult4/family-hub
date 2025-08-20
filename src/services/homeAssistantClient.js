@@ -65,33 +65,38 @@ export const entityNormalizers = {
     raw: entity
   }),
 
-  media_player: (entity) => ({
-    id: entity.entity_id,
-    name: entity.attributes.friendly_name || entity.entity_id,
-    type: 'media_player',
-    state: entity.state,
-    isPlaying: entity.state === 'playing',
-    isPaused: entity.state === 'paused',
-    isIdle: entity.state === 'idle',
-    isOff: entity.state === 'off',
-    volumeLevel: entity.attributes.volume_level,
-    isMuted: entity.attributes.is_volume_muted,
-    mediaTitle: entity.attributes.media_title,
-    mediaArtist: entity.attributes.media_artist,
-    mediaAlbum: entity.attributes.media_album,
-    mediaArtwork: entity.attributes.entity_picture,
-    mediaDuration: entity.attributes.media_duration,
-    mediaPosition: entity.attributes.media_position,
-    mediaPositionUpdatedAt: entity.attributes.media_position_updated_at,
-    shuffle: entity.attributes.shuffle,
-    repeat: entity.attributes.repeat,
-    supportedFeatures: entity.attributes.supported_features || 0,
-    groupMembers: entity.attributes.group_members || [],
-    icon: entity.attributes.icon,
-    lastChanged: entity.last_changed,
-    lastUpdated: entity.last_updated,
-    raw: entity
-  }),
+  media_player: (entity) => {
+    const normalized = {
+      id: entity.entity_id,
+      name: entity.attributes.friendly_name || entity.entity_id,
+      type: 'media_player',
+      state: entity.state,
+      isPlaying: entity.state === 'playing',
+      isPaused: entity.state === 'paused',
+      isIdle: entity.state === 'idle',
+      isOff: entity.state === 'off',
+      volumeLevel: entity.attributes.volume_level,
+      isMuted: entity.attributes.is_volume_muted,
+      mediaTitle: entity.attributes.media_title,
+      mediaArtist: entity.attributes.media_artist,
+      mediaAlbum: entity.attributes.media_album,
+      mediaArtwork: entity.attributes.entity_picture,
+      mediaDuration: entity.attributes.media_duration,
+      mediaPosition: entity.attributes.media_position,
+      mediaPositionUpdatedAt: entity.attributes.media_position_updated_at,
+      shuffle: entity.attributes.shuffle,
+      repeat: entity.attributes.repeat,
+      supportedFeatures: entity.attributes.supported_features || 0,
+      groupMembers: entity.attributes.group_members || [],
+      icon: entity.attributes.icon,
+      lastChanged: entity.last_changed,
+      lastUpdated: entity.last_updated,
+      raw: entity
+    };
+    
+    
+    return normalized;
+  },
 
   alarm_control_panel: (entity) => ({
     id: entity.entity_id,
@@ -432,6 +437,11 @@ export class HomeAssistantClient {
         }
       } catch (error) {
         console.error('Error during polling:', error);
+        // Stop polling on repeated failures to prevent resource exhaustion
+        if (error.message.includes('Failed to fetch') || error.message.includes('INSUFFICIENT_RESOURCES')) {
+          console.log('Stopping polling due to network errors');
+          this.stopPolling();
+        }
       }
     }, 5000); // Poll every 5 seconds
   }

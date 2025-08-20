@@ -20,18 +20,8 @@ function createApiUrl(baseUrl, endpoint) {
 
 async function makeApiRequest(url, options = {}) {
   try {
-    console.log('Making API request to:', url);
-    console.log('Request options:', JSON.stringify(options, null, 2));
-    
-    // Log the exact headers being sent
-    if (options.headers) {
-      console.log('Request headers:', JSON.stringify(options.headers, null, 2));
-    }
-    
+    // Removed excessive logging - only log errors
     const response = await fetch(url, options);
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', [...response.headers.entries()]);
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -44,12 +34,10 @@ async function makeApiRequest(url, options = {}) {
     
     return await response.text();
   } catch (error) {
-    console.error('API request error:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
+    // Reduce error logging to prevent console spam during network issues
+    if (!error.message.includes('Failed to fetch')) {
+      console.error('API request error:', error);
+    }
     throw new Error(`API request failed: ${error.message}`);
   }
 }

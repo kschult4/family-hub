@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { 
   Play, 
   Pause, 
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { haClient } from '../../services/homeAssistantClient';
 
-export default function SonosMediaPlayerCard({ 
+function SonosMediaPlayerCard({ 
   onError 
 }) {
   const [mediaPlayers, setMediaPlayers] = useState([]);
@@ -25,18 +25,44 @@ export default function SonosMediaPlayerCard({
   const [error, setError] = useState(null);
   const [showGroupManager, setShowGroupManager] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  
+  // Refs for managing updates
+  const updateTimeoutRef = useRef(null);
+  const periodicRefreshRef = useRef(null);
 
-  // Fetch media players on mount and set up real-time updates
+  // Fetch media players on mount - NO real-time updates to prevent flickering
   useEffect(() => {
+    let isMounted = true; // Prevent state updates if component unmounts
+    
     const fetchMediaPlayers = async () => {
       try {
         setLoading(true);
         setError(null);
         
         const entities = await haClient.getEntitiesByType('media_player');
+        
         const sonosDevices = entities.filter(entity => 
-          entity.raw?.attributes?.device_class === 'speaker'
+          entity.raw?.attributes?.device_class === 'speaker' ||
+          entity.id.toLowerCase().includes('sonos') ||
+          entity.name.toLowerCase().includes('sonos') ||
+          entity.raw?.attributes?.friendly_name?.toLowerCase().includes('sonos')
         );
+        
+        if (!isMounted) return; // Don't update state if unmounted
+        
+        // Only log once on initial load
+        console.log('🎵 Sonos Widget - Found devices:', sonosDevices.map(s => ({
+          id: s.id,
+          name: s.name,
+          state: s.state,
+          isPlaying: s.isPlaying,
+          mediaTitle: s.mediaTitle,
+          mediaArtist: s.mediaArtist,
+          mediaAlbum: s.mediaAlbum,
+          mediaArtwork: s.mediaArtwork,
+          rawEntityPicture: s.raw?.attributes?.entity_picture,
+          hasArtwork: !!s.mediaArtwork
+        })));
         
         setMediaPlayers(sonosDevices);
         
@@ -45,71 +71,158 @@ export default function SonosMediaPlayerCard({
           device.groupMembers && device.groupMembers.length > 0
         );
         
+        let selectedLeader = null;
         if (leader) {
+          selectedLeader = leader;
           setSelectedGroupLeader(leader);
         } else if (sonosDevices.length > 0) {
           // Default to first playing device or just first device
           const playingDevice = sonosDevices.find(d => d.isPlaying) || sonosDevices[0];
+          selectedLeader = playingDevice;
           setSelectedGroupLeader(playingDevice);
         }
         
-        updateGroupsAndAvailable(sonosDevices, leader || sonosDevices[0]);
+        if (selectedLeader) {
+          updateGroupsAndAvailable(sonosDevices, selectedLeader);
+        }
       } catch (err) {
+        if (!isMounted) return; // Don't update state if unmounted
         setError(err.message);
         onError?.(err);
         console.error('Error fetching media players:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    const setupRealtimeUpdates = async () => {
+    const setupConnection = async () => {
       try {
         await haClient.connect();
-        setIsConnected(true);
+        if (isMounted) {
+          setIsConnected(true);
+        }
+      } catch (err) {
+        console.error('Error connecting to Home Assistant:', err);
+        if (isMounted) {
+          setIsConnected(false);
+        }
+      }
+    };
+
+    const setupScopedUpdates = async () => {
+      try {
+        await haClient.connect();
         
-        // Subscribe to all media player updates with throttling
-        let updateTimeout;
+        // Only subscribe to Sonos media player entities
         const unsubscribe = haClient.subscribe('*', (entity) => {
+          if (!isMounted) return;
+          
+          // Only process Sonos media players
           if (entity.type === 'media_player' && 
-              (entity.name.toLowerCase().includes('sonos') || 
-               entity.id.toLowerCase().includes('sonos'))) {
+              (entity.id.toLowerCase().includes('sonos') ||
+               entity.name.toLowerCase().includes('sonos'))) {
             
-            // Throttle updates to prevent flickering
-            clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(() => {
+            // Debounced updates - only update at most every 1 second
+            clearTimeout(updateTimeoutRef.current);
+            updateTimeoutRef.current = setTimeout(() => {
+              if (!isMounted) return;
+              
               setMediaPlayers(prev => {
                 const existingDevice = prev.find(d => d.id === entity.id);
                 
-                // Only update if there's actually a change
-                if (!existingDevice || JSON.stringify(existingDevice) !== JSON.stringify(entity)) {
+                // Only update if meaningful properties changed AND entity is in a stable state
+                if ((!existingDevice || 
+                    existingDevice.state !== entity.state ||
+                    existingDevice.mediaTitle !== entity.mediaTitle ||
+                    existingDevice.mediaArtist !== entity.mediaArtist ||
+                    existingDevice.mediaArtwork !== entity.mediaArtwork ||
+                    existingDevice.volumeLevel !== entity.volumeLevel ||
+                    Math.abs((existingDevice.mediaPosition || 0) - (entity.mediaPosition || 0)) > 5) &&
+                    entity.state !== 'unavailable') { // Skip updates during unavailable/transition states
+                  
                   return prev.map(device => 
                     device.id === entity.id ? entity : device
                   );
                 }
                 
-                return prev;
+                return prev; // No meaningful change, don't re-render
               });
-            }, 200); // Increased throttle
+              
+              // Update selected leader if it's the same device and has meaningful changes
+              setSelectedGroupLeader(prev => {
+                if (prev?.id === entity.id && entity.state !== 'unavailable') {
+                  // Only update if meaningful properties changed - preserve device selection
+                  if (prev.state !== entity.state ||
+                      prev.mediaTitle !== entity.mediaTitle ||
+                      prev.mediaArtist !== entity.mediaArtist ||
+                      prev.mediaArtwork !== entity.mediaArtwork ||
+                      prev.volumeLevel !== entity.volumeLevel) {
+                    console.log('🎵 Updating selected leader with new data:', {
+                      id: entity.id,
+                      name: entity.name,
+                      newTitle: entity.mediaTitle,
+                      newArtwork: entity.mediaArtwork
+                    });
+                    return entity;
+                  }
+                }
+                return prev; // Keep the same selected device
+              });
+            }, 1000); // 1 second debounce
           }
         });
         
         return unsubscribe;
       } catch (err) {
-        console.error('Error setting up real-time updates:', err);
-        setIsConnected(false);
+        console.error('Error setting up scoped updates:', err);
+        return () => {};
       }
     };
 
     fetchMediaPlayers();
-    const unsubscribePromise = setupRealtimeUpdates();
+    setupConnection(); // Connect to show "Live" status
+    
+    // TEMPORARILY DISABLE real-time updates to stop API flood
+    // const unsubscribePromise = setupScopedUpdates();
+    
+    // Use static data only - no real-time updates until we fix the polling issue
     
     return () => {
-      unsubscribePromise.then(unsubscribe => {
-        if (unsubscribe) unsubscribe();
-      });
+      isMounted = false; // Mark as unmounted to prevent state updates
+      clearTimeout(updateTimeoutRef.current);
+      // No unsubscribe needed since we disabled subscriptions
     };
-  }, [onError]);
+  }, []); // Empty dependency array - only run once
+
+  // Simple helper functions - no hooks to avoid re-renders
+  const getPlaybackProgress = () => {
+    if (!selectedGroupLeader?.mediaDuration || !selectedGroupLeader?.mediaPosition) {
+      return 0;
+    }
+    return (selectedGroupLeader.mediaPosition / selectedGroupLeader.mediaDuration) * 100;
+  };
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getImageUrl = (artworkUrl) => {
+    if (!artworkUrl) return null;
+    
+    // If it's already a full URL, return as-is
+    if (artworkUrl.startsWith('http://') || artworkUrl.startsWith('https://')) {
+      return artworkUrl;
+    }
+    
+    // If it's a relative URL, prepend the Home Assistant base URL
+    const baseUrl = import.meta.env.VITE_HA_BASE_URL || 'http://192.168.1.224:8123';
+    return `${baseUrl}${artworkUrl}`;
+  };
 
   const updateGroupsAndAvailable = useCallback((devices, leader) => {
     if (!leader) return;
@@ -125,8 +238,22 @@ export default function SonosMediaPlayerCard({
       device.state !== 'unavailable'
     );
     
-    setGroupedDevices(grouped);
-    setAvailableDevices(available);
+    // Only update if there's actually a change
+    setGroupedDevices(prev => {
+      if (prev.length !== grouped.length || 
+          !prev.every(device => grouped.find(g => g.id === device.id))) {
+        return grouped;
+      }
+      return prev;
+    });
+    
+    setAvailableDevices(prev => {
+      if (prev.length !== available.length || 
+          !prev.every(device => available.find(a => a.id === device.id))) {
+        return available;
+      }
+      return prev;
+    });
   }, []);
 
   const handleGroupLeaderChange = (newLeader) => {
@@ -135,48 +262,113 @@ export default function SonosMediaPlayerCard({
   };
 
   const handlePlayPause = async () => {
-    if (!selectedGroupLeader) return;
+    if (!selectedGroupLeader) {
+      console.log('🎵 No selectedGroupLeader for play/pause');
+      return;
+    }
+    
+    console.log('🎵 Play/Pause clicked for:', {
+      id: selectedGroupLeader.id,
+      name: selectedGroupLeader.name,
+      currentState: selectedGroupLeader.state,
+      isPlaying: selectedGroupLeader.isPlaying
+    });
     
     try {
-      await haClient.mediaPlayPause(selectedGroupLeader.id);
+      // Store the current leader ID to prevent switching
+      const currentLeaderId = selectedGroupLeader.id;
+      
+      // Optimistically update the UI immediately
+      const newPlayingState = !selectedGroupLeader.isPlaying;
+      const newState = newPlayingState ? 'playing' : 'paused';
+      
+      setSelectedGroupLeader(prev => {
+        // Make sure we're still updating the same device
+        if (prev?.id === currentLeaderId) {
+          return {
+            ...prev,
+            isPlaying: newPlayingState,
+            state: newState
+          };
+        }
+        return prev;
+      });
+      
+      // Also update in the media players list
+      setMediaPlayers(prev => prev.map(device => 
+        device.id === currentLeaderId 
+          ? { ...device, isPlaying: newPlayingState, state: newState }
+          : device
+      ));
+      
+      await haClient.mediaPlayPause(currentLeaderId);
+      console.log('🎵 Play/Pause service call successful for:', currentLeaderId);
     } catch (err) {
+      console.error('🎵 Error toggling playback:', err);
       setError(err.message);
-      console.error('Error toggling playback:', err);
+      
+      // Revert the optimistic update on error - use stored ID
+      const revertLeaderId = selectedGroupLeader.id;
+      setSelectedGroupLeader(prev => {
+        if (prev?.id === revertLeaderId) {
+          return {
+            ...prev,
+            isPlaying: !prev.isPlaying,
+            state: !prev.isPlaying ? 'playing' : 'paused'
+          };
+        }
+        return prev;
+      });
+      
+      setMediaPlayers(prev => prev.map(device => 
+        device.id === revertLeaderId 
+          ? { ...device, isPlaying: !device.isPlaying, state: !device.isPlaying ? 'playing' : 'paused' }
+          : device
+      ));
     }
   };
 
   const handleNext = async () => {
     if (!selectedGroupLeader) return;
     
+    console.log('🎵 Next track clicked for:', selectedGroupLeader.id);
+    
     try {
       await haClient.callService('media_player', 'media_next_track', {
         entity_id: selectedGroupLeader.id
       });
+      console.log('🎵 Next track service call successful');
     } catch (err) {
+      console.error('🎵 Error skipping to next track:', err);
       setError(err.message);
-      console.error('Error skipping to next track:', err);
     }
   };
 
   const handlePrevious = async () => {
     if (!selectedGroupLeader) return;
     
+    console.log('🎵 Previous track clicked for:', selectedGroupLeader.id);
+    
     try {
       await haClient.callService('media_player', 'media_previous_track', {
         entity_id: selectedGroupLeader.id
       });
+      console.log('🎵 Previous track service call successful');
     } catch (err) {
+      console.error('🎵 Error skipping to previous track:', err);
       setError(err.message);
-      console.error('Error skipping to previous track:', err);
     }
   };
 
   const handleVolumeChange = async (deviceId, volume) => {
+    console.log('🎵 Volume change for:', deviceId, 'to:', volume);
+    
     try {
       await haClient.setVolume(deviceId, volume / 100);
+      console.log('🎵 Volume change service call successful');
     } catch (err) {
+      console.error('🎵 Error setting volume:', err);
       setError(err.message);
-      console.error('Error setting volume:', err);
     }
   };
 
@@ -222,19 +414,6 @@ export default function SonosMediaPlayerCard({
     }
   };
 
-  const formatDuration = (seconds) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getPlaybackProgress = () => {
-    if (!selectedGroupLeader?.mediaDuration || !selectedGroupLeader?.mediaPosition) {
-      return 0;
-    }
-    return (selectedGroupLeader.mediaPosition / selectedGroupLeader.mediaDuration) * 100;
-  };
 
   if (loading) {
     return (
@@ -258,7 +437,7 @@ export default function SonosMediaPlayerCard({
     );
   }
 
-  if (!selectedGroupLeader || mediaPlayers.length === 0) {
+  if (!selectedGroupLeader || mediaPlayers.length === 0 || selectedGroupLeader.state === 'unavailable') {
     return (
       <div className="rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-full flex flex-col overflow-hidden shadow-lg border border-slate-700/50">
         <div className="text-slate-400 text-center flex-1 flex flex-col justify-center">
@@ -270,9 +449,6 @@ export default function SonosMediaPlayerCard({
     );
   }
 
-  const currentTrack = selectedGroupLeader;
-  const isPlaying = currentTrack.isPlaying;
-  const progress = getPlaybackProgress();
 
   return (
     <div className="rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-full flex flex-col overflow-hidden shadow-lg border border-slate-700/50">
@@ -315,14 +491,18 @@ export default function SonosMediaPlayerCard({
 
       {/* Now Playing */}
       <div className="flex items-center space-x-4 mb-4">
-        {currentTrack.mediaArtwork ? (
+        {selectedGroupLeader.mediaArtwork ? (
           <div className="relative group">
             {/* Main album art with multiple effects */}
             <div className="relative">
               <img
-                src={currentTrack.mediaArtwork}
+                src={getImageUrl(selectedGroupLeader.mediaArtwork)}
                 alt="Album art"
                 className="w-16 h-16 rounded-2xl object-cover shadow-2xl relative z-10"
+                onError={(e) => {
+                  console.log('🎵 Album art failed to load:', selectedGroupLeader.mediaArtwork);
+                  console.log('🎵 Processed URL:', getImageUrl(selectedGroupLeader.mediaArtwork));
+                }}
               />
               {/* Vinyl record effect behind */}
               <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-br from-slate-800 to-black shadow-xl transform -rotate-12 opacity-40 -z-10"></div>
@@ -331,7 +511,7 @@ export default function SonosMediaPlayerCard({
                 className="absolute inset-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1DB954]/20 to-transparent blur-sm -z-20 group-hover:from-[#1DB954]/40 transition-all duration-500"
               ></div>
               {/* Playing indicator overlay */}
-              {isPlaying && (
+              {selectedGroupLeader.isPlaying && (
                 <div className="absolute inset-0 rounded-2xl bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                   <div className="w-3 h-3 rounded-full bg-white/80 animate-pulse"></div>
                 </div>
@@ -358,31 +538,31 @@ export default function SonosMediaPlayerCard({
         
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-white truncate text-sm leading-tight">
-            {currentTrack.mediaTitle || 'No media playing'}
+            {selectedGroupLeader.mediaTitle || 'No media playing'}
           </h4>
           <p className="text-xs text-slate-300 truncate mt-1">
-            {currentTrack.mediaArtist || 'Unknown Artist'}
+            {selectedGroupLeader.mediaArtist || 'Unknown Artist'}
           </p>
-          {currentTrack.mediaAlbum && (
+          {selectedGroupLeader.mediaAlbum && (
             <p className="text-xs text-slate-400 truncate">
-              {currentTrack.mediaAlbum}
+              {selectedGroupLeader.mediaAlbum}
             </p>
           )}
         </div>
       </div>
 
       {/* Progress Bar */}
-      {currentTrack.mediaDuration && (
+      {selectedGroupLeader.mediaDuration && (
         <div className="mb-4">
           <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-gradient-to-r from-[#1DB954] to-[#1ed760] h-1.5 rounded-full transition-all duration-1000 shadow-sm"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${getPlaybackProgress()}%` }}
             ></div>
           </div>
           <div className="flex justify-between text-xs text-slate-400 mt-2 font-mono">
-            <span>{formatDuration(currentTrack.mediaPosition)}</span>
-            <span>{formatDuration(currentTrack.mediaDuration)}</span>
+            <span>{formatDuration(selectedGroupLeader.mediaPosition)}</span>
+            <span>{formatDuration(selectedGroupLeader.mediaDuration)}</span>
           </div>
         </div>
       )}
@@ -400,7 +580,7 @@ export default function SonosMediaPlayerCard({
           onClick={handlePlayPause}
           className="p-4 rounded-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] hover:from-[#1ed760] hover:to-[#1DB954] text-white transition-all duration-200 hover:scale-110 shadow-lg shadow-green-500/25"
         >
-          {isPlaying ? (
+          {selectedGroupLeader.isPlaying ? (
             <Pause className="w-6 h-6" />
           ) : (
             <Play className="w-6 h-6 ml-0.5" />
@@ -526,3 +706,6 @@ export default function SonosMediaPlayerCard({
     </div>
   );
 }
+
+// Wrap with React.memo to prevent unnecessary re-renders from parent
+export default memo(SonosMediaPlayerCard);

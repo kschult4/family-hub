@@ -37,14 +37,13 @@ class RingMqttClient {
       };
       
       testWs.onerror = (error) => {
-        console.warn('⚠️ WebSocket connection failed to Ring MQTT broker:', error);
-        console.log('🔄 Falling back to simulation mode...');
+        // Silently handle Ring MQTT connection failure
         this.fallbackToSimulation();
       };
       
       testWs.onclose = (event) => {
         if (event.code !== 1000) { // 1000 = normal closure
-          console.warn('⚠️ WebSocket connection closed unexpectedly:', event.code, event.reason);
+          // Silently handle Ring MQTT connection close
           this.fallbackToSimulation();
         }
       };
@@ -52,7 +51,7 @@ class RingMqttClient {
       // Set a timeout for the connection attempt
       setTimeout(() => {
         if (testWs.readyState === WebSocket.CONNECTING) {
-          console.warn('⚠️ WebSocket connection timeout - falling back to simulation');
+          // Silently fall back to simulation mode
           testWs.close();
           this.fallbackToSimulation();
         }
@@ -118,8 +117,7 @@ class RingMqttClient {
         return;
       }
       
-      console.log('🎯 Simulating Ring alarm event check...');
-      console.log('📊 Current subscribers:', this.subscribers.size);
+      // Periodic simulation check (reduced logging)
       
       const devices = [
         { id: 'front_door_camera', name: 'Front Door Camera', type: 'camera', location: 'Home' },
@@ -142,12 +140,11 @@ class RingMqttClient {
           topic: `ring/home/${randomDevice.type}/${randomDevice.id}/motion/state`
         };
         
-        console.log('🚨 Ring alarm event (motion detected):', alarmData);
-        console.log('📢 Notifying alarm subscribers...');
+        // Motion detected - only log significant events
+        console.log('🚨 Ring motion detected:', randomDevice.name);
         this.handleMotionEvent(alarmData);
-      } else {
-        console.log('✅ No alarm events this time');
       }
+      // No logging for "no events" to reduce spam
       
       // Schedule next event - less frequent for alarm testing
       setTimeout(simulateEvent, Math.random() * 15000 + 15000); // 15-30 seconds

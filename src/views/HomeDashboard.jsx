@@ -54,10 +54,7 @@ function ErrorComponent({ error, onRetry }) {
 }
 
 export default function HomeDashboard() {
-  console.log('🏠 HomeDashboard component is rendering');
-  const { devices, scenes, loading, error, toggleDevice, updateDevice, activateScene, callService, isConnected } = useHomeAssistant();
-  console.log('🏠 Loading:', loading, 'Error:', error, 'Devices:', devices?.length, 'Scenes:', scenes?.length);
-  console.log('🏠 HomeDashboard full state:', { devices, scenes, loading, error, isConnected });
+  const { devices, scenes, loading, error, toggleDevice, updateDevice, activateScene, callService, isConnected, refreshStates } = useHomeAssistant();
   const [selectedLight, setSelectedLight] = useState(null);
   const [showLightConfig, setShowLightConfig] = useState(false);
   const [showDevicesModal, setShowDevicesModal] = useState(false);
@@ -91,12 +88,10 @@ export default function HomeDashboard() {
 
   // Initialize selections when data first loads
   useEffect(() => {
-    console.log('🔧 Initialization check:', { hasInitialized, loading, allScenes: allScenes.length, allLights: allLights.length, allSwitches: allSwitches.length });
     if (!hasInitialized && !loading && (allScenes.length > 0 || allLights.length > 0 || allSwitches.length > 0)) {
       // Check if we have saved selections
       const savedScenes = localStorage.getItem('selectedScenes');
       const savedDevices = localStorage.getItem('selectedDevices');
-      console.log('🔧 Saved data:', { savedScenes, savedDevices });
       
       // Parse saved selections
       const parsedScenes = savedScenes ? JSON.parse(savedScenes) : [];
@@ -104,40 +99,31 @@ export default function HomeDashboard() {
       
       // Use saved selections if available, otherwise auto-select all
       if (savedScenes && parsedScenes.length > 0) {
-        console.log('🔧 Using saved scenes:', parsedScenes);
         setSelectedScenes(new Set(parsedScenes));
       } else if (allScenes.length > 0) {
-        console.log('🔧 No saved scenes, auto-selecting all scenes:', allScenes.map(s => s.entity_id));
         setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
       }
       
       if (savedDevices && parsedDevices.length > 0) {
-        console.log('🔧 Using saved devices:', parsedDevices);
         setSelectedDevices(new Set(parsedDevices));
       } else if (allLights.length > 0 || allSwitches.length > 0) {
         const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
-        console.log('🔧 No saved devices, auto-selecting all devices:', deviceIds);
         setSelectedDevices(new Set(deviceIds));
       }
       
       setHasInitialized(true);
-      console.log('🔧 Initialization completed');
     }
   }, [allScenes, allLights, allSwitches, loading, hasInitialized]);
 
   // Modal handlers
   const handleDevicesChange = (newSelectedDevices) => {
-    console.log('🔧 handleDevicesChange called with:', newSelectedDevices);
     const deviceIds = newSelectedDevices.map(d => d.entity_id || d.id);
-    console.log('🔧 Device IDs to select:', deviceIds);
     setSelectedDevices(new Set(deviceIds));
     setShowDevicesModal(false);
   };
 
   const handleScenesChange = (newSelectedScenes) => {
-    console.log('🎬 handleScenesChange called with:', newSelectedScenes);
     const sceneIds = newSelectedScenes.map(s => s.entity_id || s.id);
-    console.log('🎬 Scene IDs to select:', sceneIds);
     setSelectedScenes(new Set(sceneIds));
     setShowScenesModal(false);
   };
@@ -155,17 +141,6 @@ export default function HomeDashboard() {
   const switches = allSwitches.filter(switchDevice => selectedDevices.has(switchDevice.entity_id));
   const scenes_list = allScenes.filter(scene => selectedScenes.has(scene.entity_id));
 
-  // DEBUG: Check filtering
-  console.log('🔍 FILTERING DEBUG:', {
-    allLights: allLights.length,
-    allSwitches: allSwitches.length, 
-    allScenes: allScenes.length,
-    selectedDevices: [...selectedDevices],
-    selectedScenes: [...selectedScenes],
-    filteredLights: lights.length,
-    filteredSwitches: switches.length,
-    filteredScenes: scenes_list.length
-  });
 
   // Special devices - be more flexible with entity matching
   const mediaPlayers = devices?.filter(d => d.entity_id.startsWith('media_player.')) || [];
@@ -187,16 +162,6 @@ export default function HomeDashboard() {
   
   const thermostats = devices?.filter(d => d.entity_id.startsWith('climate.')) || [];
 
-  // DEBUG: Check Ring alarm detection
-  console.log('🔍 RING ALARM DEBUG:', {
-    totalDevices: devices?.length,
-    alarmPanels: alarmPanels.length,
-    alarmPanelEntities: alarmPanels.map(d => ({ entity_id: d.entity_id, friendly_name: d.attributes?.friendly_name })),
-    ringAlarmFound: !!ringAlarm,
-    ringAlarmEntity: ringAlarm?.entity_id || 'Not found',
-    sonosDevices: sonosDevices.length,
-    thermostats: thermostats.length
-  });
 
   const handleLightLongPress = (entityId) => {
     const light = devices?.find(d => d.entity_id === entityId);
@@ -218,7 +183,7 @@ export default function HomeDashboard() {
   };
 
   return (
-    <div className="p-2 sm:p-4 overflow-y-auto scrollbar-hide">
+    <div className="p-2 sm:p-4">
       {!isConnected && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-yellow-800 text-sm">

@@ -11,17 +11,6 @@ export default function LightCard({
   // Use Home Assistant integration if lightId is provided
   const { entity, loading, error, toggle, turnOn, turnOff } = useHomeAssistantEntity(lightId, !!lightId);
   
-  // Debug logging (only log if there's an issue)
-  if (lightId && (loading || error || entity?.state === 'unavailable')) {
-    console.log('🔍 LightCard debug:', {
-      lightId: lightId, 
-      loading: loading, 
-      hasError: !!error,
-      entityState: entity?.state,
-      entityId: entity?.entity_id,
-      isUnavailable: entity?.state === 'unavailable' || loading
-    });
-  }
   
   const [isPressed, setIsPressed] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
