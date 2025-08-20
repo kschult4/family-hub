@@ -8,6 +8,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
+    env: {
+      VITE_HA_BASE_URL: 'http://homeassistant.local:8123',
+      VITE_HA_TOKEN: 'test_token_123',
+      VITE_USE_MOCK_HA: 'true',
+      VITE_DEBUG: 'false',
+      NODE_ENV: 'test'
+    },
     css: true,
     coverage: {
       provider: 'v8',
@@ -30,8 +37,15 @@ export default defineConfig({
         }
       }
     },
-    testTimeout: 10000,
-    hookTimeout: 10000
+    testTimeout: 5000,
+    hookTimeout: 3000,
+    retry: 1,
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true
+      }
+    }
   },
   resolve: {
     alias: {

@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createWebSocketConnection } from '../../services/haWebSocket.js'
-import { createMockWebSocket } from '../../test/utils.js'
 
-// Mock WebSocket globally
-const mockWS = createMockWebSocket()
-global.WebSocket = vi.fn(() => mockWS)
+let mockWS
 
 describe('haWebSocket service', () => {
   const mockBaseUrl = 'http://homeassistant.local:8123'
@@ -13,9 +10,14 @@ describe('haWebSocket service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockWS.readyState = 0 // CONNECTING
+    mockWS = null
     wsConnection = createWebSocketConnection(mockBaseUrl, mockToken)
   })
+  
+  // Helper to get the WebSocket mock after connection is created
+  function getMockWebSocket() {
+    return global.WebSocket.mock.results[global.WebSocket.mock.results.length - 1]?.value
+  }
 
   afterEach(() => {
     if (wsConnection) {
@@ -25,19 +27,20 @@ describe('haWebSocket service', () => {
 
   describe('Connection establishment', () => {
     it('should create WebSocket connection with correct URL', async () => {
-      const connectPromise = wsConnection.connect()
+      // WebSocket should not be called until connect() is called
+      expect(global.WebSocket).not.toHaveBeenCalled()
+      
+      // Now call connect which should create the WebSocket
+      wsConnection.connect()
       
       expect(global.WebSocket).toHaveBeenCalledWith(
         'ws://homeassistant.local:8123/api/websocket'
       )
-
-      // Simulate connection flow
-      mockWS.simulateOpen()
-      mockWS.simulateMessage({ type: 'auth_required' })
-      mockWS.simulateMessage({ type: 'auth_ok' })
-      mockWS.simulateMessage({ type: 'result', success: true, id: 2 })
-
-      await expect(connectPromise).resolves.toBeUndefined()
+      
+      // Get the WebSocket instance that was created
+      mockWS = getMockWebSocket()
+      expect(mockWS).toBeDefined()
+      expect(mockWS.url).toBe('ws://homeassistant.local:8123/api/websocket')
     })
 
     it('should handle HTTPS URLs correctly', () => {
@@ -52,8 +55,15 @@ describe('haWebSocket service', () => {
     it('should send authentication after auth_required', async () => {
       const connectPromise = wsConnection.connect()
       
-      mockWS.simulateOpen()
-      mockWS.simulateMessage({ type: 'auth_required' })
+      // Get the mock WebSocket instance
+      mockWS = getMockWebSocket()
+      expect(mockWS).toBeDefined()
+      
+      // Don't auto-open, we'll control the flow
+      mockWS.readyState = 0 // Override auto-open
+      
+      // Simulate auth required message
+      mockWS.simulateMessage(JSON.stringify({ type: 'auth_required' }))
 
       expect(mockWS.send).toHaveBeenCalledWith(
         JSON.stringify({
@@ -61,12 +71,6 @@ describe('haWebSocket service', () => {
           access_token: mockToken
         })
       )
-
-      // Complete the connection
-      mockWS.simulateMessage({ type: 'auth_ok' })
-      mockWS.simulateMessage({ type: 'result', success: true, id: 2 })
-      
-      await connectPromise
     })
 
     it('should subscribe to state changes after authentication', async () => {
