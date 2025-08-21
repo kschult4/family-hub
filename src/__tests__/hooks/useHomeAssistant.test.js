@@ -84,12 +84,20 @@ describe('useHomeAssistant hook', () => {
   })
 
   describe('Initialization', () => {
-    it('should initialize with loading state', () => {
+    it('should initialize with loading state', async () => {
       const { result } = renderHook(() => useHomeAssistant())
 
+      // Initial state should be loading
       expect(result.current.loading).toBe(true)
       expect(result.current.devices).toEqual([])
       expect(result.current.scenes).toEqual([])
+      
+      // Don't check error immediately - React batches state updates
+      // Error should be null after initialization completes
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+      
       expect(result.current.error).toBe(null)
     })
 
@@ -240,16 +248,16 @@ describe('useHomeAssistant hook', () => {
         return vi.fn()
       })
 
+      // Initial load with a device - must be set before hook creation
+      haApi.getStates.mockResolvedValue([
+        { entity_id: 'light.living_room', state: 'off', attributes: { brightness: 0 } }
+      ])
+
       const { result } = renderHook(() => useHomeAssistant({ 
         useMockData: false,
         baseUrl: 'http://test.local',
         token: 'test-token'
       }))
-
-      // Initial load with a device
-      haApi.getStates.mockResolvedValue([
-        { entity_id: 'light.living_room', state: 'off', attributes: { brightness: 0 } }
-      ])
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -283,15 +291,16 @@ describe('useHomeAssistant hook', () => {
         return vi.fn()
       })
 
+      // Set up scene data before hook creation
+      haApi.getStates.mockResolvedValue([
+        { entity_id: 'scene.movie_night', state: 'scening' }
+      ])
+
       const { result } = renderHook(() => useHomeAssistant({ 
         useMockData: false,
         baseUrl: 'http://test.local',
         token: 'test-token'
       }))
-
-      haApi.getStates.mockResolvedValue([
-        { entity_id: 'scene.movie_night', state: 'scening' }
-      ])
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -594,10 +603,15 @@ describe('useHomeAssistant hook', () => {
       expect(mockWebSocket.close).toHaveBeenCalled()
     })
 
-    it('should clear reconnect timeout on unmount', () => {
+    it('should clear reconnect timeout on unmount', async () => {
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
       
-      const { unmount } = renderHook(() => useHomeAssistant())
+      const { result, unmount } = renderHook(() => useHomeAssistant())
+
+      // Wait for initialization to complete (so timeout is set)
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
 
       unmount()
 
