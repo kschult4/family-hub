@@ -34,11 +34,13 @@ export function useHomeAssistant(config = {}) {
 
   const loadStates = useCallback(async () => {
     try {
+      console.log('🚀 Starting loadStates...', { useMockData, baseUrl: !!baseUrl, token: !!token });
       setLoading(true);
       setError(null);
       
 
       if (useMockData) {
+        console.log('📊 Using mock data mode');
         const allDevices = filterDevices(mockStates);
         const allScenes = filterScenes(mockStates);
         
@@ -52,11 +54,13 @@ export function useHomeAssistant(config = {}) {
 
       // Validate connection parameters
       if (!baseUrl || !token) {
+        console.error('❌ Missing credentials:', { baseUrl: !!baseUrl, token: !!token });
         throw new Error('Missing Home Assistant URL or token. Check your .env file.');
       }
 
-      console.log('🔌 Attempting to connect to Home Assistant...');
+      console.log('🔌 Attempting to connect to Home Assistant...', { baseUrl, tokenLength: token?.length });
       const states = await haApi.getStates(baseUrl, token);
+      console.log('📦 Raw states received:', states?.length || 0);
       
       if (!Array.isArray(states)) {
         throw new Error('Invalid response from Home Assistant API');
@@ -65,6 +69,15 @@ export function useHomeAssistant(config = {}) {
       const allDevices = filterDevices(states);
       const allScenes = filterScenes(states);
       
+      console.log('🔍 Home Assistant data loaded:', {
+        totalStates: states.length,
+        devices: allDevices.length,
+        scenes: allScenes.length,
+        deviceTypes: allDevices.map(d => d.entity_id.split('.')[0]).reduce((acc, type) => {
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {})
+      });
       
       setDevices(allDevices);
       setScenes(allScenes);
@@ -277,6 +290,6 @@ export function useHomeAssistant(config = {}) {
     turnOffDevice,
     callService,
     refreshStates,
-    isConnected: useMockData ? true : (wsRef.current?.getConnectionState?.() ?? isConnected)
+    isConnected: useMockData ? true : isConnected
   };
 }

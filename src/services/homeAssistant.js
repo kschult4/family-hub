@@ -45,20 +45,38 @@ async function makeApiRequest(url, options = {}) {
 const baseUrl = import.meta.env.VITE_HA_BASE_URL;
 const token = import.meta.env.VITE_HA_TOKEN;
 
+// Helper function to create the correct URL and headers for development vs production
+function createRequestConfig(endpoint, baseUrlParam = baseUrl, tokenParam = token) {
+  const isDevelopment = import.meta.env.DEV;
+  
+  if (isDevelopment) {
+    // Use Vite proxy in development
+    return {
+      url: `/api/ha/api${endpoint}`,
+      headers: { 'Content-Type': 'application/json' }
+    };
+  } else {
+    // Use direct calls in production
+    return {
+      url: createApiUrl(baseUrlParam, endpoint),
+      headers: createAuthHeaders(tokenParam)
+    };
+  }
+}
+
 export const haApi = {
   async getStates(baseUrlParam = baseUrl, tokenParam = token) {
-    const url = createApiUrl(baseUrlParam, '/states');
+    const { url, headers } = createRequestConfig('/states', baseUrlParam, tokenParam);
     
     return await makeApiRequest(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${tokenParam}` },
+      headers,
     });
   },
 
   async toggleDevice(baseUrl, token, entityId) {
     const domain = entityId.split('.')[0];
-    const url = createApiUrl(baseUrl, `/services/${domain}/toggle`);
-    const headers = createAuthHeaders(token);
+    const { url, headers } = createRequestConfig(`/services/${domain}/toggle`, baseUrl, token);
     
     const body = JSON.stringify({
       entity_id: entityId,
@@ -73,8 +91,7 @@ export const haApi = {
 
   async setDeviceAttributes(baseUrl, token, entityId, attributes) {
     const domain = entityId.split('.')[0];
-    const url = createApiUrl(baseUrl, `/services/${domain}/turn_on`);
-    const headers = createAuthHeaders(token);
+    const { url, headers } = createRequestConfig(`/services/${domain}/turn_on`, baseUrl, token);
     
     const body = JSON.stringify({
       entity_id: entityId,
@@ -89,8 +106,7 @@ export const haApi = {
   },
 
   async activateScene(baseUrl, token, entityId) {
-    const url = createApiUrl(baseUrl, '/services/scene/turn_on');
-    const headers = createAuthHeaders(token);
+    const { url, headers } = createRequestConfig('/services/scene/turn_on', baseUrl, token);
     
     const body = JSON.stringify({
       entity_id: entityId,
@@ -105,8 +121,7 @@ export const haApi = {
 
   async turnOffDevice(baseUrl, token, entityId) {
     const domain = entityId.split('.')[0];
-    const url = createApiUrl(baseUrl, `/services/${domain}/turn_off`);
-    const headers = createAuthHeaders(token);
+    const { url, headers } = createRequestConfig(`/services/${domain}/turn_off`, baseUrl, token);
     
     const body = JSON.stringify({
       entity_id: entityId,
@@ -120,8 +135,7 @@ export const haApi = {
   },
 
   async callService(baseUrl, token, domain, service, data = {}) {
-    const url = createApiUrl(baseUrl, `/services/${domain}/${service}`);
-    const headers = createAuthHeaders(token);
+    const { url, headers } = createRequestConfig(`/services/${domain}/${service}`, baseUrl, token);
     
     const body = JSON.stringify(data);
     

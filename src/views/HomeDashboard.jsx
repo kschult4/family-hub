@@ -67,12 +67,14 @@ export default function HomeDashboard() {
   
   // State for managing which items are selected for display
   const [selectedScenes, setSelectedScenes] = useState(() => {
-    const saved = localStorage.getItem('selectedScenes');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    // TEMPORARY: Clear localStorage to force re-initialization
+    localStorage.removeItem('selectedScenes');
+    localStorage.removeItem('selectedDevices');
+    console.log('🗑️ Cleared localStorage to force device re-selection');
+    return new Set();
   });
   const [selectedDevices, setSelectedDevices] = useState(() => {
-    const saved = localStorage.getItem('selectedDevices');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    return new Set();
   });
   
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -88,7 +90,42 @@ export default function HomeDashboard() {
 
   // Initialize selections when data first loads
   useEffect(() => {
+    // Calculate filtered arrays for debugging (same logic as later in component)
+    const filteredLights = allLights.filter(light => selectedDevices.has(light.entity_id));
+    const filteredSwitches = allSwitches.filter(switchDevice => selectedDevices.has(switchDevice.entity_id));
+    const filteredScenes = allScenes.filter(scene => selectedScenes.has(scene.entity_id));
+    const currentMediaPlayers = devices?.filter(d => d.entity_id.startsWith('media_player.')) || [];
+    const currentSonosDevices = currentMediaPlayers.filter(d => 
+      d.attributes?.device_class === 'speaker' || 
+      d.entity_id.toLowerCase().includes('sonos') ||
+      d.attributes?.friendly_name?.toLowerCase().includes('sonos')
+    );
+    
+    console.log('🏠 HomeDashboard Debug:', { 
+      hasInitialized, 
+      loading, 
+      error: error?.message,
+      scenesCount: allScenes.length, 
+      lightsCount: allLights.length, 
+      switchesCount: allSwitches.length,
+      devicesCount: devices?.length || 0,
+      isConnected,
+      selectedScenesCount: selectedScenes.size,
+      selectedDevicesCount: selectedDevices.size,
+      filteredLights: filteredLights.length,
+      filteredSwitches: filteredSwitches.length,
+      filteredScenes: filteredScenes.length,
+      mediaPlayersCount: currentMediaPlayers.length,
+      sonosDevicesCount: currentSonosDevices.length,
+      // Debug the selection matching
+      selectedDevicesArray: Array.from(selectedDevices).slice(0, 5),
+      firstFewLights: allLights.slice(0, 3).map(l => l.entity_id),
+      firstFewSwitches: allSwitches.slice(0, 3).map(s => s.entity_id)
+    });
+    
     if (!hasInitialized && !loading && (allScenes.length > 0 || allLights.length > 0 || allSwitches.length > 0)) {
+      console.log('🔧 Initializing device selections...');
+      
       // Check if we have saved selections
       const savedScenes = localStorage.getItem('selectedScenes');
       const savedDevices = localStorage.getItem('selectedDevices');
@@ -97,20 +134,28 @@ export default function HomeDashboard() {
       const parsedScenes = savedScenes ? JSON.parse(savedScenes) : [];
       const parsedDevices = savedDevices ? JSON.parse(savedDevices) : [];
       
+      console.log('💾 Saved selections:', { savedScenes: parsedScenes, savedDevices: parsedDevices });
+      
       // Use saved selections if available, otherwise auto-select all
       if (savedScenes && parsedScenes.length > 0) {
+        console.log('📋 Using saved scenes:', parsedScenes.length);
         setSelectedScenes(new Set(parsedScenes));
       } else if (allScenes.length > 0) {
-        setSelectedScenes(new Set(allScenes.map(s => s.entity_id)));
+        const sceneIds = allScenes.map(s => s.entity_id);
+        console.log('🎬 Auto-selecting all scenes:', sceneIds);
+        setSelectedScenes(new Set(sceneIds));
       }
       
       if (savedDevices && parsedDevices.length > 0) {
+        console.log('📋 Using saved devices:', parsedDevices.length);
         setSelectedDevices(new Set(parsedDevices));
       } else if (allLights.length > 0 || allSwitches.length > 0) {
         const deviceIds = [...allLights, ...allSwitches].map(d => d.entity_id);
+        console.log('💡 Auto-selecting all devices:', deviceIds.length, deviceIds.slice(0, 5));
         setSelectedDevices(new Set(deviceIds));
       }
       
+      console.log('✅ Device selection initialization complete');
       setHasInitialized(true);
     }
   }, [allScenes, allLights, allSwitches, loading, hasInitialized]);

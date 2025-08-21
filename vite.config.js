@@ -1,21 +1,26 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  return {
   base: "/family-hub/",
   build: {
     target: 'es2015', // Better compatibility with older browsers
-    polyfillModulePreload: true,
+    modulePreload: {
+      polyfill: true
+    },
   },
   server: {
     proxy: {
       '/api/ha': {
-        target: 'http://192.168.1.224:8123',
+        target: env.VITE_HA_BASE_URL || 'http://localhost:8123',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ha/, ''),
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI1MTM3MWMzMzE5YzY0Y2NhODQxMzViNjQxODM5NDFiNCIsImlhdCI6MTc1NTEzNDkxNSwiZXhwIjoyMDcwNDk0OTE1fQ.VQiKNJ_uJTynpaufMvxATL-RkvBeVp1AXG0-n0EwvrI'
+          'Authorization': `Bearer ${env.VITE_HA_TOKEN || ''}`
         }
       }
     }
@@ -76,4 +81,5 @@ export default defineConfig({
       }
     })
   ],
+  };
 });

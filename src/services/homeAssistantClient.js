@@ -374,11 +374,16 @@ export class HomeAssistantClient {
     // Test REST API connection first
     try {
       console.log('🔌 Testing Home Assistant REST API connection...');
-      const testResponse = await fetch(`${this.baseUrl}/api/`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
+      
+      // Use proxy in development, direct call in production
+      const isDevelopment = import.meta.env.DEV;
+      const testUrl = isDevelopment ? '/api/ha/api/' : `${this.baseUrl}/api/`;
+      const testHeaders = isDevelopment 
+        ? { 'Content-Type': 'application/json' }
+        : { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' };
+      
+      const testResponse = await fetch(testUrl, {
+        headers: testHeaders
       });
       
       if (!testResponse.ok) {
@@ -534,7 +539,26 @@ export class HomeAssistantClient {
       return normalizedStates;
     }
 
-    const rawStates = await haApi.getStates(this.baseUrl, this.token);
+    // Use proxy-aware request for getting states
+    const isDevelopment = import.meta.env.DEV;
+    let rawStates;
+    
+    if (isDevelopment) {
+      // Use Vite proxy in development
+      const response = await fetch('/api/ha/api/states', {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      rawStates = await response.json();
+    } else {
+      // Use direct calls in production
+      rawStates = await haApi.getStates(this.baseUrl, this.token);
+    }
+    
     const normalizedStates = rawStates.map(normalizeEntity);
     
     // Update cache
@@ -575,7 +599,31 @@ export class HomeAssistantClient {
       return;
     }
 
-    return await haApi.callService(this.baseUrl, this.token, domain, service, data);
+    // Use proxy-aware request for service calls
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      // Use Vite proxy in development
+      const response = await fetch(`/api/ha/api/services/${domain}/${service}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      
+      return await response.text();
+    } else {
+      // Use direct calls in production
+      return await haApi.callService(this.baseUrl, this.token, domain, service, data);
+    }
   }
 
   /**
@@ -666,7 +714,32 @@ export class HomeAssistantClient {
       return;
     }
 
-    return await haApi.toggleDevice(this.baseUrl, this.token, entityId);
+    // Use proxy-aware request for toggle
+    const domain = entityId.split('.')[0];
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      // Use Vite proxy in development
+      const response = await fetch(`/api/ha/api/services/${domain}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_id: entityId })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      
+      return await response.text();
+    } else {
+      // Use direct calls in production
+      return await haApi.toggleDevice(this.baseUrl, this.token, entityId);
+    }
   }
 
   // Scene activation
@@ -676,7 +749,31 @@ export class HomeAssistantClient {
       return;
     }
 
-    return await haApi.activateScene(this.baseUrl, this.token, entityId);
+    // Use proxy-aware request for scene activation
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      // Use Vite proxy in development
+      const response = await fetch('/api/ha/api/services/scene/turn_on', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_id: entityId })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      
+      return await response.text();
+    } else {
+      // Use direct calls in production
+      return await haApi.activateScene(this.baseUrl, this.token, entityId);
+    }
   }
 
   /**

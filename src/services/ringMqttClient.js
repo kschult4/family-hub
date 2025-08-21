@@ -14,13 +14,10 @@ class RingMqttClient {
 
   connect() {
     try {
-      console.log('🔌 Attempting to connect to Ring MQTT broker:', this.brokerUrl);
-      
       // Try to establish a WebSocket connection to the MQTT broker
       this.attemptWebSocketConnection();
       
     } catch (error) {
-      console.error('❌ Failed to connect to Ring MQTT broker:', error);
       this.fallbackToSimulation();
     }
   }
@@ -37,7 +34,7 @@ class RingMqttClient {
       };
       
       testWs.onerror = (error) => {
-        // Silently handle Ring MQTT connection failure
+        // Silently handle Ring MQTT connection failure - suppress console errors
         this.fallbackToSimulation();
       };
       
@@ -72,7 +69,7 @@ class RingMqttClient {
   }
 
   fallbackToSimulation() {
-    console.log('🎭 Using simulation mode for Ring MQTT (real broker not available)');
+    console.log('🎭 Ring MQTT broker not available - using simulation mode for demo');
     this.simulateConnection();
   }
 
