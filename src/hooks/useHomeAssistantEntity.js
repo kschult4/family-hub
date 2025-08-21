@@ -12,7 +12,7 @@ const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
  */
 export function useHomeAssistantEntity(entityId, autoConnect = true) {
   const [entity, setEntity] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(autoConnect);
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(USE_MOCK_DATA);
 

@@ -71,7 +71,7 @@ describe('SwitchCard', () => {
     expect(card).toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 
-  it('should use green color scheme', () => {
+  it('should use purple color scheme', () => {
     const onDevice = { ...mockDevice, state: 'on' };
     
     const { container } = render(
@@ -81,12 +81,12 @@ describe('SwitchCard', () => {
       />
     );
 
-    // Check that the card has green border
+    // Check that the card has purple border
     const card = container.firstChild;
-    expect(card).toHaveClass('border-[#6aa968]');
+    expect(card).toHaveClass('border-[#8b5a9b]');
     
-    // Check that the button has green background
+    // Check that the button has purple background
     const button = container.querySelector('[ref]');
-    expect(button || container.querySelector('.bg-\\[\\#6aa968\\]')).toBeInTheDocument();
+    expect(button || container.querySelector('.bg-\\[\\#8b5a9b\\]')).toBeInTheDocument();
   });
 });
