@@ -114,13 +114,17 @@ describe('useHomeAssistant hook', () => {
       ]
       haApi.getStates.mockResolvedValue(liveStates)
 
-      const { result } = renderHook(() => useHomeAssistant({ useMockData: false }))
+      const { result } = renderHook(() => useHomeAssistant({ 
+        useMockData: false,
+        baseUrl: 'http://homeassistant.local:8123',
+        token: 'test_token_123'
+      }))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
       })
 
-      expect(haApi.getStates).toHaveBeenCalledWith('http://localhost:8123', '')
+      expect(haApi.getStates).toHaveBeenCalledWith('http://homeassistant.local:8123', 'test_token_123')
       expect(result.current.devices).toHaveLength(1)
       expect(result.current.scenes).toHaveLength(1)
     })
@@ -129,7 +133,11 @@ describe('useHomeAssistant hook', () => {
       const error = new Error('API Error')
       haApi.getStates.mockRejectedValue(error)
 
-      const { result } = renderHook(() => useHomeAssistant({ useMockData: false }))
+      const { result } = renderHook(() => useHomeAssistant({ 
+        useMockData: false,
+        baseUrl: 'http://homeassistant.local:8123',
+        token: 'test_token_123'
+      }))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -156,7 +164,11 @@ describe('useHomeAssistant hook', () => {
       ]
       haApi.getStates.mockResolvedValue(states)
 
-      const { result } = renderHook(() => useHomeAssistant({ useMockData: false }))
+      const { result } = renderHook(() => useHomeAssistant({ 
+        useMockData: false,
+        baseUrl: 'http://homeassistant.local:8123',
+        token: 'test_token_123'
+      }))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
@@ -496,7 +508,11 @@ describe('useHomeAssistant hook', () => {
 
   describe('State refresh', () => {
     it('should refresh states when requested', async () => {
-      const { result } = renderHook(() => useHomeAssistant({ useMockData: false }))
+      const { result } = renderHook(() => useHomeAssistant({ 
+        useMockData: false,
+        baseUrl: 'http://homeassistant.local:8123',
+        token: 'test_token_123'
+      }))
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false)

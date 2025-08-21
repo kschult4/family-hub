@@ -3,17 +3,11 @@ import { haApi } from '../services/homeAssistant';
 import { createWebSocketConnection } from '../services/haWebSocket';
 import { mockStates, updateMockDeviceState } from '../config/mockHomeAssistantData';
 
-const baseUrl = import.meta.env.VITE_HA_BASE_URL;
-const token   = import.meta.env.VITE_HA_TOKEN;
-
-
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_HA !== 'false';
-
 export function useHomeAssistant(config = {}) {
   const {
     baseUrl = import.meta.env.VITE_HA_BASE_URL || 'http://localhost:8123',
     token = import.meta.env.VITE_HA_TOKEN || '',
-    useMockData = USE_MOCK_DATA
+    useMockData = import.meta.env.VITE_USE_MOCK_HA !== 'false'
   } = config;
 
   const [devices, setDevices] = useState([]);
