@@ -92,7 +92,7 @@ describe('DeviceCard component', () => {
       render(<DeviceCard device={colorLight} {...defaultProps} />)
 
       // Should have palette icon for color lights
-      const paletteIcon = document.querySelector('[data-lucide="palette"]')
+      const paletteIcon = document.querySelector('.lucide-palette')
       expect(paletteIcon).toBeInTheDocument()
     })
 
@@ -432,13 +432,13 @@ describe('DeviceCard component', () => {
       const { container, rerender } = render(<DeviceCard device={lightDevice} {...defaultProps} />)
 
       // On light should have filled lightbulb
-      let lightbulb = container.querySelector('[data-lucide="lightbulb"]')
+      let lightbulb = container.querySelector('.lucide-lightbulb')
       expect(lightbulb).toBeInTheDocument()
       expect(lightbulb).toHaveClass('fill-current')
 
       // Off light should have outline lightbulb
       rerender(<DeviceCard device={{ ...lightDevice, state: 'off' }} {...defaultProps} />)
-      lightbulb = container.querySelector('[data-lucide="lightbulb"]')
+      lightbulb = container.querySelector('.lucide-lightbulb')
       expect(lightbulb).toBeInTheDocument()
       expect(lightbulb).not.toHaveClass('fill-current')
     })
@@ -453,11 +453,11 @@ describe('DeviceCard component', () => {
       const { container, rerender } = render(<DeviceCard device={switchDevice} {...defaultProps} />)
 
       // On switch should have toggle-right
-      expect(container.querySelector('[data-lucide="toggle-right"]')).toBeInTheDocument()
+      expect(container.querySelector('.lucide-toggle-right')).toBeInTheDocument()
 
       // Off switch should have toggle-left
       rerender(<DeviceCard device={{ ...switchDevice, state: 'off' }} {...defaultProps} />)
-      expect(container.querySelector('[data-lucide="toggle-left"]')).toBeInTheDocument()
+      expect(container.querySelector('.lucide-toggle-left')).toBeInTheDocument()
     })
 
     it('should show brightness indicator with correct opacity', () => {
@@ -472,7 +472,7 @@ describe('DeviceCard component', () => {
 
       const { container } = render(<DeviceCard device={lightDevice} {...defaultProps} />)
 
-      const sunIcon = container.querySelector('[data-lucide="sun"]')
+      const sunIcon = container.querySelector('.lucide-sun')
       expect(sunIcon).toBeInTheDocument()
       expect(sunIcon).toHaveStyle({ opacity: '0.5019607843137255' }) // 128/255
     })
