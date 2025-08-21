@@ -117,7 +117,8 @@ export function useHomeAssistant(config = {}) {
       return unsubscribe;
     } catch (err) {
       console.error('WebSocket connection error:', err);
-      // Don't set error here - continue with REST API polling
+      setError(err);
+      setIsConnected(false);
       return null;
     }
   }, [baseUrl, token, useMockData]);
@@ -273,6 +274,6 @@ export function useHomeAssistant(config = {}) {
     turnOffDevice,
     callService,
     refreshStates,
-    isConnected
+    isConnected: useMockData ? true : (wsRef.current?.getConnectionState?.() ?? isConnected)
   };
 }

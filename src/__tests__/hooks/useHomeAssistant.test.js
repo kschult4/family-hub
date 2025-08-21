@@ -255,6 +255,10 @@ describe('useHomeAssistant hook', () => {
         expect(result.current.loading).toBe(false)
       })
 
+      await waitFor(() => {
+        expect(result.current.devices).toHaveLength(1)
+      })
+
       expect(result.current.devices[0].state).toBe('off')
 
       // Simulate WebSocket update
@@ -266,7 +270,9 @@ describe('useHomeAssistant hook', () => {
         })
       })
 
-      expect(result.current.devices[0].state).toBe('on')
+      await waitFor(() => {
+        expect(result.current.devices[0]?.state).toBe('on')
+      })
       expect(result.current.devices[0].attributes.brightness).toBe(255)
     })
 
@@ -291,6 +297,10 @@ describe('useHomeAssistant hook', () => {
         expect(result.current.loading).toBe(false)
       })
 
+      await waitFor(() => {
+        expect(result.current.scenes).toHaveLength(1)
+      })
+
       act(() => {
         subscribeCallback('scene.movie_night', {
           entity_id: 'scene.movie_night',
@@ -299,7 +309,9 @@ describe('useHomeAssistant hook', () => {
         })
       })
 
-      expect(result.current.scenes[0].last_changed).toBe('2024-01-01T12:00:00Z')
+      await waitFor(() => {
+        expect(result.current.scenes[0]?.last_changed).toBe('2024-01-01T12:00:00Z')
+      })
     })
 
     it('should ignore WebSocket updates for null states', async () => {
@@ -323,13 +335,16 @@ describe('useHomeAssistant hook', () => {
         expect(result.current.loading).toBe(false)
       })
 
-      const originalState = result.current.devices[0].state
+      const originalState = result.current.devices[0]?.state
 
       act(() => {
         subscribeCallback('light.living_room', null)
       })
 
-      expect(result.current.devices[0].state).toBe(originalState)
+      // Wait a bit to ensure any potential state changes would have occurred
+      await new Promise(resolve => setTimeout(resolve, 10))
+      
+      expect(result.current.devices[0]?.state).toBe(originalState)
     })
   })
 
