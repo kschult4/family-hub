@@ -29,6 +29,8 @@ function SonosMediaPlayerCard({
   // Refs for managing updates
   const updateTimeoutRef = useRef(null);
   const periodicRefreshRef = useRef(null);
+  const progressIntervalRef = useRef(null);
+  const lastUpdateRef = useRef(Date.now());
 
   // Fetch media players on mount - NO real-time updates to prevent flickering
   useEffect(() => {
@@ -115,7 +117,7 @@ function SonosMediaPlayerCard({
       try {
         await haClient.connect();
         
-        // Only subscribe to Sonos media player entities
+        // Smart subscription - only Sonos media players with intelligent filtering
         const unsubscribe = haClient.subscribe('*', (entity) => {
           if (!isMounted) return;
           
@@ -124,53 +126,57 @@ function SonosMediaPlayerCard({
               (entity.id.toLowerCase().includes('sonos') ||
                entity.name.toLowerCase().includes('sonos'))) {
             
-            // Debounced updates - only update at most every 1 second
+            const now = Date.now();
+            
+            // Smart debouncing - longer delay for frequent updates, shorter for important changes
+            const isImportantChange = (prev, current) => {
+              if (!prev) return true;
+              return (
+                prev.state !== current.state ||
+                prev.mediaTitle !== current.mediaTitle ||
+                prev.mediaArtist !== current.mediaArtist ||
+                prev.mediaArtwork !== current.mediaArtwork ||
+                Math.abs((prev.volumeLevel || 0) - (current.volumeLevel || 0)) > 0.05
+              );
+            };
+            
+            // Rate limiting - prevent updates more than once every 500ms
+            if (now - lastUpdateRef.current < 500) {
+              return;
+            }
+            
             clearTimeout(updateTimeoutRef.current);
             updateTimeoutRef.current = setTimeout(() => {
               if (!isMounted) return;
               
+              lastUpdateRef.current = now;
+              
               setMediaPlayers(prev => {
                 const existingDevice = prev.find(d => d.id === entity.id);
                 
-                // Only update if meaningful properties changed AND entity is in a stable state
-                if ((!existingDevice || 
-                    existingDevice.state !== entity.state ||
-                    existingDevice.mediaTitle !== entity.mediaTitle ||
-                    existingDevice.mediaArtist !== entity.mediaArtist ||
-                    existingDevice.mediaArtwork !== entity.mediaArtwork ||
-                    existingDevice.volumeLevel !== entity.volumeLevel ||
-                    Math.abs((existingDevice.mediaPosition || 0) - (entity.mediaPosition || 0)) > 5) &&
-                    entity.state !== 'unavailable') { // Skip updates during unavailable/transition states
-                  
+                // Skip updates during transition states
+                if (entity.state === 'unavailable') return prev;
+                
+                // Only update if meaningful properties changed
+                if (!existingDevice || isImportantChange(existingDevice, entity)) {
                   return prev.map(device => 
                     device.id === entity.id ? entity : device
                   );
                 }
                 
-                return prev; // No meaningful change, don't re-render
+                return prev; // No meaningful change
               });
               
-              // Update selected leader if it's the same device and has meaningful changes
+              // Update selected leader with smart change detection
               setSelectedGroupLeader(prev => {
                 if (prev?.id === entity.id && entity.state !== 'unavailable') {
-                  // Only update if meaningful properties changed - preserve device selection
-                  if (prev.state !== entity.state ||
-                      prev.mediaTitle !== entity.mediaTitle ||
-                      prev.mediaArtist !== entity.mediaArtist ||
-                      prev.mediaArtwork !== entity.mediaArtwork ||
-                      prev.volumeLevel !== entity.volumeLevel) {
-                    console.log('🎵 Updating selected leader with new data:', {
-                      id: entity.id,
-                      name: entity.name,
-                      newTitle: entity.mediaTitle,
-                      newArtwork: entity.mediaArtwork
-                    });
+                  if (isImportantChange(prev, entity)) {
                     return entity;
                   }
                 }
-                return prev; // Keep the same selected device
+                return prev;
               });
-            }, 1000); // 1 second debounce
+            }, 300); // Faster response for better UX
           }
         });
         
@@ -184,17 +190,39 @@ function SonosMediaPlayerCard({
     fetchMediaPlayers();
     setupConnection(); // Connect to show "Live" status
     
-    // TEMPORARILY DISABLE real-time updates to stop API flood
-    // const unsubscribePromise = setupScopedUpdates();
-    
-    // Use static data only - no real-time updates until we fix the polling issue
+    // Enable optimized real-time updates
+    const unsubscribePromise = setupScopedUpdates();
     
     return () => {
       isMounted = false; // Mark as unmounted to prevent state updates
       clearTimeout(updateTimeoutRef.current);
-      // No unsubscribe needed since we disabled subscriptions
+      clearInterval(progressIntervalRef.current);
+      // Cleanup WebSocket subscription
+      unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
     };
   }, []); // Empty dependency array - only run once
+
+  // Real-time playback progress tracking
+  useEffect(() => {
+    if (selectedGroupLeader?.isPlaying && selectedGroupLeader?.mediaDuration) {
+      // Update progress every second while playing
+      progressIntervalRef.current = setInterval(() => {
+        setSelectedGroupLeader(prev => {
+          if (prev?.isPlaying && prev?.mediaPosition < prev?.mediaDuration) {
+            return {
+              ...prev,
+              mediaPosition: Math.min(prev.mediaPosition + 1, prev.mediaDuration)
+            };
+          }
+          return prev;
+        });
+      }, 1000);
+    } else {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    return () => clearInterval(progressIntervalRef.current);
+  }, [selectedGroupLeader?.isPlaying, selectedGroupLeader?.mediaDuration, selectedGroupLeader?.id]);
 
   // Simple helper functions - no hooks to avoid re-renders
   const getPlaybackProgress = () => {
@@ -267,23 +295,16 @@ function SonosMediaPlayerCard({
       return;
     }
     
-    console.log('🎵 Play/Pause clicked for:', {
-      id: selectedGroupLeader.id,
-      name: selectedGroupLeader.name,
-      currentState: selectedGroupLeader.state,
-      isPlaying: selectedGroupLeader.isPlaying
-    });
-    
     try {
-      // Store the current leader ID to prevent switching
+      // Store the current state for revert if needed
       const currentLeaderId = selectedGroupLeader.id;
+      const originalState = selectedGroupLeader.isPlaying;
       
-      // Optimistically update the UI immediately
+      // Optimistically update the UI immediately for better UX
       const newPlayingState = !selectedGroupLeader.isPlaying;
       const newState = newPlayingState ? 'playing' : 'paused';
       
-      setSelectedGroupLeader(prev => {
-        // Make sure we're still updating the same device
+      const optimisticUpdate = (prev) => {
         if (prev?.id === currentLeaderId) {
           return {
             ...prev,
@@ -292,37 +313,41 @@ function SonosMediaPlayerCard({
           };
         }
         return prev;
-      });
+      };
       
-      // Also update in the media players list
+      setSelectedGroupLeader(optimisticUpdate);
       setMediaPlayers(prev => prev.map(device => 
         device.id === currentLeaderId 
           ? { ...device, isPlaying: newPlayingState, state: newState }
           : device
       ));
       
+      // Call the service
       await haClient.mediaPlayPause(currentLeaderId);
-      console.log('🎵 Play/Pause service call successful for:', currentLeaderId);
+      
+      // Clear any error state on success
+      setError(null);
+      
     } catch (err) {
       console.error('🎵 Error toggling playback:', err);
       setError(err.message);
       
-      // Revert the optimistic update on error - use stored ID
-      const revertLeaderId = selectedGroupLeader.id;
-      setSelectedGroupLeader(prev => {
-        if (prev?.id === revertLeaderId) {
+      // Revert optimistic update on error
+      const revertUpdate = (prev) => {
+        if (prev?.id === selectedGroupLeader.id) {
           return {
             ...prev,
-            isPlaying: !prev.isPlaying,
-            state: !prev.isPlaying ? 'playing' : 'paused'
+            isPlaying: originalState,
+            state: originalState ? 'playing' : 'paused'
           };
         }
         return prev;
-      });
+      };
       
+      setSelectedGroupLeader(revertUpdate);
       setMediaPlayers(prev => prev.map(device => 
-        device.id === revertLeaderId 
-          ? { ...device, isPlaying: !device.isPlaying, state: !device.isPlaying ? 'playing' : 'paused' }
+        device.id === selectedGroupLeader.id 
+          ? { ...device, isPlaying: originalState, state: originalState ? 'playing' : 'paused' }
           : device
       ));
     }
@@ -331,13 +356,18 @@ function SonosMediaPlayerCard({
   const handleNext = async () => {
     if (!selectedGroupLeader) return;
     
-    console.log('🎵 Next track clicked for:', selectedGroupLeader.id);
-    
     try {
+      // Optimistic update - reset progress to 0 
+      setSelectedGroupLeader(prev => ({
+        ...prev,
+        mediaPosition: 0
+      }));
+      
       await haClient.callService('media_player', 'media_next_track', {
         entity_id: selectedGroupLeader.id
       });
-      console.log('🎵 Next track service call successful');
+      
+      setError(null);
     } catch (err) {
       console.error('🎵 Error skipping to next track:', err);
       setError(err.message);
@@ -347,13 +377,18 @@ function SonosMediaPlayerCard({
   const handlePrevious = async () => {
     if (!selectedGroupLeader) return;
     
-    console.log('🎵 Previous track clicked for:', selectedGroupLeader.id);
-    
     try {
+      // Optimistic update - reset progress to 0
+      setSelectedGroupLeader(prev => ({
+        ...prev,
+        mediaPosition: 0
+      }));
+      
       await haClient.callService('media_player', 'media_previous_track', {
         entity_id: selectedGroupLeader.id
       });
-      console.log('🎵 Previous track service call successful');
+      
+      setError(null);
     } catch (err) {
       console.error('🎵 Error skipping to previous track:', err);
       setError(err.message);
@@ -361,14 +396,28 @@ function SonosMediaPlayerCard({
   };
 
   const handleVolumeChange = async (deviceId, volume) => {
-    console.log('🎵 Volume change for:', deviceId, 'to:', volume);
-    
     try {
-      await haClient.setVolume(deviceId, volume / 100);
-      console.log('🎵 Volume change service call successful');
+      const volumeLevel = volume / 100;
+      
+      // Optimistic update - immediately update volume in UI
+      const updateVolume = (device) => 
+        device.id === deviceId ? { ...device, volumeLevel } : device;
+      
+      setMediaPlayers(prev => prev.map(updateVolume));
+      setSelectedGroupLeader(prev => 
+        prev?.id === deviceId ? { ...prev, volumeLevel } : prev
+      );
+      
+      // Call the service
+      await haClient.setVolume(deviceId, volumeLevel);
+      setError(null);
+      
     } catch (err) {
       console.error('🎵 Error setting volume:', err);
       setError(err.message);
+      
+      // Note: Real-time updates will correct the volume if the call failed
+      // No need to revert manually since WebSocket will provide actual state
     }
   };
 
