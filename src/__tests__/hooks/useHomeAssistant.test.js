@@ -84,21 +84,19 @@ describe('useHomeAssistant hook', () => {
   })
 
   describe('Initialization', () => {
-    it('should initialize with loading state', async () => {
+    it('should initialize and load mock data by default', async () => {
       const { result } = renderHook(() => useHomeAssistant())
 
-      // Initial state should be loading
-      expect(result.current.loading).toBe(true)
-      expect(result.current.devices).toEqual([])
-      expect(result.current.scenes).toEqual([])
-      
-      // Don't check error immediately - React batches state updates
-      // Error should be null after initialization completes
+      // Wait for initialization to complete
       await waitFor(() => {
         expect(result.current.loading).toBe(false)
       })
       
+      // Should load mock data by default
+      expect(result.current.devices).toHaveLength(2) // light and switch from mock data
+      expect(result.current.scenes).toHaveLength(1) // scene from mock data
       expect(result.current.error).toBe(null)
+      expect(result.current.isConnected).toBe(true) // mock data is always "connected"
     })
 
     it('should load mock data when VITE_USE_MOCK_HA is true', async () => {
