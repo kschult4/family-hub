@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import Header from "./components/Header";
 import FooterNav from "./components/FooterNav";
-import DashboardView from "./components/DashboardView";
 import AppBackground from "./components/AppBackground";
-import ShoppingList from "./components/ShoppingList";
-import MotionCameraModal from "./components/home/MotionCameraModal";
 import ErrorBoundary from "./components/ErrorBoundary";
+
+// Lazy load heavy components for better code splitting
+const DashboardView = lazy(() => import("./components/DashboardView"));
+const ShoppingList = lazy(() => import("./components/ShoppingList"));
+const MotionCameraModal = lazy(() => import("./components/home/MotionCameraModal"));
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useHomeAssistant } from "./hooks/useHomeAssistant";
 import { useMotionDetection } from "./hooks/useMotionDetection";
@@ -77,33 +79,41 @@ export default function App() {
           {!isMobile && <Header />}
 
           <div className={`flex-grow flex flex-col gap-3 sm:gap-6 overflow-auto ${isMobile ? 'pb-[120px] pt-4' : 'pb-[160px]'}`}>
-            <DashboardView 
-              currentTab={currentTab} 
-              groceryItems={groceryItems} 
-              setGroceryItems={setGroceryItems}
-              addGroceryItem={addGroceryItem}
-              updateGroceryItem={updateGroceryItem}
-              removeGroceryItem={removeGroceryItem}
-              tasks={tasks} 
-              setTasks={setTasks}
-              addTask={addTask}
-              updateTask={updateTask}
-              removeTask={removeTask}
-              meals={meals} 
-              setMeals={setMeals} 
-            />
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            }>
+              <DashboardView 
+                currentTab={currentTab} 
+                groceryItems={groceryItems} 
+                setGroceryItems={setGroceryItems}
+                addGroceryItem={addGroceryItem}
+                updateGroceryItem={updateGroceryItem}
+                removeGroceryItem={removeGroceryItem}
+                tasks={tasks} 
+                setTasks={setTasks}
+                addTask={addTask}
+                updateTask={updateTask}
+                removeTask={removeTask}
+                meals={meals} 
+                setMeals={setMeals} 
+              />
+            </Suspense>
           </div>
 
           <FooterNav current={currentTab} onNavigate={setCurrentTab} onSaveGrocery={handleSaveGrocery} onSaveTask={handleSaveTask} onSaveMeals={handleSaveMeals} groceryItems={groceryItems} meals={meals} />
         </div>
 
         {/* Motion Detection Modal - appears across all dashboard views */}
-        <MotionCameraModal
-          camerasWithMotion={camerasWithMotion}
-          onClose={clearAllMotion}
-          isVisible={hasActiveMotion}
-          autoCloseDelay={60000}
-        />
+        <Suspense fallback={null}>
+          <MotionCameraModal
+            camerasWithMotion={camerasWithMotion}
+            onClose={clearAllMotion}
+            isVisible={hasActiveMotion}
+            autoCloseDelay={60000}
+          />
+        </Suspense>
 
       </AppBackground>
     </ErrorBoundary>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const DAYS = [
   { name: "Monday", meal: "Lemon Herb Chicken with Rice" },
@@ -151,7 +151,7 @@ export default function AnimatedMealCarousel() {
         }}
         aria-label="Previous day"
       >
-        <FaChevronLeft size={28} />
+        <ChevronLeft size={28} />
       </button>
       {/* Right arrow */}
       <button
@@ -162,7 +162,7 @@ export default function AnimatedMealCarousel() {
         }}
         aria-label="Next day"
       >
-        <FaChevronRight size={28} />
+        <ChevronRight size={28} />
       </button>
       {/* Today button */}
       <button

@@ -1,6 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-import AlertsDashboard from "../views/AlertsDashboard";
-import HomeDashboard from "../views/HomeDashboard";
+import { lazy, Suspense } from "react";
+
+// Lazy load dashboard views for better code splitting
+const AlertsDashboard = lazy(() => import("../views/AlertsDashboard"));
+const HomeDashboard = lazy(() => import("../views/HomeDashboard"));
 
 function FamilyDashboard() {
   return <div className="text-center p-10 text-xl">❌ WRONG COMPONENT: Family Dashboard (this should not show for HOME tab)</div>;
@@ -43,20 +46,26 @@ export default function DashboardView({
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          <ViewComponent 
-            groceryItems={groceryItems} 
-            setGroceryItems={setGroceryItems}
-            addGroceryItem={addGroceryItem}
-            updateGroceryItem={updateGroceryItem}
-            removeGroceryItem={removeGroceryItem}
-            tasks={tasks} 
-            setTasks={setTasks}
-            addTask={addTask}
-            updateTask={updateTask}
-            removeTask={removeTask}
-            meals={meals} 
-            setMeals={setMeals} 
-          />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+          }>
+            <ViewComponent 
+              groceryItems={groceryItems} 
+              setGroceryItems={setGroceryItems}
+              addGroceryItem={addGroceryItem}
+              updateGroceryItem={updateGroceryItem}
+              removeGroceryItem={removeGroceryItem}
+              tasks={tasks} 
+              setTasks={setTasks}
+              addTask={addTask}
+              updateTask={updateTask}
+              removeTask={removeTask}
+              meals={meals} 
+              setMeals={setMeals} 
+            />
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     </div>
