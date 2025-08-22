@@ -51,9 +51,15 @@ export default function App() {
 
   // Handler to add a grocery item from modal
   const handleSaveGrocery = (newItem) => {
+    console.log('📦 handleSaveGrocery called with:', newItem);
+    console.log('🔧 addGroceryItem function available:', !!addGroceryItem);
+    console.log('📋 Current grocery items count:', groceryItems?.length || 0);
+    
     if (addGroceryItem) {
+      console.log('🚀 Using Firebase addGroceryItem');
       addGroceryItem(newItem);
     } else {
+      console.log('💾 Using fallback setGroceryItems');
       // Fallback for when Firebase isn't available
       setGroceryItems([newItem, ...groceryItems]);
     }

@@ -243,6 +243,7 @@ export default function ShoppingList({ items = [], setItems, addGroceryItem, upd
           <ul className={`${isMobile ? 'space-y-2' : 'space-y-3 overflow-y-auto pr-2 scrollbar-hide'}`}>
             <AnimatePresence>
               {items
+                .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)) // Sort by addedAt timestamp, newest first
                 .filter((item) => !item.checked)
                 .map((item) => {
                 let styleProps = {};

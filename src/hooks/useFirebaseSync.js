@@ -87,7 +87,12 @@ export function useFirebaseSync(path, defaultValue = []) {
   }, [path, isOnline, offlineKey]);
 
   const addItem = useCallback(async (item) => {
+    console.log('🔥 Firebase addItem called with:', item);
+    console.log('🌐 Online status:', isOnline);
+    console.log('📍 Firebase path:', path);
+    
     if (!isOnline) {
+      console.log('📴 Offline mode - adding to local state');
       // Queue for later and update local state
       const tempId = Math.random().toString(36).substr(2, 9);
       const newItem = { ...item, id: tempId, offline: true };
@@ -99,7 +104,9 @@ export function useFirebaseSync(path, defaultValue = []) {
       });
       
       setData(currentData => {
+        console.log('📋 Current data before add:', currentData);
         const newData = [...currentData, newItem];
+        console.log('📋 New data after add:', newData);
         OfflineStorage.set(offlineKey, newData);
         return newData;
       });
@@ -107,10 +114,12 @@ export function useFirebaseSync(path, defaultValue = []) {
     }
 
     try {
+      console.log('🌐 Online mode - pushing to Firebase');
       const dataRef = ref(database, path);
-      await push(dataRef, item);
+      const result = await push(dataRef, item);
+      console.log('✅ Firebase push successful:', result.key);
     } catch (err) {
-      console.error('Firebase add error:', err);
+      console.error('❌ Firebase add error:', err);
       setError(err);
     }
   }, [path, isOnline, offlineKey]);
