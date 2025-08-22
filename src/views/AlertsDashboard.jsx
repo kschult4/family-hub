@@ -2,6 +2,7 @@ import Calendar from "../components/Calendar";
 import ShoppingList from "../components/ShoppingList";
 import TaskList from "../components/TaskList";
 import WeeklyMeals from "../components/WeeklyMeals";
+import { useIsMobile } from "../hooks/useMediaQuery";
 
 export default function AlertsDashboard({ 
   groceryItems, 
@@ -17,7 +18,7 @@ export default function AlertsDashboard({
   meals, 
   setMeals 
 }) {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isMobile = useIsMobile();
   
   return (
     <div className={`p-2 sm:p-4 flex flex-col ${isMobile ? 'gap-3' : 'gap-4'}`}>
@@ -29,15 +30,17 @@ export default function AlertsDashboard({
           addGroceryItem={addGroceryItem}
           updateGroceryItem={updateGroceryItem}
         />
-        <TaskList 
-          tasks={tasks} 
-          setTasks={setTasks}
-          addTask={addTask}
-          updateTask={updateTask}
-          removeTask={removeTask}
-        />
+        {!isMobile && (
+          <TaskList 
+            tasks={tasks} 
+            setTasks={setTasks}
+            addTask={addTask}
+            updateTask={updateTask}
+            removeTask={removeTask}
+          />
+        )}
       </section>
-      {!isMobile && <WeeklyMeals meals={meals} setMeals={setMeals} />}
+      <WeeklyMeals meals={meals} setMeals={setMeals} />
     </div>
   );
 }

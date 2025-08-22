@@ -1,9 +1,11 @@
 import WeatherWidget from "./WeatherWidget";
 import MoonPhaseWidget from "./MoonPhaseWidget";
 import { useEffect, useState } from "react";
+import { useIsMobile } from "../hooks/useMediaQuery";
 
 export default function Header() {
   const [now, setNow] = useState(new Date());
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -22,7 +24,7 @@ export default function Header() {
   });
 
   return (
-    <header className="w-full bg-transparent shadow-none px-2 sm:px-6 py-3 sm:py-6 mb-3 sm:mb-6 relative flex justify-between items-center" style={{paddingTop: window.innerWidth < 768 ? '20px' : '50px'}}>
+    <header className={`w-full bg-transparent shadow-none px-2 sm:px-6 py-3 sm:py-6 mb-3 sm:mb-6 relative flex justify-between items-center ${isMobile ? 'pt-5' : 'pt-12'}`}>
       {/* Left: Moon Phase */}
       <MoonPhaseWidget />
 

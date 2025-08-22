@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ref, onValue, set, push, remove, update } from 'firebase/database';
 import { database } from '../config/firebase';
+import { useOnlineStatus, OfflineStorage, OfflineQueue } from './useOfflineSync';
 
 export function useFirebaseSync(path, defaultValue = []) {
   const [data, setData] = useState(defaultValue);
@@ -8,8 +9,17 @@ export function useFirebaseSync(path, defaultValue = []) {
   const [error, setError] = useState(null);
   const defaultValueRef = useRef(defaultValue);
   const isArrayData = Array.isArray(defaultValue);
+  const isOnline = useOnlineStatus();
+  const offlineKey = `family-hub-${path}`;
 
   useEffect(() => {
+    // Try to load cached data first
+    const cachedData = OfflineStorage.get(offlineKey);
+    if (cachedData && !isOnline) {
+      setData(cachedData);
+      setLoading(false);
+    }
+
     const dataRef = ref(database, path);
     
     const unsubscribe = onValue(dataRef, (snapshot) => {
@@ -27,9 +37,13 @@ export function useFirebaseSync(path, defaultValue = []) {
                 id: item.id || firebaseKey
               }));
             setData(arrayData);
+            // Cache for offline use
+            OfflineStorage.set(offlineKey, arrayData);
           } else {
             // For objects, use direct assignment for better performance
             setData({ ...value });
+            // Cache for offline use
+            OfflineStorage.set(offlineKey, value);
           }
         } else {
           setData(defaultValueRef.current);
@@ -51,6 +65,18 @@ export function useFirebaseSync(path, defaultValue = []) {
   }, [path]); // Remove defaultValue dependency to prevent unnecessary re-renders
 
   const updateData = useCallback(async (newData) => {
+    if (!isOnline) {
+      // Queue for later and update local state
+      OfflineQueue.add({
+        type: 'set',
+        path,
+        data: newData
+      });
+      setData(newData);
+      OfflineStorage.set(offlineKey, newData);
+      return;
+    }
+
     try {
       const dataRef = ref(database, path);
       await set(dataRef, newData);
@@ -58,9 +84,28 @@ export function useFirebaseSync(path, defaultValue = []) {
       console.error('Firebase update error:', err);
       setError(err);
     }
-  }, [path]);
+  }, [path, isOnline, offlineKey]);
 
   const addItem = useCallback(async (item) => {
+    if (!isOnline) {
+      // Queue for later and update local state
+      const tempId = Math.random().toString(36).substr(2, 9);
+      const newItem = { ...item, id: tempId, offline: true };
+      
+      OfflineQueue.add({
+        type: 'add',
+        path,
+        data: item
+      });
+      
+      setData(currentData => {
+        const newData = [...currentData, newItem];
+        OfflineStorage.set(offlineKey, newData);
+        return newData;
+      });
+      return;
+    }
+
     try {
       const dataRef = ref(database, path);
       await push(dataRef, item);
@@ -68,9 +113,27 @@ export function useFirebaseSync(path, defaultValue = []) {
       console.error('Firebase add error:', err);
       setError(err);
     }
-  }, [path]);
+  }, [path, isOnline, offlineKey]);
 
   const updateItem = useCallback(async (id, updates) => {
+    if (!isOnline) {
+      // Queue for later and update local state
+      OfflineQueue.add({
+        type: 'update',
+        path,
+        data: { id, updates }
+      });
+      
+      setData(currentData => {
+        const newData = currentData.map(item => 
+          item.id === id ? { ...item, ...updates } : item
+        );
+        OfflineStorage.set(offlineKey, newData);
+        return newData;
+      });
+      return;
+    }
+
     try {
       // Find the item to get its Firebase key
       const item = data.find(item => item.id === id);
@@ -82,9 +145,25 @@ export function useFirebaseSync(path, defaultValue = []) {
       console.error('Firebase item update error:', err);
       setError(err);
     }
-  }, [path, data]);
+  }, [path, data, isOnline, offlineKey]);
 
   const removeItem = useCallback(async (id) => {
+    if (!isOnline) {
+      // Queue for later and update local state
+      OfflineQueue.add({
+        type: 'remove',
+        path,
+        data: { id }
+      });
+      
+      setData(currentData => {
+        const newData = currentData.filter(item => item.id !== id);
+        OfflineStorage.set(offlineKey, newData);
+        return newData;
+      });
+      return;
+    }
+
     try {
       // Find the item to get its Firebase key
       const item = data.find(item => item.id === id);
@@ -96,7 +175,7 @@ export function useFirebaseSync(path, defaultValue = []) {
       console.error('Firebase remove error:', err);
       setError(err);
     }
-  }, [path, data]);
+  }, [path, data, isOnline, offlineKey]);
 
   return {
     data,
@@ -105,6 +184,7 @@ export function useFirebaseSync(path, defaultValue = []) {
     updateData,
     addItem,
     updateItem,
-    removeItem
+    removeItem,
+    isOnline
   };
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import LazyImage, { ImageSkeleton } from "./LazyImage";
 
 export default function WeatherWidget() {
   const [temp, setTemp] = useState(null);
@@ -68,12 +69,13 @@ export default function WeatherWidget() {
 
   return (
     <div className="flex items-center gap-3 text-3xl font-bold text-[#5A3210]">
-      <img
+      <LazyImage
         src={`/family-hub/weather/${iconFilename}`}
         alt={iconFilename.replace(".svg", "")}
         className="w-10 h-10 object-contain"
         style={{ filter: 'brightness(0) saturate(100%) invert(23%) sepia(63%) saturate(1027%) hue-rotate(20deg) brightness(94%) contrast(95%)' }}
         title={iconFilename.replace(".svg", "")}
+        placeholder={<ImageSkeleton className="w-10 h-10" />}
       />
       {temp !== null ? <span>{temp}°F</span> : <span>--°F</span>}
     </div>

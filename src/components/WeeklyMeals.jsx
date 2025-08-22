@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import SectionHeader from "./SectionHeader";
+import { useIsMobile } from "../hooks/useMediaQuery";
+import LazyImage, { ImageSkeleton } from "./LazyImage";
 
 export default function WeeklyMeals({ meals = {} }) {
   
@@ -76,6 +78,47 @@ export default function WeeklyMeals({ meals = {} }) {
     return () => clearInterval(interval);
   }, [currentBgPhoto, todayIdx]);
 
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    // Simplified mobile UI - just a list of meals
+    return (
+      <div className="w-full mb-6">
+        <SectionHeader title="Weekly Meal Plan" className="mb-4" />
+        <div className="bg-white rounded-lg p-4 shadow-sm border">
+          <div className="space-y-3">
+            {dayLabels.map((day, index) => {
+              const isPast = index < todayIdx;
+              const isToday = index === todayIdx;
+              
+              return (
+                <div 
+                  key={day}
+                  className={`flex justify-between items-center py-2 px-3 rounded ${
+                    isToday ? 'bg-green-50 border border-green-200' : 
+                    isPast ? 'opacity-60' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`text-sm font-medium ${
+                    isToday ? 'text-green-600' : 'text-gray-600'
+                  }`}>
+                    {isToday ? 'Today' : day}
+                  </div>
+                  <div className={`text-sm ${
+                    isToday ? 'text-green-800 font-medium' : 'text-gray-800'
+                  }`}>
+                    {mealNames[index]}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop UI - original complex design
   return (
     <div className="w-full mb-8 pt-8">
       <SectionHeader title="Weekly Meal Plan" className="mb-6" />

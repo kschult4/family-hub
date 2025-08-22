@@ -14,12 +14,24 @@
     <meta name="apple-mobile-web-app-title" content="Family Hub" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="mask-icon" href="/masked-icon.svg" color="#5A3210" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-    <!-- ✅ Google Fonts: Complete font family -->
+    <!-- Optimized Google Fonts with preconnect and font-display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@300;400;700&family=Calistoga&display=swap">
     <link
       href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@300;400;700&family=Calistoga&display=swap"
       rel="stylesheet"
-    />
+      media="print" onload="this.media='all'"
+    >
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@300;400;700&family=Calistoga&display=swap"
+        rel="stylesheet"
+      >
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

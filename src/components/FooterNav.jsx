@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import AddGroceryModal from "./AddGroceryModal";
-import AddTaskModal from "./AddTaskModal";
-import MealsModal from "./MealsModal";
+const AddGroceryModal = lazy(() => import("./AddGroceryModal"));
+const AddTaskModal = lazy(() => import("./AddTaskModal"));
+const MealsModal = lazy(() => import("./MealsModal"));
+import { useIsMobile } from "../hooks/useMediaQuery";
 
 export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems, meals }) {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const navItems = isMobile ? ["HOME", "ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
+  const isMobile = useIsMobile();
+  const navItems = isMobile ? ["ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
 
   const closeModal = () => setActiveModal(null);
@@ -22,9 +23,12 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
               <button
                 key={item}
                 onClick={() => onNavigate(item)}
-                className={`transition-opacity duration-200 ${
+                className={`touch-target touch-feedback transition-opacity duration-200 px-4 py-2 ${
                   item === current ? "opacity-100" : "opacity-60"
                 } font-condensed font-bold`}
+                aria-label={`Navigate to ${item.toLowerCase()} page`}
+                aria-current={item === current ? 'page' : undefined}
+                role="tab"
               >
                 {item}
               </button>
@@ -40,9 +44,11 @@ export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTa
         </div>
       </footer>
 
-      <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} onSave={onSaveGrocery} currentItems={groceryItems} />
-      <AddTaskModal isOpen={activeModal === "task"} task={null} onClose={closeModal} onSave={onSaveTask} />
-      <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} onSave={onSaveMeals} initialData={meals} />
+      <Suspense fallback={<div />}>
+        <AddGroceryModal isOpen={activeModal === "grocery"} onClose={closeModal} onSave={onSaveGrocery} currentItems={groceryItems} />
+        <AddTaskModal isOpen={activeModal === "task"} task={null} onClose={closeModal} onSave={onSaveTask} />
+        <MealsModal isOpen={activeModal === "meals"} onClose={closeModal} onSave={onSaveMeals} initialData={meals} />
+      </Suspense>
     </>
   );
 }
@@ -59,8 +65,11 @@ function FloatingButtonWithMenu({ onSelect }) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="w-20 h-20 rounded-full flex items-center justify-center text-white transition-transform duration-300 ease-in-out active:scale-95"
+        className="w-20 h-20 rounded-full flex items-center justify-center text-white touch-feedback transition-transform duration-300 ease-in-out"
         style={{ backgroundColor: "#B75634" }}
+        aria-label={open ? "Close add menu" : "Open add menu"}
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
         <motion.div
           initial={false}
@@ -93,13 +102,17 @@ function FloatingButtonWithMenu({ onSelect }) {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className="absolute bottom-20 left-0 w-56 bg-white rounded-xl shadow-lg p-6 text-left z-20"
+            role="menu"
+            aria-label="Add new item menu"
           >
             <div className="text-sm text-gray-500 mb-1 text-left pl-2">Create a new</div>
             <ul className="space-y-2 text-left">
               <li>
                 <button
                   onClick={e => { e.stopPropagation(); handleClick("grocery"); }}
-                  className="w-full text-left pl-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
+                  className="w-full text-left pl-2 py-3 rounded-lg hover:bg-gray-100 text-gray-800 font-medium touch-target touch-feedback"
+                  role="menuitem"
+                  aria-label="Add new grocery item"
                 >
                   Grocery Item
                 </button>
@@ -107,7 +120,9 @@ function FloatingButtonWithMenu({ onSelect }) {
               <li>
                 <button
                   onClick={e => { e.stopPropagation(); handleClick("task"); }}
-                  className="w-full text-left pl-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
+                  className="w-full text-left pl-2 py-3 rounded-lg hover:bg-gray-100 text-gray-800 font-medium touch-target touch-feedback"
+                  role="menuitem"
+                  aria-label="Add new task"
                 >
                   To-Do
                 </button>
@@ -115,7 +130,9 @@ function FloatingButtonWithMenu({ onSelect }) {
               <li>
                 <button
                   onClick={e => { e.stopPropagation(); handleClick("meals"); }}
-                  className="w-full text-left pl-2 py-2 rounded-lg hover:bg-gray-100 text-gray-800 font-medium"
+                  className="w-full text-left pl-2 py-3 rounded-lg hover:bg-gray-100 text-gray-800 font-medium touch-target touch-feedback"
+                  role="menuitem"
+                  aria-label="Add weekly meal plan"
                 >
                   Weekly Meal Plan
                 </button>
@@ -132,7 +149,7 @@ function FloatingMicButton() {
   return (
     <button
       onClick={() => {}}
-      className="w-20 h-20 rounded-full flex items-center justify-center text-black transition-transform duration-100 ease-in-out active:scale-95"
+      className="w-20 h-20 rounded-full flex items-center justify-center text-black touch-feedback transition-transform duration-100 ease-in-out"
       style={{ backgroundColor: "#EFB643" }}
     >
       <svg
