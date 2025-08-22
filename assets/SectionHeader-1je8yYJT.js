@@ -1,0 +1,1 @@
+import{j as e}from"./motion-DtcReM-G.js";function r({title:t,rightSlot:s=null,className:n=""}){return e.jsxs("div",{className:`flex justify-between items-center mb-block ${n}`,children:[e.jsx("h2",{className:"text-[36px] font-serif text-[#5A3210]",children:t}),s&&e.jsx("div",{children:s})]})}export{r as S};
