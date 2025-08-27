@@ -3,16 +3,13 @@ import { lazy, Suspense } from "react";
 
 // Lazy load dashboard views for better code splitting
 const AlertsDashboard = lazy(() => import("../views/AlertsDashboard"));
-const HomeDashboard = lazy(() => import("../views/HomeDashboard"));
-
-function FamilyDashboard() {
-  return <div className="text-center p-10 text-xl">❌ WRONG COMPONENT: Family Dashboard (this should not show for HOME tab)</div>;
-}
+const NetworkAwareHomeDashboard = lazy(() => import("../components/NetworkAwareHomeDashboard"));
+const FamilyView = lazy(() => import("../views/FamilyView"));
 
 const views = {
   ALERTS: AlertsDashboard,
-  HOME: HomeDashboard,
-  FAMILY: FamilyDashboard,
+  HOME: NetworkAwareHomeDashboard,
+  FAMILY: FamilyView,
 };
 
 export default function DashboardView({ 

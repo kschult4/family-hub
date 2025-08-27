@@ -6,12 +6,14 @@ const AddTaskModal = lazy(() => import("./AddTaskModal"));
 const MealsModal = lazy(() => import("./MealsModal"));
 const VoiceControlModal = lazy(() => import("./VoiceControlModal"));
 import { useIsMobile } from "../hooks/useMediaQuery";
+import { useNetworkLocation } from "../hooks/useNetworkLocation";
 import { useVoiceRecognition } from "../hooks/useVoiceRecognition";
 import { useVoiceCommands } from "../hooks/useVoiceCommands";
 
 export default function FooterNav({ current, onNavigate, onSaveGrocery, onSaveTask, onSaveMeals, groceryItems, meals }) {
   const isMobile = useIsMobile();
-  const navItems = isMobile ? ["ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
+  const { shouldShowAllTabs, shouldShowMobileOnly } = useNetworkLocation();
+  const navItems = shouldShowMobileOnly ? ["ALERTS"] : ["ALERTS", "HOME", "FAMILY"];
   const [activeModal, setActiveModal] = useState(null);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [processingCommand, setProcessingCommand] = useState(false);
