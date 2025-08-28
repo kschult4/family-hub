@@ -37,9 +37,11 @@ export function useNetworkLocation() {
                        hostname.startsWith('172.31');
     const isLocalDomain = hostname.includes('.local') || hostname.includes('.lan');
     const isFileProtocol = protocol === 'file:';
+    const isGitHubPages = hostname.includes('github.io');
     
-    // Consider it home network if any local indicators are present
-    const isHome = isLocalHost || isPrivateIP || isLocalDomain || isFileProtocol;
+    // Consider it home network if any local indicators OR GitHub Pages are present
+    // GitHub Pages deployment should have full access (no HA but no "away" message)
+    const isHome = isLocalHost || isPrivateIP || isLocalDomain || isFileProtocol || isGitHubPages;
     
     console.log('🏠 Network detection:', {
       hostname,
@@ -48,6 +50,7 @@ export function useNetworkLocation() {
       isPrivateIP,
       isLocalDomain,
       isFileProtocol,
+      isGitHubPages,
       isHome
     });
     

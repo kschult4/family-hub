@@ -145,6 +145,11 @@ export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems 
                 placeholder="e.g. Bananas"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                autoComplete="off"
+                autoCapitalize="words"
+                autoCorrect="on"
+                spellCheck="true"
+                inputMode="text"
               />
             </div>
 

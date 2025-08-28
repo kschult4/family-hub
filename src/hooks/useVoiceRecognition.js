@@ -14,7 +14,7 @@ export function useVoiceRecognition() {
     // Check for Web Speech API support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-    if (SpeechRecognition) {
+    if (SpeechRecognition && 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
       setIsSupported(true);
       
       const recognition = new SpeechRecognition();
@@ -42,7 +42,24 @@ export function useVoiceRecognition() {
       
       recognition.onerror = (event) => {
         console.error('❌ Voice recognition error:', event.error);
-        setError(event.error);
+        let errorMessage;
+        switch(event.error) {
+          case 'not-allowed':
+            errorMessage = 'Microphone access denied. Please enable microphone permissions.';
+            break;
+          case 'no-speech':
+            errorMessage = 'No speech detected. Please try again.';
+            break;
+          case 'network':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          case 'aborted':
+            errorMessage = 'Voice recognition was stopped.';
+            break;
+          default:
+            errorMessage = `Voice recognition error: ${event.error}`;
+        }
+        setError(errorMessage);
         setIsListening(false);
       };
       
@@ -74,33 +91,29 @@ export function useVoiceRecognition() {
     }
 
     try {
-      // Request microphone permissions silently (for future computer vision)
-      // Don't block on video permission failure - just need audio
+      // Check if we're on HTTPS (required for Web Speech API in production)
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        setError('Voice control requires HTTPS connection');
+        return;
+      }
+
+      // Request audio permission only (simplified for reliability)
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: true, 
-          video: true // Request video for future computer vision features
-        });
-        mediaStreamRef.current = stream;
-      } catch (videoErr) {
-        // If video fails, try audio only
-        console.log('📹 Video permission not granted, using audio only');
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaStreamRef.current = audioStream;
-        } catch (audioErr) {
-          console.error('❌ Audio permission denied:', audioErr);
-          setError('Microphone access required for voice control');
-          return;
-        }
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = audioStream;
+        console.log('🎤 Audio permission granted');
+      } catch (audioErr) {
+        console.error('❌ Audio permission denied:', audioErr);
+        setError('Microphone access required for voice control');
+        return;
       }
       
       // Start voice recognition
       recognitionRef.current.start();
       
     } catch (err) {
-      console.error('❌ Failed to access microphone:', err);
-      setError('Microphone access required');
+      console.error('❌ Failed to start voice recognition:', err);
+      setError('Failed to start voice recognition');
     }
   }, [isSupported]);
 

@@ -2,6 +2,14 @@ import { useNetworkLocation } from '../hooks/useNetworkLocation';
 import HomeDashboard from '../views/HomeDashboard';
 
 function AwayFromHomeMessage() {
+  const hostname = window.location.hostname.toLowerCase();
+  const isGitHubPages = hostname.includes('github.io');
+  
+  // Don't show "away" message on GitHub Pages - show the actual dashboard with mock data
+  if (isGitHubPages) {
+    return null; // This will cause the full HomeDashboard to render instead
+  }
+  
   return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="text-center max-w-md mx-auto p-8 bg-blue-50 rounded-lg border border-blue-200">
@@ -26,8 +34,15 @@ function AwayFromHomeMessage() {
 
 export default function NetworkAwareHomeDashboard(props) {
   const { canAccessDashboard } = useNetworkLocation();
+  const hostname = window.location.hostname.toLowerCase();
+  const isGitHubPages = hostname.includes('github.io');
   
-  // Show unavailable message when away from home
+  // Always show full dashboard on GitHub Pages (with mock data)
+  if (isGitHubPages) {
+    return <HomeDashboard {...props} />;
+  }
+  
+  // Show unavailable message when away from home (non-GitHub Pages)
   if (!canAccessDashboard) {
     return <AwayFromHomeMessage />;
   }
