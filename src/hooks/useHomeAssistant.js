@@ -4,14 +4,10 @@ import { createWebSocketConnection } from '../services/haWebSocket';
 import { mockStates, updateMockDeviceState } from '../config/mockHomeAssistantData';
 
 export function useHomeAssistant(config = {}) {
-  // Force mock data on GitHub Pages or when no proper HA config exists
-  const isGitHubPages = window.location.hostname.includes('github.io');
-  const hasValidHaConfig = import.meta.env.VITE_HA_BASE_URL && import.meta.env.VITE_HA_TOKEN;
-  
   const {
     baseUrl = import.meta.env.VITE_HA_BASE_URL || 'http://localhost:8123',
     token = import.meta.env.VITE_HA_TOKEN || '',
-    useMockData = isGitHubPages || !hasValidHaConfig || import.meta.env.VITE_USE_MOCK_HA !== 'false'
+    useMockData = import.meta.env.VITE_USE_MOCK_HA === 'true'
   } = config;
 
   const [devices, setDevices] = useState([]);
@@ -118,7 +114,7 @@ export function useHomeAssistant(config = {}) {
 
   const setupWebSocket = useCallback(async () => {
     if (useMockData || !baseUrl || !token) {
-      console.log('🎭 Using mock Home Assistant data (GitHub Pages or no HA config)');
+      console.log('🎭 Using mock Home Assistant data or missing credentials');
       return;
     }
 
