@@ -18,15 +18,19 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Completely disable custom keyboard by default (v2024.1.17)
-      // Only enable with explicit localStorage flag for Raspberry Pi
-      const enableCustomKeyboard = false; // Force disable regardless of localStorage
+      // Enable custom keyboard on mobile devices for better reliability
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                      (window.innerWidth <= 768);
+      const enableCustomKeyboard = isMobile;
       
       if (enableCustomKeyboard) {
         setShowKeyboard(true);
         inputRef.current?.blur(); // Don't show system keyboard
       } else {
-        inputRef.current.focus();
+        // For desktop, focus input for native keyboard
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100); // Small delay to ensure modal is fully rendered
       }
     }
   }, [isOpen]);

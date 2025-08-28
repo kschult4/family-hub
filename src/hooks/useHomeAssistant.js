@@ -4,14 +4,19 @@ import { createWebSocketConnection } from '../services/haWebSocket';
 import { mockStates, updateMockDeviceState } from '../config/mockHomeAssistantData';
 
 export function useHomeAssistant(config = {}) {
+  // Force mock data on GitHub Pages or when no proper HA config exists
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  const hasValidHaConfig = import.meta.env.VITE_HA_BASE_URL && import.meta.env.VITE_HA_TOKEN;
+  
   const {
     baseUrl = import.meta.env.VITE_HA_BASE_URL || 'http://localhost:8123',
     token = import.meta.env.VITE_HA_TOKEN || '',
-    useMockData = import.meta.env.VITE_USE_MOCK_HA !== 'false'
+    useMockData = isGitHubPages || !hasValidHaConfig || import.meta.env.VITE_USE_MOCK_HA !== 'false'
   } = config;
 
   const [devices, setDevices] = useState([]);
   const [scenes, setScenes] = useState([]);
+  const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -32,6 +37,12 @@ export function useHomeAssistant(config = {}) {
     );
   }, []);
 
+  const filterPeople = useCallback((states) => {
+    return states.filter(state => 
+      ['person', 'device_tracker', 'zone'].includes(state.entity_id.split('.')[0])
+    );
+  }, []);
+
   const loadStates = useCallback(async () => {
     try {
       console.log('🚀 Starting loadStates...', { useMockData, baseUrl: !!baseUrl, token: !!token });
@@ -43,10 +54,12 @@ export function useHomeAssistant(config = {}) {
         console.log('📊 Using mock data mode');
         const allDevices = filterDevices(mockStates);
         const allScenes = filterScenes(mockStates);
+        const allPeople = filterPeople(mockStates);
         
         
         setDevices(allDevices);
         setScenes(allScenes);
+        setPeople(allPeople);
         setIsConnected(true);
         setLoading(false);
         return;
@@ -68,12 +81,18 @@ export function useHomeAssistant(config = {}) {
       
       const allDevices = filterDevices(states);
       const allScenes = filterScenes(states);
+      const allPeople = filterPeople(states);
       
       console.log('🔍 Home Assistant data loaded:', {
         totalStates: states.length,
         devices: allDevices.length,
         scenes: allScenes.length,
+        people: allPeople.length,
         deviceTypes: allDevices.map(d => d.entity_id.split('.')[0]).reduce((acc, type) => {
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {}),
+        peopleTypes: allPeople.map(p => p.entity_id.split('.')[0]).reduce((acc, type) => {
           acc[type] = (acc[type] || 0) + 1;
           return acc;
         }, {})
@@ -81,6 +100,7 @@ export function useHomeAssistant(config = {}) {
       
       setDevices(allDevices);
       setScenes(allScenes);
+      setPeople(allPeople);
       setIsConnected(true);
       setLoading(false);
     } catch (err) {
@@ -92,11 +112,15 @@ export function useHomeAssistant(config = {}) {
       // Fallback to empty arrays to prevent UI crashes
       setDevices([]);
       setScenes([]);
+      setPeople([]);
     }
-  }, [baseUrl, token, useMockData, filterDevices, filterScenes]);
+  }, [baseUrl, token, useMockData, filterDevices, filterScenes, filterPeople]);
 
   const setupWebSocket = useCallback(async () => {
-    if (useMockData || !baseUrl || !token) return;
+    if (useMockData || !baseUrl || !token) {
+      console.log('🎭 Using mock Home Assistant data (GitHub Pages or no HA config)');
+      return;
+    }
 
     try {
       wsRef.current = createWebSocketConnection(baseUrl, token);
@@ -120,6 +144,14 @@ export function useHomeAssistant(config = {}) {
               scene.entity_id === entityId 
                 ? { ...newState }
                 : scene
+            )
+          );
+        } else if (['person', 'device_tracker', 'zone'].includes(domain)) {
+          setPeople(prevPeople => 
+            prevPeople.map(person => 
+              person.entity_id === entityId 
+                ? { ...newState }
+                : person
             )
           );
         }
@@ -282,6 +314,7 @@ export function useHomeAssistant(config = {}) {
   return {
     devices,
     scenes,
+    people,
     loading,
     error,
     toggleDevice,
