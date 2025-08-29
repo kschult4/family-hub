@@ -264,7 +264,7 @@ class RingMqttClient {
 // Create singleton instance
 export const ringMqttClient = new RingMqttClient();
 
-// Auto-connect when the service is imported
-ringMqttClient.connect();
+// MQTT client disabled - no longer using MQTT for IoT devices
+// ringMqttClient.connect();
 
 export default ringMqttClient;

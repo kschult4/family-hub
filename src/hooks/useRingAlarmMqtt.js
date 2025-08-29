@@ -8,23 +8,15 @@ export function useRingAlarmMqtt() {
   const [sensorStatuses, setSensorStatuses] = useState([]);
 
   useEffect(() => {
-    console.log('🔧 Setting up Ring MQTT alarm integration...');
+    console.log('🔧 Ring MQTT disabled - no longer using MQTT for IoT devices');
     
-    setIsConnected(ringMqttClient.isConnected);
+    // MQTT integration disabled - return mock/empty state
+    setIsConnected(false);
+    setAlarmStatus('disarmed');
 
-    // Subscribe to Ring alarm MQTT events
-    const unsubscribe = ringMqttClient.subscribe((data) => {
-      console.log('🚨 Ring MQTT alarm event received:', data);
-      
-      // Handle different Ring alarm topics
-      if (data.topic?.includes('/alarm/') || data.topic?.includes('/motion/')) {
-        handleAlarmEvent(data);
-      }
-    });
-
+    // No actual MQTT connection or subscription
     return () => {
-      console.log('🔌 Cleaning up Ring MQTT alarm subscription');
-      unsubscribe();
+      console.log('🔌 Ring MQTT cleanup (disabled)');
     };
   }, []);
 
