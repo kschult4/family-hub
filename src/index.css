@@ -596,7 +596,7 @@ body {
 
 /* === Raw CSS (outside @layer) === */
 .texture-overlay {
-  background-image: url("/family-hub/BackgroundTexture.svg");
+  background-image: url("/BackgroundTexture.svg");
   background-repeat: repeat;
   background-size: 160px 160px;
   opacity: 1;
@@ -605,13 +605,13 @@ body {
 
 .texture-overlay-tint {
   background-color: #B75634;
-  background-image: url("/family-hub/BackgroundTexture.svg");
+  background-image: url("/BackgroundTexture.svg");
   background-repeat: repeat;
   background-size: 240px;
-  mask-image: url("/family-hub/BackgroundTexture.svg");
+  mask-image: url("/BackgroundTexture.svg");
   mask-repeat: repeat;
   mask-size: 240px;
-  -webkit-mask-image: url("/family-hub/BackgroundTexture.svg");
+  -webkit-mask-image: url("/BackgroundTexture.svg");
   -webkit-mask-repeat: repeat;
   -webkit-mask-size: 240px;
   mix-blend-mode: multiply;

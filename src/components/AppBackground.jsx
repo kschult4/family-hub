@@ -9,7 +9,7 @@ export default function AppBackground({ children }) {
         {[...Array(9)].map((_, i) => (
           <img
             key={i}
-            src="/family-hub/PatternBG.svg"
+            src="/PatternBG.svg"
             alt=""
             className="w-full h-full object-cover"
             draggable="false"
