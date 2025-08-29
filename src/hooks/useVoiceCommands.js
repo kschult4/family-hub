@@ -168,11 +168,11 @@ export function useVoiceCommands() {
             if (shouldSpecial) {
               const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
               const BACKGROUND_PATTERNS = [
-                "/family-hub/watermarks/Bowl.svg",
-                "/family-hub/watermarks/Cheese.svg", 
-                "/family-hub/watermarks/Lemons.svg",
-                "/family-hub/watermarks/Lettuce.svg",
-                "/family-hub/watermarks/Strawberries.svg"
+                "/watermarks/Bowl.svg",
+                "/watermarks/Cheese.svg", 
+                "/watermarks/Lemons.svg",
+                "/watermarks/Lettuce.svg",
+                "/watermarks/Strawberries.svg"
               ];
               
               bgColor = SPECIAL_COLORS[Math.floor(Math.random() * SPECIAL_COLORS.length)];

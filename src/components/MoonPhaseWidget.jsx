@@ -30,7 +30,7 @@ export default function MoonPhaseWidget() {
   return (
     <div className="flex items-center gap-2 text-3xl font-bold text-[#5A3210]">
       <LazyImage
-        src={`/family-hub/moon/${moonPhase.icon}`}
+        src={`/moon/${moonPhase.icon}`}
         alt={moonPhase.name}
         title={moonPhase.name}
         className="w-10 h-10 object-contain"

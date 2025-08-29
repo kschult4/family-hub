@@ -25,11 +25,11 @@ function getContrast(hex1, hex2) {
 const SPECIAL_COLORS = ["#5398cb", "#6d3231", "#48af55", "#0b3d42", "#caccad"];
 
 const BACKGROUND_PATTERNS = [
-  "/family-hub/watermarks/Bowl.svg",
-  "/family-hub/watermarks/Cheese.svg",
-  "/family-hub/watermarks/Lemons.svg",
-  "/family-hub/watermarks/Lettuce.svg",
-  "/family-hub/watermarks/Strawberries.svg"
+  "/watermarks/Bowl.svg",
+  "/watermarks/Cheese.svg",
+  "/watermarks/Lemons.svg",
+  "/watermarks/Lettuce.svg",
+  "/watermarks/Strawberries.svg"
 ];
 
 export default function AddGroceryModal({ isOpen, onClose, onSave, currentItems = [] }) {

@@ -35,7 +35,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should only show ALERTS tab on mobile', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0',
         timeout: 30000 
       });
@@ -59,7 +59,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should not render Header component on mobile', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -69,7 +69,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should show grocery lists and tasks in ALERTS view', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -89,7 +89,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should show all tabs (ALERTS, HOME, FAMILY) on large screens', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -112,7 +112,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should render Header component on large screens', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -127,7 +127,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should have header positioned with margin-top spacing', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -143,7 +143,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should detect localhost as home network', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -169,7 +169,7 @@ describe('Family Hub Hybrid Architecture', () => {
     });
 
     it('should allow navigation between all tabs on large screens', async () => {
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -203,7 +203,7 @@ describe('Family Hub Hybrid Architecture', () => {
         errors.push(err.message);
       });
 
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 
@@ -215,7 +215,7 @@ describe('Family Hub Hybrid Architecture', () => {
 
     it('should have proper accessibility attributes', async () => {
       await page.setViewport({ width: 1024, height: 768 });
-      await page.goto('http://localhost:5173/family-hub/', { 
+      await page.goto('http://localhost:5173/', { 
         waitUntil: 'networkidle0' 
       });
 

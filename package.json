@@ -2,7 +2,7 @@
   "name": "family-hub-starter",
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://kschult4.github.io/family-hub/",
+  "homepage": "https://ha.kyle-schultz.com/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -278,7 +278,54 @@ export const mockScenes = [
   }
 ];
 
-export const mockStates = [...mockDevices, ...mockScenes];
+export const mockPeople = [
+  {
+    entity_id: "person.mom",
+    state: "home",
+    attributes: {
+      friendly_name: "Mom",
+      latitude: 40.7829, // Home coordinates (example)
+      longitude: -73.9654,
+      gps_accuracy: 12,
+      source: "device_tracker.mom_phone",
+      user_id: "mom_user_id",
+      id: "mom"
+    },
+    last_changed: "2024-01-15T09:00:00.000000+00:00",
+    last_updated: "2024-01-15T09:00:00.000000+00:00"
+  },
+  {
+    entity_id: "person.dad",
+    state: "away",
+    attributes: {
+      friendly_name: "Dad", 
+      latitude: 40.7589, // Away coordinates (example - downtown)
+      longitude: -73.9851,
+      gps_accuracy: 8,
+      source: "device_tracker.dad_phone",
+      user_id: "dad_user_id",
+      id: "dad"
+    },
+    last_changed: "2024-01-15T08:30:00.000000+00:00",
+    last_updated: "2024-01-15T14:25:00.000000+00:00"
+  },
+  {
+    entity_id: "zone.home",
+    state: "2", // Number of people in zone
+    attributes: {
+      friendly_name: "Home",
+      latitude: 40.7829,
+      longitude: -73.9654,
+      radius: 100,
+      passive: false,
+      persons: ["person.mom"]
+    },
+    last_changed: "2024-01-15T09:00:00.000000+00:00", 
+    last_updated: "2024-01-15T14:25:00.000000+00:00"
+  }
+];
+
+export const mockStates = [...mockDevices, ...mockScenes, ...mockPeople];
 
 export function getMockDevicesByDomain(domain) {
   return mockStates.filter(device => device.entity_id.startsWith(`${domain}.`));

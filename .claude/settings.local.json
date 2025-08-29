@@ -17,7 +17,12 @@
       "Bash(git remote get-url:*)",
       "Bash(git remote set-url:*)",
       "Bash(git push:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "WebSearch",
+      "Bash(git merge:*)",
+      "Bash(git add:*)",
+      "Bash(npm test)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

@@ -491,10 +491,10 @@ body {
     top: -25%;
     left: -25%;
     transform-origin: center center;
-    mask-image: url("/family-hub/PatternBG.svg");
+    mask-image: url("/PatternBG.svg");
     mask-repeat: repeat;
     mask-size: 33.33% 33.33%;
-    -webkit-mask-image: url("/family-hub/PatternBG.svg");
+    -webkit-mask-image: url("/PatternBG.svg");
     -webkit-mask-repeat: repeat;
     -webkit-mask-size: 33.33% 33.33%;
   }

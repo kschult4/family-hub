@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const baseUrl = env.VITE_BASE_URL || "/family-hub/";
+  const baseUrl = env.VITE_BASE_URL || "/";
   
   return {
   base: baseUrl,
@@ -50,8 +50,8 @@ export default defineConfig(({ mode }) => {
         background_color: '#F7E4C3',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: baseUrl,
-        scope: baseUrl,
+        start_url: "/",
+        scope: "/",
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -77,6 +77,7 @@ export default defineConfig(({ mode }) => {
           }
         ]
       },
+      selfDestroying: true,
       workbox: {
         cleanupOutdatedCaches: true,
         skipWaiting: true,
