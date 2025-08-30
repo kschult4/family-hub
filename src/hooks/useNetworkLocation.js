@@ -38,7 +38,7 @@ export function useNetworkLocation() {
     const isLocalDomain = hostname.includes('.local') || hostname.includes('.lan');
     const isFileProtocol = protocol === 'file:';
     const isGitHubPages = hostname.includes('github.io');
-    const isTunnelHostname = hostname === 'ha.kyle-schultz.com';
+    const isTunnelHostname = hostname === 'ha.kyle-schultz.com' || hostname === 'www.ha.kyle-schultz.com';
     
     // Consider it home network if any local indicators OR GitHub Pages OR tunnel hostname are present
     // GitHub Pages and tunnel deployments should have full access (no "away" message)
@@ -86,7 +86,14 @@ export function useNetworkLocation() {
   }, []);
 
   // Device and network-based capabilities
-  const canAccessDashboard = isLargeScreen && networkStatus.isHomeNetwork;
+  // Allow dashboard access when on home network OR when it's the tunnel hostname
+  const canAccessDashboard = networkStatus.isHomeNetwork;
+  
+  console.log('🔧 canAccessDashboard debug:', { 
+    isHomeNetwork: networkStatus.isHomeNetwork, 
+    canAccessDashboard,
+    hostname: window.location.hostname 
+  });
   const shouldShowAllTabs = isLargeScreen; // Large screens always show all tabs
   const shouldShowMobileOnly = isMobile; // Mobile devices get limited tabs
 

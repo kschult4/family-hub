@@ -17,7 +17,7 @@ import { useNetworkLocation } from "./hooks/useNetworkLocation";
 import { useIsMobile } from "./hooks/useMediaQuery";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState("ALERTS");
+  const [currentTab, setCurrentTab] = useState("HOME");
   const isMobile = useIsMobile();
   const { canAccessDashboard, isHomeNetwork } = useNetworkLocation();
   

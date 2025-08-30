@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const baseUrl = env.VITE_BASE_URL || "/";
   
   return {
-  base: baseUrl,
+  base: "/",
   build: {
     target: 'es2015', // Better compatibility with older browsers
     modulePreload: {
