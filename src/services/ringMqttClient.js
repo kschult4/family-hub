@@ -9,7 +9,7 @@ class RingMqttClient {
     this.lastMotionEvents = new Map();
     
     // Get MQTT broker URL from environment or use default
-    this.brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://192.168.1.100:1883';
+    this.brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://hub.kyle-schultz.com:1883';
   }
 
   connect() {
