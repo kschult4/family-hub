@@ -24,7 +24,8 @@
       "Bash(npm test)",
       "Bash(git commit:*)",
       "Bash(cat:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm ci)"
     ],
     "deny": [],
     "ask": []
