@@ -24,18 +24,6 @@ export default defineConfig(({ mode }) => {
     },
     chunkSizeWarningLimit: 1000
   },
-  server: {
-    proxy: {
-      '/api/ha': {
-        target: env.VITE_HA_BASE_URL || 'http://localhost:8123',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ha/, ''),
-        headers: {
-          'Authorization': `Bearer ${env.VITE_HA_TOKEN || ''}`
-        }
-      }
-    }
-  },
   plugins: [
     react(),
     VitePWA({

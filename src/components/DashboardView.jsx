@@ -3,12 +3,10 @@ import { lazy, Suspense } from "react";
 
 // Lazy load dashboard views for better code splitting
 const AlertsDashboard = lazy(() => import("../views/AlertsDashboard"));
-const NetworkAwareHomeDashboard = lazy(() => import("../components/NetworkAwareHomeDashboard"));
 const FamilyView = lazy(() => import("../views/FamilyView"));
 
 const views = {
   ALERTS: AlertsDashboard,
-  HOME: NetworkAwareHomeDashboard,
   FAMILY: FamilyView,
 };
 

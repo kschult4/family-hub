@@ -2,9 +2,6 @@ import '@testing-library/jest-dom'
 import { vi, beforeEach } from 'vitest'
 
 // Mock environment variables for tests
-import.meta.env.VITE_HA_BASE_URL = 'http://homeassistant.local:8123'
-import.meta.env.VITE_HA_TOKEN = 'test_token_123'
-import.meta.env.VITE_USE_MOCK_HA = 'true'
 import.meta.env.DEV = true
 
 // Mock environment variables

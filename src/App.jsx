@@ -6,30 +6,16 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 // Lazy load heavy components for better code splitting
 const DashboardView = lazy(() => import("./components/DashboardView"));
-const MotionCameraModal = lazy(() => import("./components/home/MotionCameraModal"));
 const AddGroceryModal = lazy(() => import("./components/AddGroceryModal"));
 const AddTaskModal = lazy(() => import("./components/AddTaskModal"));
 const MealsModal = lazy(() => import("./components/MealsModal"));
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
-import { useHomeAssistant } from "./hooks/useHomeAssistant";
-import { useMotionDetection } from "./hooks/useMotionDetection";
-import { useNetworkLocation } from "./hooks/useNetworkLocation";
 import { useIsMobile } from "./hooks/useMediaQuery";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState("HOME");
+  const [currentTab, setCurrentTab] = useState("ALERTS");
   const isMobile = useIsMobile();
-  const { canAccessDashboard, isHomeNetwork } = useNetworkLocation();
-  
-  // Home Assistant integration for camera motion detection
-  // Only initialize HA when we can access the dashboard
-  const { devices } = useHomeAssistant({
-    // Skip HA initialization when not on home network
-    useMockData: !canAccessDashboard
-  });
-  const cameras = devices?.filter(d => d.entity_id.startsWith('camera.')) || [];
-  const { camerasWithMotion, clearAllMotion, triggerMotion, hasActiveMotion } = useMotionDetection(cameras);
-  
+
   // Use Firebase for real-time synchronization
   const {
     data: groceryItems,
@@ -121,28 +107,16 @@ export default function App() {
             </Suspense>
           </main>
 
-          <FooterNav 
-            current={currentTab} 
-            onNavigate={setCurrentTab} 
-            onSaveGrocery={handleSaveGrocery} 
-            onSaveTask={handleSaveTask} 
-            onSaveMeals={handleSaveMeals} 
-            groceryItems={groceryItems} 
-            meals={meals} 
+          <FooterNav
+            current={currentTab}
+            onNavigate={setCurrentTab}
+            onSaveGrocery={handleSaveGrocery}
+            onSaveTask={handleSaveTask}
+            onSaveMeals={handleSaveMeals}
+            groceryItems={groceryItems}
+            meals={meals}
           />
         </div>
-
-        {/* Motion Detection Modal - appears across all dashboard views - only when at home */}
-        {canAccessDashboard && (
-          <Suspense fallback={null}>
-            <MotionCameraModal
-              camerasWithMotion={camerasWithMotion}
-              onClose={clearAllMotion}
-              isVisible={hasActiveMotion}
-              autoCloseDelay={60000}
-            />
-          </Suspense>
-        )}
 
       </AppBackground>
     </ErrorBoundary>

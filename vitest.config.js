@@ -9,9 +9,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     env: {
-      VITE_HA_BASE_URL: 'http://homeassistant.local:8123',
-      VITE_HA_TOKEN: 'test_token_123',
-      VITE_USE_MOCK_HA: 'true',
       VITE_DEBUG: 'false',
       NODE_ENV: 'test'
     },

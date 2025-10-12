@@ -37,14 +37,12 @@ export function useNetworkLocation() {
                        hostname.startsWith('172.31');
     const isLocalDomain = hostname.includes('.local') || hostname.includes('.lan');
     const isFileProtocol = protocol === 'file:';
-    const isGitHubPages = hostname.includes('github.io');
-    const isTunnelHostname = hostname === 'ha.kyle-schultz.com' || 
-                        hostname === 'www.ha.kyle-schultz.com' ||
-                        hostname === 'hub.kyle-schultz.com';
-    
-    // Consider it home network if any local indicators OR GitHub Pages OR tunnel hostname are present
-    // GitHub Pages and tunnel deployments should have full access (no "away" message)
-    const isHome = isLocalHost || isPrivateIP || isLocalDomain || isFileProtocol || isGitHubPages || isTunnelHostname;
+    const isProductionDomain = hostname === 'ha.kyle-schultz.com' ||
+                        hostname === 'www.ha.kyle-schultz.com';
+
+    // Consider it home network if any local indicators OR production domain are present
+    // Production deployments should have full access (no "away" message)
+    const isHome = isLocalHost || isPrivateIP || isLocalDomain || isFileProtocol || isProductionDomain;
     
     console.log('🏠 Network detection:', {
       hostname,
@@ -53,8 +51,7 @@ export function useNetworkLocation() {
       isPrivateIP,
       isLocalDomain,
       isFileProtocol,
-      isGitHubPages,
-      isTunnelHostname,
+      isProductionDomain,
       isHome
     });
     
