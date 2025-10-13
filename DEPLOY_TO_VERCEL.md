@@ -202,5 +202,5 @@ npm run build
 Your app is fully prepared for deployment. Choose either Option 1 (CLI) or Option 2 (GitHub) above and you'll be live in minutes!
 
 **Questions?** Check [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
-
+    
 Good luck! 🚀
