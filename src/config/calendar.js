@@ -5,6 +5,14 @@
 // 3. Enable Google Calendar API
 // 4. Create credentials (API Key for public calendars, OAuth2 for private)
 
+// Debug logging to verify environment variables are loaded
+console.log('Calendar Config - Environment Variables Check:', {
+  apiKey: import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY ? 'SET' : 'NOT SET',
+  calendarId: import.meta.env.VITE_CALENDAR_ID ? 'SET' : 'NOT SET',
+  apiKeyValue: import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY?.substring(0, 10) + '...',
+  calendarIdValue: import.meta.env.VITE_CALENDAR_ID
+});
+
 export const CALENDAR_CONFIG = {
   // Replace with your Google Calendar API key
   API_KEY: import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY,
