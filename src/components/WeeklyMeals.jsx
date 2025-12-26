@@ -21,10 +21,14 @@ export default function WeeklyMeals({ meals = {} }) {
 
   const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
-  // Use meals from props or default meals
-  const mealNames = dayLabels.map((day, index) => 
-    meals[day] || defaultMealNames[index]
-  );
+  const getMealName = (meal) => {
+    if (!meal) return 'No meal planned';
+    if (typeof meal === 'string') return meal;
+    return meal.name || 'No meal planned';
+  };
+
+  // Use meals from props, supporting legacy strings and object format
+  const mealNames = dayLabels.map((day) => getMealName(meals[day]));
 
   // All available background images
   const allBgImages = [
