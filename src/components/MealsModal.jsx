@@ -12,6 +12,14 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
   const firstInputRef = useRef(null);
   const keyboardRef = useRef(null);
 
+  // Update formData when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      console.log('MealsModal: initialData received:', initialData);
+      setFormData(initialData);
+    }
+  }, [initialData]);
+
   useEffect(() => {
     if (isOpen && firstInputRef.current) {
       // Completely disable custom keyboard by default (v2024.1.17)
@@ -30,6 +38,13 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
   }, [isOpen]);
 
   if (!isOpen) return null; // ✅ Don't render if not open
+
+  // Helper function to get meal name (handles both string and object formats)
+  const getMealName = (meal) => {
+    if (!meal) return 'No meal planned';
+    if (typeof meal === 'string') return meal;
+    return meal.name || 'No meal planned';
+  };
 
   const handleChange = (day, value) => {
     setFormData({ ...formData, [day]: value });
@@ -69,9 +84,17 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Only save weekend data (Saturday & Sunday), preserve weekday data from initialData
+    const weekendData = {
+      ...initialData, // Keep existing weekday meals (Monday-Friday)
+      Saturday: formData.Saturday || "",
+      Sunday: formData.Sunday || ""
+    };
+
     console.log('MealsModal: handleSubmit called with formData:', formData);
-    console.log('MealsModal: calling onSave with:', formData);
-    onSave?.(formData);
+    console.log('MealsModal: calling onSave with weekend data only:', weekendData);
+    onSave?.(weekendData);
     onClose();
     setShowKeyboard(false);
   };
@@ -84,38 +107,62 @@ export default function MealsModal({ isOpen, initialData, onClose, onSave }) {
           className="bg-card rounded-xl shadow-modal p-6 w-full max-w-md"
           style={{ marginBottom: showKeyboard ? '300px' : '0' }}
         >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Edit Weekly Meals</h2>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                setShowKeyboard(false);
-              }}
-              className="text-gray-500 hover:text-gray-700 text-2xl font-light"
-            >
-              ✕
-            </button>
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-bold">Edit Weekly Meals</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  setShowKeyboard(false);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-light"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-gray-600">
+              Weekday meals (Mon-Fri) are auto-generated. Edit weekend meals below.
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto scrollbar-hide">
-            {daysOfWeek.map((day) => (
-              <div key={day}>
-                <label className="block text-sm font-medium text-gray-700">
-                  {day} {activeField === day && showKeyboard && '← Typing here'}
-                </label>
-                <input
-                  ref={day === daysOfWeek[0] ? firstInputRef : null}
-                  type="text"
-                  value={formData[day] || ""}
-                  onChange={(e) => handleChange(day, e.target.value)}
-                  onFocus={() => handleInputFocus(day)}
-                  className={`w-full border border-gray-300 rounded px-2 py-1 mt-1 text-sm ${
-                    activeField === day && showKeyboard ? 'border-blue-500 bg-blue-50' : ''
-                  }`}
-                />
-              </div>
-            ))}
+            {daysOfWeek.map((day, index) => {
+              // Monday-Friday are indices 0-4, Saturday-Sunday are 5-6
+              const isWeekday = index < 5;
+
+              // For weekdays, show simple text display
+              if (isWeekday) {
+                return (
+                  <div key={day} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
+                    <span className="text-sm font-medium text-gray-600">{day}</span>
+                    <span className="text-sm text-gray-800">{getMealName(formData[day])}</span>
+                  </div>
+                );
+              }
+
+              // For weekends, show editable input fields
+              return (
+                <div key={day}>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {day}
+                    {activeField === day && showKeyboard && ' ← Typing here'}
+                  </label>
+                  <input
+                    ref={day === 'Saturday' ? firstInputRef : null}
+                    type="text"
+                    value={typeof formData[day] === 'string' ? formData[day] : (formData[day]?.name || "")}
+                    onChange={(e) => handleChange(day, e.target.value)}
+                    onFocus={() => handleInputFocus(day)}
+                    className={`w-full border rounded px-2 py-1 mt-1 text-sm ${
+                      activeField === day && showKeyboard
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300'
+                    }`}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           <div className="mt-4 flex justify-end gap-2">
