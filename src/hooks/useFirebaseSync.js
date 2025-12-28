@@ -30,12 +30,16 @@ export function useFirebaseSync(path, defaultValue = []) {
           // Handle different data types based on defaultValue
           if (isArrayData) {
             // Optimize array conversion - cache entries and use faster approach
-            const arrayData = Array.isArray(value) ? value : 
+            let arrayData = Array.isArray(value) ? value :
               Object.entries(value).map(([firebaseKey, item]) => ({
                 ...item,
                 firebaseId: firebaseKey,
                 id: item.id || firebaseKey
               }));
+
+            // Filter out null/undefined entries (sparse array handling) and ensure valid items
+            arrayData = arrayData.filter(item => item != null && item.id != null);
+
             setData(arrayData);
             // Cache for offline use
             OfflineStorage.set(offlineKey, arrayData);
@@ -87,26 +91,19 @@ export function useFirebaseSync(path, defaultValue = []) {
   }, [path, isOnline, offlineKey]);
 
   const addItem = useCallback(async (item) => {
-    console.log('🔥 Firebase addItem called with:', item);
-    console.log('🌐 Online status:', isOnline);
-    console.log('📍 Firebase path:', path);
-    
     if (!isOnline) {
-      console.log('📴 Offline mode - adding to local state');
       // Queue for later and update local state
       const tempId = Math.random().toString(36).substr(2, 9);
       const newItem = { ...item, id: tempId, offline: true };
-      
+
       OfflineQueue.add({
         type: 'add',
         path,
         data: item
       });
-      
+
       setData(currentData => {
-        console.log('📋 Current data before add:', currentData);
         const newData = [...currentData, newItem];
-        console.log('📋 New data after add:', newData);
         OfflineStorage.set(offlineKey, newData);
         return newData;
       });
@@ -114,12 +111,10 @@ export function useFirebaseSync(path, defaultValue = []) {
     }
 
     try {
-      console.log('🌐 Online mode - pushing to Firebase');
       const dataRef = ref(database, path);
-      const result = await push(dataRef, item);
-      console.log('✅ Firebase push successful:', result.key);
+      await push(dataRef, item);
     } catch (err) {
-      console.error('❌ Firebase add error:', err);
+      console.error('Firebase add error:', err);
       setError(err);
     }
   }, [path, isOnline, offlineKey]);
@@ -164,7 +159,7 @@ export function useFirebaseSync(path, defaultValue = []) {
         path,
         data: { id }
       });
-      
+
       setData(currentData => {
         const newData = currentData.filter(item => item.id !== id);
         OfflineStorage.set(offlineKey, newData);
@@ -176,12 +171,19 @@ export function useFirebaseSync(path, defaultValue = []) {
     try {
       // Find the item to get its Firebase key
       const item = data.find(item => item.id === id);
+      if (!item) {
+        console.error('Cannot remove - item not found with id:', id);
+        return;
+      }
+
       const firebaseKey = item?.firebaseId || id;
-      
+      console.log('🗑️ Removing from Firebase - ID:', id, 'Firebase key:', firebaseKey, 'Path:', `${path}/${firebaseKey}`);
+
       const itemRef = ref(database, `${path}/${firebaseKey}`);
       await remove(itemRef);
+      console.log('✅ Successfully removed from Firebase');
     } catch (err) {
-      console.error('Firebase remove error:', err);
+      console.error('❌ Firebase remove error:', err);
       setError(err);
     }
   }, [path, data, isOnline, offlineKey]);

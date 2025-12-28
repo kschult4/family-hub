@@ -1,18 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }) {
   const [description, setDescription] = useState("");
-  const [frequency, setFrequency] = useState("");
-  const [recurring, setRecurring] = useState("");
   const [showKeyboard, setShowKeyboard] = useState(false);
   const inputRef = useRef(null);
-  const keyboardRef = useRef(null);
 
   useEffect(() => {
     if (task) {
       setDescription(task.description || "");
-      setFrequency(task.frequency || "");
-      setRecurring(task.recurring ? "true" : "false");
     }
   }, [task]);
 
@@ -35,34 +30,23 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
     }
   }, [isOpen]);
 
-  const handleKeyboardChange = (input) => {
-    setDescription(input);
-  };
-
-  const handleKeyboardKeyPress = (button) => {
-    if (button === '{enter}') {
-      handleSubmit({ preventDefault: () => {} });
-    }
-  };
-
   // ✅ Don't render if not open (but allow rendering if task exists for editing)
   if (!isOpen && !task) return null;
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!description || !frequency || !recurring) return;
+    if (!description.trim()) return;
 
     const newTask = {
-      id: task ? task.id : Date.now(),
-      description,
-      frequency,
-      recurring: recurring === "true",
+      id: task ? task.id : `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      description: description.trim(),
       done: task ? task.done : false,
-      lastCompleted: task ? task.lastCompleted : null,
+      addedAt: task ? task.addedAt : Date.now(),
     };
 
     onSave?.(newTask);
     onClose();
+    setDescription("");
     setShowKeyboard(false);
   }
 
@@ -87,7 +71,7 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block text-sm font-medium mb-1">Task Description</label>
               <input
                 ref={inputRef}
                 type="text"
@@ -99,37 +83,8 @@ export default function AddTaskModal({ isOpen, task, onClose, onSave, onDelete }
                 autoCorrect="on"
                 spellCheck="true"
                 inputMode="text"
-                placeholder="Task description..."
+                placeholder="e.g. Take out trash"
               />
-            </div>
-
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Frequency</label>
-              <select
-                className="w-full border rounded p-2"
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value)}
-              >
-                <option value="">Select...</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Recurring</label>
-              <select
-                className="w-full border rounded p-2"
-                value={recurring}
-                onChange={(e) => setRecurring(e.target.value)}
-              >
-                <option value="">Select...</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
             </div>
 
             <div className="flex justify-between mt-6">

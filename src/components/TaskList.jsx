@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import AddTaskModal from "./AddTaskModal";
 import SectionHeader from "./SectionHeader";
 
@@ -99,127 +99,30 @@ function TaskItem({ task, onToggle, onLongPress, isDeleting, frequencyColor }) {
   );
 }
 
-const frequencies = ["daily", "weekly", "monthly", "quarterly"];
-
-const frequencyColors = {
-  daily: "#69A5D1",
-  weekly: "#B75634",
-  monthly: "#EFB643",
-  quarterly: "#6AA968",
-};
+// All tasks use the same blue color
+const TASK_COLOR = "#69A5D1";
 
 export default function TaskList({ tasks = [], setTasks, addTask, updateTask, removeTask }) {
-  // Initialize with default tasks if no tasks provided
-  const defaultTasks = [
-    {
-      id: 1,
-      description: "Feed Coltrane",
-      frequency: "daily",
-      recurring: true,
-      done: false,
-    },
-    {
-      id: 2,
-      description: "Unload dishwasher",
-      frequency: "daily",
-      recurring: false,
-      done: false,
-    },
-    {
-      id: 3,
-      description: "Take out trash",
-      frequency: "weekly",
-      recurring: true,
-      done: false,
-    },
-    {
-      id: 4,
-      description: "Change air filter",
-      frequency: "monthly",
-      recurring: true,
-      done: false,
-    },
-    // Placeholder quarterly task
-          {
-            id: 5,
-            description: "Clean gutters",
-            frequency: "quarterly",
-            recurring: true,
-            done: false,
-          },
-  ];
-
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [deletedTaskIds, setDeletedTaskIds] = useState([]);
 
-  // Initialize with default tasks if tasks array is empty
-  useEffect(() => {
-    if (tasks.length === 0 && setTasks) {
-      setTasks(defaultTasks);
-    }
-  }, [tasks.length, setTasks, defaultTasks]);
-
-
-  useEffect(() => {
-    if (setTasks && tasks.length > 0) {
-      const updatedTasks = tasks.map((task) => {
-        if (!task.recurring || !task.lastCompleted || !task.done) return task;
-
-        const last = new Date(task.lastCompleted);
-        const now = new Date();
-        const diff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
-        const days = {
-          daily: 1,
-          weekly: 7,
-          monthly: 30,
-          quarterly: 120,
-        }[task.frequency];
-        if (diff >= days)
-          return { ...task, done: false, lastCompleted: null };
-        return task;
-      });
-      
-      // Only update if there were actual changes
-      if (JSON.stringify(updatedTasks) !== JSON.stringify(tasks)) {
-        setTasks(updatedTasks);
-      }
-    }
-  }, [setTasks, tasks]);
-
   function toggleTask(id) {
+    // Find the task to toggle
+    const task = tasks.find(t => t.id === id);
+    if (!task) {
+      console.error('Task not found:', id);
+      return;
+    }
+
+    // Add to deletion animation
     setDeletedTaskIds((prev) => [...prev, id]);
 
+    // After animation, permanently remove from database
     setTimeout(() => {
-      const task = tasks.find(t => t.id === id);
-      if (!task) return;
-
-      const updatedTask = {
-        ...task,
-        done: !task.done,
-        lastCompleted: !task.done ? new Date().toISOString() : null,
-      };
-
-      if (!task.recurring && !task.done) {
-        // Remove non-recurring completed tasks
-        if (removeTask) {
-          removeTask(id);
-        } else if (setTasks) {
-          const updatedTasks = tasks.filter((task) => task.id !== id);
-          setTasks(updatedTasks);
-        }
-      } else {
-        // Update recurring or unchecked tasks
-        if (updateTask) {
-          updateTask(id, updatedTask);
-        } else if (setTasks) {
-          const updatedTasks = tasks.map((task) =>
-            task.id === id ? updatedTask : task
-          );
-          setTasks(updatedTasks);
-        }
+      if (removeTask) {
+        removeTask(id);
       }
-
       setDeletedTaskIds((prev) => prev.filter((tid) => tid !== id));
     }, 300);
   }
@@ -237,35 +140,21 @@ export default function TaskList({ tasks = [], setTasks, addTask, updateTask, re
         />
 
         <div className="bg-white border border-gray-200 rounded-3xl shadow-xl p-6 h-[500px] overflow-y-auto flex flex-col scrollbar-hide">
-          {frequencies.map((group) => {
-            const groupTasks = tasks.filter(
-              (t) => t.frequency === group && !t.done
-            );
-            if (groupTasks.length === 0) return null;
-
-            return (
-              <div key={group} className="mb-block">
-                <h3
-                  className="text-sm font-semibold uppercase tracking-wide mb-2"
-                  style={{ color: frequencyColors[group] }}
-                >
-                  {group}
-                </h3>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {groupTasks.map((task) => (
-                    <TaskItem 
-                      key={task.id} 
-                      task={task} 
-                      onToggle={toggleTask} 
-                      onLongPress={handleLongPress}
-                      isDeleting={deletedTaskIds.includes(task.id)}
-                      frequencyColor={frequencyColors[task.frequency]}
-                    />
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {tasks
+              .filter((t) => !t.done)
+              .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)) // Sort by addedAt, newest first
+              .map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={toggleTask}
+                  onLongPress={handleLongPress}
+                  isDeleting={deletedTaskIds.includes(task.id)}
+                  frequencyColor={TASK_COLOR}
+                />
+              ))}
+          </ul>
         </div>
       </div>
 

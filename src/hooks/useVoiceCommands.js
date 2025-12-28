@@ -202,9 +202,10 @@ export function useVoiceCommands() {
         case 'task':
           if (command.action === 'add' && onAddTask) {
             const newTask = {
-              text: command.task,
-              completed: false,
-              createdAt: new Date().toISOString()
+              id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              description: command.task,
+              done: false,
+              addedAt: Date.now()
             };
             await onAddTask(newTask);
             return {

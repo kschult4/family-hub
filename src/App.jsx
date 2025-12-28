@@ -12,6 +12,14 @@ const MealsModal = lazy(() => import("./components/MealsModal"));
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useIsMobile } from "./hooks/useMediaQuery";
 
+const BACKGROUND_PATTERNS = [
+  "/watermarks/Bowl.svg",
+  "/watermarks/Cheese.svg",
+  "/watermarks/Lemons.svg",
+  "/watermarks/Lettuce.svg",
+  "/watermarks/Strawberries.svg"
+];
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState("ALERTS");
   const isMobile = useIsMobile();
@@ -43,15 +51,9 @@ export default function App() {
 
   // Handler to add a grocery item from modal
   const handleSaveGrocery = (newItem) => {
-    console.log('📦 handleSaveGrocery called with:', newItem);
-    console.log('🔧 addGroceryItem function available:', !!addGroceryItem);
-    console.log('📋 Current grocery items count:', groceryItems?.length || 0);
-    
     if (addGroceryItem) {
-      console.log('🚀 Using Firebase addGroceryItem');
       addGroceryItem(newItem);
     } else {
-      console.log('💾 Using fallback setGroceryItems');
       // Fallback for when Firebase isn't available
       setGroceryItems([newItem, ...groceryItems]);
     }
@@ -71,6 +73,47 @@ export default function App() {
   const handleSaveMeals = (mealsData) => {
     setMeals(mealsData);
   };
+
+  // Migration effect: Fix special items missing bgPattern (legacy data)
+  useEffect(() => {
+    if (groceryLoading || !groceryItems || groceryItems.length === 0) return;
+
+    const itemsNeedingFix = groceryItems.filter(item =>
+      item.special && item.bgColor && !item.bgPattern
+    );
+
+    if (itemsNeedingFix.length > 0) {
+      // Fix each item by assigning a random bgPattern
+      itemsNeedingFix.forEach(item => {
+        const bgPattern = BACKGROUND_PATTERNS[Math.floor(Math.random() * BACKGROUND_PATTERNS.length)];
+        if (updateGroceryItem) {
+          updateGroceryItem(item.id, { bgPattern });
+        }
+      });
+    }
+  }, [groceryItems, groceryLoading, updateGroceryItem]);
+
+  // Migration effect: Add addedAt timestamp to tasks missing it (run once on mount)
+  useEffect(() => {
+    if (tasksLoading || !tasks || tasks.length === 0) return;
+
+    const tasksNeedingFix = tasks.filter(task =>
+      task && task.id && task.description && !task.addedAt
+    );
+
+    if (tasksNeedingFix.length > 0) {
+      // Add addedAt timestamp to each task (using current time as fallback)
+      tasksNeedingFix.forEach((task, index) => {
+        // Stagger timestamps slightly to maintain some ordering
+        const addedAt = Date.now() - (tasksNeedingFix.length - index) * 1000;
+        if (updateTask) {
+          updateTask(task.id, { addedAt });
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasksLoading]); // Only run when loading changes, not when tasks change
+
 
 
   return (
