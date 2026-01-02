@@ -22,6 +22,7 @@ export default function Header() {
   const time = now.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
 
   return (

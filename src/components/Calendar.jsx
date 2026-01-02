@@ -186,9 +186,11 @@ export default function Calendar() {
                       <p className="text-base text-gray-500 italic">No events</p>
                     ) : (
                       events.map((event) => {
-                        const startTime = new Date(
-                          `${date.toDateString()} ${event.time}`
-                        );
+                        const isAllDay = event.time === "All day";
+                        const startTime = isAllDay
+                          ? new Date(date)
+                          : new Date(`${date.toDateString()} ${event.time}`);
+                        if (isAllDay) startTime.setHours(0, 0, 0, 0);
                         const endTime = new Date(startTime);
                         endTime.setMinutes(endTime.getMinutes() + event.duration);
 
@@ -208,7 +210,9 @@ export default function Calendar() {
                               </div>
                             </div>
                             <div className="text-sm">
-                              {event.time} | {event.formattedDuration}
+                              {isAllDay
+                                ? "All day"
+                                : `${event.time} | ${event.formattedDuration}`}
                             </div>
                           </div>
                         );

@@ -58,30 +58,49 @@ class GoogleCalendarService {
 
   formatEvents(events) {
     return events.map(event => {
+      const isAllDay = Boolean(event.start?.date && !event.start?.dateTime);
       const start = event.start?.dateTime || event.start?.date;
       const end = event.end?.dateTime || event.end?.date;
       
       let startTime = '';
       let duration = 60; // Default 1 hour
       let formattedDuration = '1h';
+      let eventDate = null;
+
+      const parseEventDate = (value, dateOnly) => {
+        if (!value) return null;
+        if (!dateOnly) return new Date(value);
+        const [year, month, day] = value.split('-').map(Number);
+        if (!year || !month || !day) return new Date(value);
+        return new Date(year, month - 1, day);
+      };
 
       if (start) {
-        const startDate = new Date(start);
-        startTime = startDate.toLocaleTimeString([], { 
-          hour: 'numeric', 
-          minute: '2-digit' 
-        });
+        const startDate = parseEventDate(start, isAllDay);
+        eventDate = startDate;
 
-        if (end) {
-          const endDate = new Date(end);
-          duration = Math.round((endDate - startDate) / (1000 * 60)); // minutes
-          
-          if (duration >= 60) {
-            const hours = Math.floor(duration / 60);
-            const minutes = duration % 60;
-            formattedDuration = minutes > 0 ? `${hours}h${minutes}` : `${hours}h`;
-          } else {
-            formattedDuration = `${duration} minutes`;
+        if (isAllDay) {
+          startTime = 'All day';
+          duration = 24 * 60;
+          formattedDuration = 'All day';
+        } else {
+          startTime = startDate.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+
+          if (end) {
+            const endDate = parseEventDate(end, false);
+            duration = Math.round((endDate - startDate) / (1000 * 60)); // minutes
+            
+            if (duration >= 60) {
+              const hours = Math.floor(duration / 60);
+              const minutes = duration % 60;
+              formattedDuration = minutes > 0 ? `${hours}h${minutes}` : `${hours}h`;
+            } else {
+              formattedDuration = `${duration} minutes`;
+            }
           }
         }
       }
@@ -92,7 +111,7 @@ class GoogleCalendarService {
         time: startTime,
         duration,
         formattedDuration,
-        date: start ? new Date(start) : new Date(),
+        date: eventDate || new Date(),
         location: event.location,
         description: event.description,
       };
